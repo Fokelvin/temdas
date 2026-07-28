@@ -12,15 +12,15 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
 import 'package:serverpod/protocol.dart' as _i2;
-import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i3;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i4;
-import 'demandas/demanda.dart' as _i5;
-import 'demandas/demanda_status.dart' as _i6;
-import 'demandas/prioridade.dart' as _i7;
-import 'greetings/greeting.dart' as _i8;
+import 'demandas/demanda.dart' as _i3;
+import 'demandas/demanda_create_request.dart' as _i4;
+import 'demandas/demanda_status.dart' as _i5;
+import 'demandas/prioridade.dart' as _i6;
+import 'greetings/greeting.dart' as _i7;
+import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
+    as _i8;
 export 'demandas/demanda.dart';
+export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
@@ -131,8 +131,6 @@ class Protocol extends _i1.SerializationManagerServer {
       ],
       managed: true,
     ),
-    ..._i3.Protocol.targetTableDefinitions,
-    ..._i4.Protocol.targetTableDefinitions,
     ..._i2.Protocol.targetTableDefinitions,
   ];
 
@@ -163,36 +161,41 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
 
-    if (t == _i5.Demanda) {
-      return _i5.Demanda.fromJson(data) as T;
+    if (t == _i3.Demanda) {
+      return _i3.Demanda.fromJson(data) as T;
     }
-    if (t == _i6.DemandaStatus) {
-      return _i6.DemandaStatus.fromJson(data) as T;
+    if (t == _i4.DemandaCreateRequest) {
+      return _i4.DemandaCreateRequest.fromJson(data) as T;
     }
-    if (t == _i7.Prioridade) {
-      return _i7.Prioridade.fromJson(data) as T;
+    if (t == _i5.DemandaStatus) {
+      return _i5.DemandaStatus.fromJson(data) as T;
     }
-    if (t == _i8.Greeting) {
-      return _i8.Greeting.fromJson(data) as T;
+    if (t == _i6.Prioridade) {
+      return _i6.Prioridade.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.Demanda?>()) {
-      return (data != null ? _i5.Demanda.fromJson(data) : null) as T;
+    if (t == _i7.Greeting) {
+      return _i7.Greeting.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i6.DemandaStatus?>()) {
-      return (data != null ? _i6.DemandaStatus.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i3.Demanda?>()) {
+      return (data != null ? _i3.Demanda.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.Prioridade?>()) {
-      return (data != null ? _i7.Prioridade.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i4.DemandaCreateRequest?>()) {
+      return (data != null ? _i4.DemandaCreateRequest.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i8.Greeting?>()) {
-      return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.DemandaStatus?>()) {
+      return (data != null ? _i5.DemandaStatus.fromJson(data) : null) as T;
     }
-    try {
-      return _i3.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _i4.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
+    if (t == _i1.getType<_i6.Prioridade?>()) {
+      return (data != null ? _i6.Prioridade.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i7.Greeting?>()) {
+      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i8.Demanda>) {
+      return (data as List).map((e) => deserialize<_i8.Demanda>(e)).toList()
+          as T;
+    }
     try {
       return _i2.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
@@ -201,10 +204,11 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.Demanda => 'Demanda',
-      _i6.DemandaStatus => 'DemandaStatus',
-      _i7.Prioridade => 'Prioridade',
-      _i8.Greeting => 'Greeting',
+      _i3.Demanda => 'Demanda',
+      _i4.DemandaCreateRequest => 'DemandaCreateRequest',
+      _i5.DemandaStatus => 'DemandaStatus',
+      _i6.Prioridade => 'Prioridade',
+      _i7.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -222,26 +226,20 @@ class Protocol extends _i1.SerializationManagerServer {
     }
 
     switch (data) {
-      case _i5.Demanda():
+      case _i3.Demanda():
         return 'Demanda';
-      case _i6.DemandaStatus():
+      case _i4.DemandaCreateRequest():
+        return 'DemandaCreateRequest';
+      case _i5.DemandaStatus():
         return 'DemandaStatus';
-      case _i7.Prioridade():
+      case _i6.Prioridade():
         return 'Prioridade';
-      case _i8.Greeting():
+      case _i7.Greeting():
         return 'Greeting';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod.$className';
-    }
-    className = _i3.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_idp.$className';
-    }
-    className = _i4.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_core.$className';
     }
     return null;
   }
@@ -253,28 +251,23 @@ class Protocol extends _i1.SerializationManagerServer {
       return super.deserializeByClassName(data);
     }
     if (dataClassName == 'Demanda') {
-      return deserialize<_i5.Demanda>(data['data']);
+      return deserialize<_i3.Demanda>(data['data']);
+    }
+    if (dataClassName == 'DemandaCreateRequest') {
+      return deserialize<_i4.DemandaCreateRequest>(data['data']);
     }
     if (dataClassName == 'DemandaStatus') {
-      return deserialize<_i6.DemandaStatus>(data['data']);
+      return deserialize<_i5.DemandaStatus>(data['data']);
     }
     if (dataClassName == 'Prioridade') {
-      return deserialize<_i7.Prioridade>(data['data']);
+      return deserialize<_i6.Prioridade>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i8.Greeting>(data['data']);
+      return deserialize<_i7.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
-    }
-    if (dataClassName.startsWith('serverpod_auth_idp.')) {
-      data['className'] = dataClassName.substring(19);
-      return _i3.Protocol().deserializeByClassName(data);
-    }
-    if (dataClassName.startsWith('serverpod_auth_core.')) {
-      data['className'] = dataClassName.substring(20);
-      return _i4.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -282,26 +275,14 @@ class Protocol extends _i1.SerializationManagerServer {
   @override
   _i1.Table? getTableForType(Type t) {
     {
-      var table = _i3.Protocol().getTableForType(t);
-      if (table != null) {
-        return table;
-      }
-    }
-    {
-      var table = _i4.Protocol().getTableForType(t);
-      if (table != null) {
-        return table;
-      }
-    }
-    {
       var table = _i2.Protocol().getTableForType(t);
       if (table != null) {
         return table;
       }
     }
     switch (t) {
-      case _i5.Demanda:
-        return _i5.Demanda.t;
+      case _i3.Demanda:
+        return _i3.Demanda.t;
     }
     return null;
   }
@@ -323,10 +304,7 @@ class Protocol extends _i1.SerializationManagerServer {
       return null;
     }
     try {
-      return _i3.Protocol().mapRecordToJson(record);
-    } catch (_) {}
-    try {
-      return _i4.Protocol().mapRecordToJson(record);
+      return _i2.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

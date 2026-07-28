@@ -12,14 +12,14 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'demandas/demanda.dart' as _i2;
-import 'demandas/demanda_status.dart' as _i3;
-import 'demandas/prioridade.dart' as _i4;
-import 'greetings/greeting.dart' as _i5;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i6;
-import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+import 'demandas/demanda_create_request.dart' as _i3;
+import 'demandas/demanda_status.dart' as _i4;
+import 'demandas/prioridade.dart' as _i5;
+import 'greetings/greeting.dart' as _i6;
+import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
     as _i7;
 export 'demandas/demanda.dart';
+export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
@@ -62,42 +62,48 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i2.Demanda) {
       return _i2.Demanda.fromJson(data) as T;
     }
-    if (t == _i3.DemandaStatus) {
-      return _i3.DemandaStatus.fromJson(data) as T;
+    if (t == _i3.DemandaCreateRequest) {
+      return _i3.DemandaCreateRequest.fromJson(data) as T;
     }
-    if (t == _i4.Prioridade) {
-      return _i4.Prioridade.fromJson(data) as T;
+    if (t == _i4.DemandaStatus) {
+      return _i4.DemandaStatus.fromJson(data) as T;
     }
-    if (t == _i5.Greeting) {
-      return _i5.Greeting.fromJson(data) as T;
+    if (t == _i5.Prioridade) {
+      return _i5.Prioridade.fromJson(data) as T;
+    }
+    if (t == _i6.Greeting) {
+      return _i6.Greeting.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i3.DemandaStatus?>()) {
-      return (data != null ? _i3.DemandaStatus.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i3.DemandaCreateRequest?>()) {
+      return (data != null ? _i3.DemandaCreateRequest.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i4.Prioridade?>()) {
-      return (data != null ? _i4.Prioridade.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i4.DemandaStatus?>()) {
+      return (data != null ? _i4.DemandaStatus.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i5.Greeting?>()) {
-      return (data != null ? _i5.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.Prioridade?>()) {
+      return (data != null ? _i5.Prioridade.fromJson(data) : null) as T;
     }
-    try {
-      return _i6.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _i7.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
+    if (t == _i1.getType<_i6.Greeting?>()) {
+      return (data != null ? _i6.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i7.Demanda>) {
+      return (data as List).map((e) => deserialize<_i7.Demanda>(e)).toList()
+          as T;
+    }
     return super.deserialize<T>(data, t);
   }
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
       _i2.Demanda => 'Demanda',
-      _i3.DemandaStatus => 'DemandaStatus',
-      _i4.Prioridade => 'Prioridade',
-      _i5.Greeting => 'Greeting',
+      _i3.DemandaCreateRequest => 'DemandaCreateRequest',
+      _i4.DemandaStatus => 'DemandaStatus',
+      _i5.Prioridade => 'Prioridade',
+      _i6.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -117,20 +123,14 @@ class Protocol extends _i1.SerializationManager {
     switch (data) {
       case _i2.Demanda():
         return 'Demanda';
-      case _i3.DemandaStatus():
+      case _i3.DemandaCreateRequest():
+        return 'DemandaCreateRequest';
+      case _i4.DemandaStatus():
         return 'DemandaStatus';
-      case _i4.Prioridade():
+      case _i5.Prioridade():
         return 'Prioridade';
-      case _i5.Greeting():
+      case _i6.Greeting():
         return 'Greeting';
-    }
-    className = _i6.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_idp.$className';
-    }
-    className = _i7.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_core.$className';
     }
     return null;
   }
@@ -144,22 +144,17 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'Demanda') {
       return deserialize<_i2.Demanda>(data['data']);
     }
+    if (dataClassName == 'DemandaCreateRequest') {
+      return deserialize<_i3.DemandaCreateRequest>(data['data']);
+    }
     if (dataClassName == 'DemandaStatus') {
-      return deserialize<_i3.DemandaStatus>(data['data']);
+      return deserialize<_i4.DemandaStatus>(data['data']);
     }
     if (dataClassName == 'Prioridade') {
-      return deserialize<_i4.Prioridade>(data['data']);
+      return deserialize<_i5.Prioridade>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i5.Greeting>(data['data']);
-    }
-    if (dataClassName.startsWith('serverpod_auth_idp.')) {
-      data['className'] = dataClassName.substring(19);
-      return _i6.Protocol().deserializeByClassName(data);
-    }
-    if (dataClassName.startsWith('serverpod_auth_core.')) {
-      data['className'] = dataClassName.substring(20);
-      return _i7.Protocol().deserializeByClassName(data);
+      return deserialize<_i6.Greeting>(data['data']);
     }
     return super.deserializeByClassName(data);
   }
@@ -173,12 +168,6 @@ class Protocol extends _i1.SerializationManager {
     if (record == null) {
       return null;
     }
-    try {
-      return _i6.Protocol().mapRecordToJson(record);
-    } catch (_) {}
-    try {
-      return _i7.Protocol().mapRecordToJson(record);
-    } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }
 }

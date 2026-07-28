@@ -1,0 +1,8 @@
+class: DemandaCreateRequest
+fields:
+  titulo: String
+  descricao: String?
+  prioridade: Prioridade?
+  sprint: String?
+  tempoEstimadoMinutos: int
+  observacoes: String?
