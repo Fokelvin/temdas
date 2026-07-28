@@ -16,7 +16,13 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'greetings/greeting.dart' as _i5;
+import 'demandas/demanda.dart' as _i5;
+import 'demandas/demanda_status.dart' as _i6;
+import 'demandas/prioridade.dart' as _i7;
+import 'greetings/greeting.dart' as _i8;
+export 'demandas/demanda.dart';
+export 'demandas/demanda_status.dart';
+export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
@@ -27,6 +33,104 @@ class Protocol extends _i1.SerializationManagerServer {
   static final Protocol _instance = Protocol._();
 
   static final List<_i2.TableDefinition> targetTableDefinitions = [
+    _i2.TableDefinition(
+      name: 'demandas',
+      dartName: 'Demanda',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'demandas_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'titulo',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'descricao',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'status',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:DemandaStatus',
+        ),
+        _i2.ColumnDefinition(
+          name: 'prioridade',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:Prioridade',
+        ),
+        _i2.ColumnDefinition(
+          name: 'sprint',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'tempoEstimadoMinutos',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'tempoExecutadoMinutos',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'observacoes',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'criadoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'atualizadoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'concluidoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'demandas_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
     ..._i3.Protocol.targetTableDefinitions,
     ..._i4.Protocol.targetTableDefinitions,
     ..._i2.Protocol.targetTableDefinitions,
@@ -59,11 +163,29 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
 
-    if (t == _i5.Greeting) {
-      return _i5.Greeting.fromJson(data) as T;
+    if (t == _i5.Demanda) {
+      return _i5.Demanda.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.Greeting?>()) {
-      return (data != null ? _i5.Greeting.fromJson(data) : null) as T;
+    if (t == _i6.DemandaStatus) {
+      return _i6.DemandaStatus.fromJson(data) as T;
+    }
+    if (t == _i7.Prioridade) {
+      return _i7.Prioridade.fromJson(data) as T;
+    }
+    if (t == _i8.Greeting) {
+      return _i8.Greeting.fromJson(data) as T;
+    }
+    if (t == _i1.getType<_i5.Demanda?>()) {
+      return (data != null ? _i5.Demanda.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i6.DemandaStatus?>()) {
+      return (data != null ? _i6.DemandaStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i7.Prioridade?>()) {
+      return (data != null ? _i7.Prioridade.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i8.Greeting?>()) {
+      return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -79,7 +201,10 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.Greeting => 'Greeting',
+      _i5.Demanda => 'Demanda',
+      _i6.DemandaStatus => 'DemandaStatus',
+      _i7.Prioridade => 'Prioridade',
+      _i8.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -97,7 +222,13 @@ class Protocol extends _i1.SerializationManagerServer {
     }
 
     switch (data) {
-      case _i5.Greeting():
+      case _i5.Demanda():
+        return 'Demanda';
+      case _i6.DemandaStatus():
+        return 'DemandaStatus';
+      case _i7.Prioridade():
+        return 'Prioridade';
+      case _i8.Greeting():
         return 'Greeting';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -121,8 +252,17 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'Demanda') {
+      return deserialize<_i5.Demanda>(data['data']);
+    }
+    if (dataClassName == 'DemandaStatus') {
+      return deserialize<_i6.DemandaStatus>(data['data']);
+    }
+    if (dataClassName == 'Prioridade') {
+      return deserialize<_i7.Prioridade>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i5.Greeting>(data['data']);
+      return deserialize<_i8.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -158,6 +298,10 @@ class Protocol extends _i1.SerializationManagerServer {
       if (table != null) {
         return table;
       }
+    }
+    switch (t) {
+      case _i5.Demanda:
+        return _i5.Demanda.t;
     }
     return null;
   }

@@ -1,0 +1,8 @@
+enum: Prioridade
+serialized: byName
+default: media
+values:
+  - baixa
+  - media
+  - alta
+  - urgente

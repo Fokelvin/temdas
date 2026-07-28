@@ -1,0 +1,9 @@
+enum: DemandaStatus
+serialized: byName
+default: aberta
+values:
+  - aberta
+  - emAndamento
+  - pausada
+  - concluida
+  - cancelada
