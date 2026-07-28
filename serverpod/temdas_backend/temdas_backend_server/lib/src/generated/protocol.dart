@@ -15,13 +15,15 @@ import 'package:serverpod/protocol.dart' as _i2;
 import 'demandas/demanda.dart' as _i3;
 import 'demandas/demanda_create_request.dart' as _i4;
 import 'demandas/demanda_status.dart' as _i5;
-import 'demandas/prioridade.dart' as _i6;
-import 'greetings/greeting.dart' as _i7;
+import 'demandas/demanda_update_request.dart' as _i6;
+import 'demandas/prioridade.dart' as _i7;
+import 'greetings/greeting.dart' as _i8;
 import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
-    as _i8;
+    as _i9;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
+export 'demandas/demanda_update_request.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
 
@@ -170,11 +172,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i5.DemandaStatus) {
       return _i5.DemandaStatus.fromJson(data) as T;
     }
-    if (t == _i6.Prioridade) {
-      return _i6.Prioridade.fromJson(data) as T;
+    if (t == _i6.DemandaUpdateRequest) {
+      return _i6.DemandaUpdateRequest.fromJson(data) as T;
     }
-    if (t == _i7.Greeting) {
-      return _i7.Greeting.fromJson(data) as T;
+    if (t == _i7.Prioridade) {
+      return _i7.Prioridade.fromJson(data) as T;
+    }
+    if (t == _i8.Greeting) {
+      return _i8.Greeting.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.Demanda?>()) {
       return (data != null ? _i3.Demanda.fromJson(data) : null) as T;
@@ -186,14 +191,18 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i5.DemandaStatus?>()) {
       return (data != null ? _i5.DemandaStatus.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i6.Prioridade?>()) {
-      return (data != null ? _i6.Prioridade.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.DemandaUpdateRequest?>()) {
+      return (data != null ? _i6.DemandaUpdateRequest.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i7.Greeting?>()) {
-      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i7.Prioridade?>()) {
+      return (data != null ? _i7.Prioridade.fromJson(data) : null) as T;
     }
-    if (t == List<_i8.Demanda>) {
-      return (data as List).map((e) => deserialize<_i8.Demanda>(e)).toList()
+    if (t == _i1.getType<_i8.Greeting?>()) {
+      return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i9.Demanda>) {
+      return (data as List).map((e) => deserialize<_i9.Demanda>(e)).toList()
           as T;
     }
     try {
@@ -207,8 +216,9 @@ class Protocol extends _i1.SerializationManagerServer {
       _i3.Demanda => 'Demanda',
       _i4.DemandaCreateRequest => 'DemandaCreateRequest',
       _i5.DemandaStatus => 'DemandaStatus',
-      _i6.Prioridade => 'Prioridade',
-      _i7.Greeting => 'Greeting',
+      _i6.DemandaUpdateRequest => 'DemandaUpdateRequest',
+      _i7.Prioridade => 'Prioridade',
+      _i8.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -232,9 +242,11 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'DemandaCreateRequest';
       case _i5.DemandaStatus():
         return 'DemandaStatus';
-      case _i6.Prioridade():
+      case _i6.DemandaUpdateRequest():
+        return 'DemandaUpdateRequest';
+      case _i7.Prioridade():
         return 'Prioridade';
-      case _i7.Greeting():
+      case _i8.Greeting():
         return 'Greeting';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -259,11 +271,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'DemandaStatus') {
       return deserialize<_i5.DemandaStatus>(data['data']);
     }
+    if (dataClassName == 'DemandaUpdateRequest') {
+      return deserialize<_i6.DemandaUpdateRequest>(data['data']);
+    }
     if (dataClassName == 'Prioridade') {
-      return deserialize<_i6.Prioridade>(data['data']);
+      return deserialize<_i7.Prioridade>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i7.Greeting>(data['data']);
+      return deserialize<_i8.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);

@@ -16,9 +16,11 @@ import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
     as _i3;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda_create_request.dart'
     as _i4;
-import 'package:temdas_backend_client/src/protocol/greetings/greeting.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda_update_request.dart'
     as _i5;
-import 'protocol.dart' as _i6;
+import 'package:temdas_backend_client/src/protocol/greetings/greeting.dart'
+    as _i6;
+import 'protocol.dart' as _i7;
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -40,6 +42,26 @@ class EndpointDemanda extends _i1.EndpointRef {
         'listarDemandas',
         {},
       );
+
+  _i2.Future<_i3.Demanda?> buscarDemandaPorId(int id) =>
+      caller.callServerEndpoint<_i3.Demanda?>(
+        'demanda',
+        'buscarDemandaPorId',
+        {'id': id},
+      );
+
+  _i2.Future<_i3.Demanda> atualizarDemanda(_i5.DemandaUpdateRequest request) =>
+      caller.callServerEndpoint<_i3.Demanda>(
+        'demanda',
+        'atualizarDemanda',
+        {'request': request},
+      );
+
+  _i2.Future<bool> excluirDemanda(int id) => caller.callServerEndpoint<bool>(
+    'demanda',
+    'excluirDemanda',
+    {'id': id},
+  );
 }
 
 /// This is an example endpoint that returns a greeting message through
@@ -52,8 +74,8 @@ class EndpointGreeting extends _i1.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i5.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i5.Greeting>(
+  _i2.Future<_i6.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i6.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -80,7 +102,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i6.Protocol(),
+         _i7.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

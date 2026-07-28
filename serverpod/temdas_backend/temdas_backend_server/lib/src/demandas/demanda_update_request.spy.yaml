@@ -1,0 +1,10 @@
+class: DemandaUpdateRequest
+fields:
+  id: int
+  titulo: String
+  descricao: String?
+  status: DemandaStatus
+  prioridade: Prioridade
+  sprint: String?
+  tempoEstimadoMinutos: int
+  observacoes: String?

@@ -14,13 +14,15 @@ import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'demandas/demanda.dart' as _i2;
 import 'demandas/demanda_create_request.dart' as _i3;
 import 'demandas/demanda_status.dart' as _i4;
-import 'demandas/prioridade.dart' as _i5;
-import 'greetings/greeting.dart' as _i6;
+import 'demandas/demanda_update_request.dart' as _i5;
+import 'demandas/prioridade.dart' as _i6;
+import 'greetings/greeting.dart' as _i7;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i7;
+    as _i8;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
+export 'demandas/demanda_update_request.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
 export 'client.dart';
@@ -68,11 +70,14 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i4.DemandaStatus) {
       return _i4.DemandaStatus.fromJson(data) as T;
     }
-    if (t == _i5.Prioridade) {
-      return _i5.Prioridade.fromJson(data) as T;
+    if (t == _i5.DemandaUpdateRequest) {
+      return _i5.DemandaUpdateRequest.fromJson(data) as T;
     }
-    if (t == _i6.Greeting) {
-      return _i6.Greeting.fromJson(data) as T;
+    if (t == _i6.Prioridade) {
+      return _i6.Prioridade.fromJson(data) as T;
+    }
+    if (t == _i7.Greeting) {
+      return _i7.Greeting.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
@@ -84,14 +89,18 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i4.DemandaStatus?>()) {
       return (data != null ? _i4.DemandaStatus.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i5.Prioridade?>()) {
-      return (data != null ? _i5.Prioridade.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.DemandaUpdateRequest?>()) {
+      return (data != null ? _i5.DemandaUpdateRequest.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i6.Greeting?>()) {
-      return (data != null ? _i6.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.Prioridade?>()) {
+      return (data != null ? _i6.Prioridade.fromJson(data) : null) as T;
     }
-    if (t == List<_i7.Demanda>) {
-      return (data as List).map((e) => deserialize<_i7.Demanda>(e)).toList()
+    if (t == _i1.getType<_i7.Greeting?>()) {
+      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i8.Demanda>) {
+      return (data as List).map((e) => deserialize<_i8.Demanda>(e)).toList()
           as T;
     }
     return super.deserialize<T>(data, t);
@@ -102,8 +111,9 @@ class Protocol extends _i1.SerializationManager {
       _i2.Demanda => 'Demanda',
       _i3.DemandaCreateRequest => 'DemandaCreateRequest',
       _i4.DemandaStatus => 'DemandaStatus',
-      _i5.Prioridade => 'Prioridade',
-      _i6.Greeting => 'Greeting',
+      _i5.DemandaUpdateRequest => 'DemandaUpdateRequest',
+      _i6.Prioridade => 'Prioridade',
+      _i7.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -127,9 +137,11 @@ class Protocol extends _i1.SerializationManager {
         return 'DemandaCreateRequest';
       case _i4.DemandaStatus():
         return 'DemandaStatus';
-      case _i5.Prioridade():
+      case _i5.DemandaUpdateRequest():
+        return 'DemandaUpdateRequest';
+      case _i6.Prioridade():
         return 'Prioridade';
-      case _i6.Greeting():
+      case _i7.Greeting():
         return 'Greeting';
     }
     return null;
@@ -150,11 +162,14 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'DemandaStatus') {
       return deserialize<_i4.DemandaStatus>(data['data']);
     }
+    if (dataClassName == 'DemandaUpdateRequest') {
+      return deserialize<_i5.DemandaUpdateRequest>(data['data']);
+    }
     if (dataClassName == 'Prioridade') {
-      return deserialize<_i5.Prioridade>(data['data']);
+      return deserialize<_i6.Prioridade>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i6.Greeting>(data['data']);
+      return deserialize<_i7.Greeting>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

@@ -1,5 +1,8 @@
 demanda:
   - criarDemanda:
   - listarDemandas:
+  - buscarDemandaPorId:
+  - atualizarDemanda:
+  - excluirDemanda:
 greeting:
   - hello:

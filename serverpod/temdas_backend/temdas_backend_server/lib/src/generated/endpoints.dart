@@ -15,6 +15,8 @@ import '../demandas/demanda_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i4;
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+    as _i5;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -65,6 +67,63 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
                   .listarDemandas(session),
+        ),
+        'buscarDemandaPorId': _i1.MethodConnector(
+          name: 'buscarDemandaPorId',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+                  .buscarDemandaPorId(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'atualizarDemanda': _i1.MethodConnector(
+          name: 'atualizarDemanda',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i5.DemandaUpdateRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+                  .atualizarDemanda(
+                    session,
+                    params['request'],
+                  ),
+        ),
+        'excluirDemanda': _i1.MethodConnector(
+          name: 'excluirDemanda',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['demanda'] as _i2.DemandaEndpoint).excluirDemanda(
+                    session,
+                    params['id'],
+                  ),
         ),
       },
     );
