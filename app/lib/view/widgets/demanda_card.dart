@@ -13,8 +13,9 @@ class DemandaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ExpansionTile(
+    return SelectionArea(
+      child: Card(
+        child: ExpansionTile(
         title: Text(
           demanda.titulo,
           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -22,7 +23,7 @@ class DemandaCard extends StatelessWidget {
         subtitle: Text(
           '${_statusLabel(demanda.status)} • '
           '${_prioridadeLabel(demanda.prioridade)} • '
-          '${demanda.tempoEstimadoMinutos} min',
+          '${_minutosParaHoras(demanda.tempoEstimadoMinutos)} h',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -41,11 +42,11 @@ class DemandaCard extends StatelessWidget {
           ),
           _Campo(
             titulo: 'Tempo estimado',
-            valor: '${demanda.tempoEstimadoMinutos} minutos',
+            valor: '${_minutosParaHoras(demanda.tempoEstimadoMinutos)} h',
           ),
           _Campo(
             titulo: 'Tempo executado',
-            valor: '${demanda.tempoExecutadoMinutos} minutos',
+            valor: '${_minutosParaHoras(demanda.tempoExecutadoMinutos)} h',
           ),
           _Campo(
             titulo: 'Observações',
@@ -62,8 +63,13 @@ class DemandaCard extends StatelessWidget {
             ),
           ],
         ],
+        ),
       ),
     );
+  }
+
+  double _minutosParaHoras(int minutos) {
+    return minutos / 60;
   }
 
   String _statusLabel(backend.DemandaStatus status) {

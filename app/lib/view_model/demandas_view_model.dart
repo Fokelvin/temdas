@@ -40,7 +40,9 @@ class DemandasViewModel extends ChangeNotifier {
 
   Future<bool> criarDemanda({
     required String titulo,
-    required int tempoEstimadoMinutos,
+    required double tempoEstimadoHoras,
+    String? descricao,
+    backend.Prioridade? prioridade,
   }) async {
     if (_enviando) return false;
 
@@ -49,9 +51,13 @@ class DemandasViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final tempoEstimadoMinutos = (tempoEstimadoHoras * 60).round();
+
       _demandaCriada = await _repository.criarDemanda(
         titulo: titulo,
         tempoEstimadoMinutos: tempoEstimadoMinutos,
+        descricao: descricao,
+        prioridade: prioridade,
       );
 
       return true;

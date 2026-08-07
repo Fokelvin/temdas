@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
 import '../view_model/demandas_view_model.dart';
@@ -15,8 +16,11 @@ class DemandasPage extends StatefulWidget {
 class _DemandasPageState extends State<DemandasPage> {
   final _formKey = GlobalKey<FormState>();
   final _tituloController = TextEditingController();
-  final _tempoController = TextEditingController(text: '60');
+  final _descricaoController = TextEditingController();
+  final _tempoController = TextEditingController(text: '1');
   final _viewModel = DemandasViewModel();
+
+  backend.Prioridade _prioridade = backend.Prioridade.media;
 
   @override
   void initState() {
@@ -27,6 +31,7 @@ class _DemandasPageState extends State<DemandasPage> {
   @override
   void dispose() {
     _tituloController.dispose();
+    _descricaoController.dispose();
     _tempoController.dispose();
     _viewModel.dispose();
     super.dispose();
@@ -37,9 +42,15 @@ class _DemandasPageState extends State<DemandasPage> {
       return;
     }
 
+    final descricao = _descricaoController.text.trim();
+
     final criada = await _viewModel.criarDemanda(
       titulo: _tituloController.text.trim(),
-      tempoEstimadoMinutos: int.parse(_tempoController.text),
+      tempoEstimadoHoras: double.parse(
+        _tempoController.text.replaceAll(',', '.'),
+      ),
+      descricao: descricao.isEmpty ? null : descricao,
+      prioridade: _prioridade,
     );
 
     if (criada) {
@@ -91,16 +102,59 @@ class _DemandasPageState extends State<DemandasPage> {
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
-                              controller: _tempoController,
-                              keyboardType: TextInputType.number,
+                              controller: _descricaoController,
+                              maxLines: 3,
                               decoration: const InputDecoration(
-                                labelText: 'Tempo estimado em minutos',
+                                labelText: 'Descrição',
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<backend.Prioridade>(
+                              initialValue: _prioridade,
+                              decoration: const InputDecoration(
+                                labelText: 'Prioridade',
+                              ),
+                              items: backend.Prioridade.values
+                                  .map(
+                                    (prioridade) => DropdownMenuItem(
+                                      value: prioridade,
+                                      child: Text(
+                                        switch (prioridade) {
+                                          backend.Prioridade.baixa => 'Baixa',
+                                          backend.Prioridade.media => 'Média',
+                                          backend.Prioridade.alta => 'Alta',
+                                          backend.Prioridade.urgente => 'Urgente',
+                                        },
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _prioridade = value);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _tempoController,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Tempo estimado (horas)',
                               ),
                               validator: (value) {
-                                final minutos = int.tryParse(value ?? '');
+                                final horas = double.tryParse(
+                                  (value ?? '').replaceAll(',', '.'),
+                                );
 
-                                if (minutos == null) {
-                                  return 'Informe um número inteiro.';
+                                if (horas == null || horas <= 0) {
+                                  return 'Informe um tempo válido.';
+                                }
+
+                                if ((horas * 2).roundToDouble() != horas * 2) {
+                                  return 'Use intervalos de 0,5 hora.';
                                 }
 
                                 return null;
