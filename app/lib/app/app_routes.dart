@@ -17,7 +17,7 @@ abstract final class AppRoutes {
     final page = switch (settings.name) {
       sprint => SprintPage(viewModel: viewModel),
       logTime => LogTimePage(viewModel: viewModel),
-      _ => DemandasPage(viewModel: viewModel),
+      _ => const DemandasPage(),
     };
     return MaterialPageRoute(builder: (_) => page, settings: settings);
   }
