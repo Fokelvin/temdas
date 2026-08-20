@@ -38,6 +38,52 @@ class DemandasViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> atualizarDemanda({
+    required backend.Demanda demanda,
+    required String titulo,
+    required double tempoEstimadoHoras,
+    required backend.DemandaStatus status,
+    required backend.Prioridade prioridade,
+    String? descricao,
+  }) async {
+    if (_enviando) return false;
+
+    final id = demanda.id;
+
+    if (id == null) {
+      _erro = 'A demanda não possui um ID válido.';
+      notifyListeners();
+      return false;
+    }
+
+    _enviando = true;
+    _erro = null;
+    notifyListeners();
+
+    try {
+      final tempoEstimadoMinutos = (tempoEstimadoHoras * 60).round();
+
+      await _repository.atualizarDemanda(
+        id: id,
+        titulo: titulo,
+        descricao: descricao,
+        status: status,
+        prioridade: prioridade,
+        sprint: demanda.sprint,
+        tempoEstimadoMinutos: tempoEstimadoMinutos,
+        observacoes: demanda.observacoes,
+      );
+
+      return true;
+    } catch (error) {
+      _erro = error.toString();
+      return false;
+    } finally {
+      _enviando = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> criarDemanda({
     required String titulo,
     required double tempoEstimadoHoras,

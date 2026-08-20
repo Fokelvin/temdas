@@ -2,22 +2,24 @@
 
 ## Objetivo
 
-O TEMDAS é um sistema pessoal para gestão simples de demandas e controle de tempo.
+O TEMDAS é um sistema pessoal para gestão simples de demandas, organização de execução diária/semanal e controle de tempo estimado versus tempo executado.
 
-A primeira versão será focada em organizar demandas, demandas filho e acompanhar tempo estimado versus tempo executado, com visualização diária e semanal em formato de calendário/agenda.
+A primeira versão será focada em organizar demandas e subdemandas, distribuir visualmente essas demandas em uma agenda diária/semanal e comparar esforço planejado com esforço realizado.
+
+Recursos de backlog, sprint, automações e integrações ficam para versões futuras.
 
 ## Escopo da primeira versão
 
 A V1 deve permitir:
 
-- cadastrar demandas;
-- cadastrar demandas filho;
-- definir status;
-- informar tempo estimado;
-- informar tempo executado manualmente;
-- visualizar demandas em formato diário;
-- visualizar demandas em formato semanal;
-- comparar tempo estimado versus tempo executado.
+Demanda:
+- título
+- descrição
+- status
+- data planejada opcional
+- tempo estimado
+- tempo executado manual
+- subdemandas
 
 ## Fora do escopo da primeira versão
 
@@ -50,7 +52,7 @@ Objetivo:
 - validar navegação;
 - validar fluxo de uso;
 - validar a visão diária/semanal;
-- validar como demandas e demandas filho aparecem na tela.
+- validar como demandas e subdemandas aparecem na tela.
 
 Nesta fase não haverá:
 

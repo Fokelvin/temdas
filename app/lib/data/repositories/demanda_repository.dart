@@ -28,6 +28,30 @@ class DemandaRepository {
     return _client.demanda.criarDemanda(request);
   }
 
+  Future<backend.Demanda> atualizarDemanda({
+    required int id,
+    required String titulo,
+    String? descricao,
+    required backend.DemandaStatus status,
+    required backend.Prioridade prioridade,
+    String? sprint,
+    required int tempoEstimadoMinutos,
+    String? observacoes,
+  }) {
+    final request = backend.DemandaUpdateRequest(
+      id: id,
+      titulo: titulo,
+      descricao: descricao,
+      status: status,
+      prioridade: prioridade,
+      sprint: sprint,
+      tempoEstimadoMinutos: tempoEstimadoMinutos,
+      observacoes: observacoes,
+    );
+
+    return _client.demanda.atualizarDemanda(request);
+  }
+
   Future<List<backend.Demanda>> listarDemandas() {
     return _client.demanda.listarDemandas();
   }
