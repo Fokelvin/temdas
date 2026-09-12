@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
@@ -20,7 +21,11 @@ import 'package:temdas_backend_client/src/protocol/demandas/demanda_update_reque
     as _i5;
 import 'package:temdas_backend_client/src/protocol/greetings/greeting.dart'
     as _i6;
-import 'protocol.dart' as _i7;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
+    as _i7;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_create_request.dart'
+    as _i8;
+import 'protocol.dart' as _i9;
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -62,6 +67,13 @@ class EndpointDemanda extends _i1.EndpointRef {
     'excluirDemanda',
     {'id': id},
   );
+
+  _i2.Future<bool> excluirArvoreDemanda(int id) =>
+      caller.callServerEndpoint<bool>(
+        'demanda',
+        'excluirArvoreDemanda',
+        {'id': id},
+      );
 }
 
 /// This is an example endpoint that returns a greeting message through
@@ -79,6 +91,49 @@ class EndpointGreeting extends _i1.EndpointRef {
         'greeting',
         'hello',
         {'name': name},
+      );
+}
+
+/// {@category Endpoint}
+class EndpointRegistroTempo extends _i1.EndpointRef {
+  EndpointRegistroTempo(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'registroTempo';
+
+  _i2.Future<_i7.RegistroTempo> registrarTempo(
+    _i8.RegistroTempoCreateRequest request,
+  ) => caller.callServerEndpoint<_i7.RegistroTempo>(
+    'registroTempo',
+    'registrarTempo',
+    {'request': request},
+  );
+
+  _i2.Future<List<_i7.RegistroTempo>> listarRegistrosTempoPorPeriodo(
+    DateTime inicio,
+    DateTime fim,
+  ) => caller.callServerEndpoint<List<_i7.RegistroTempo>>(
+    'registroTempo',
+    'listarRegistrosTempoPorPeriodo',
+    {
+      'inicio': inicio,
+      'fim': fim,
+    },
+  );
+
+  _i2.Future<List<_i7.RegistroTempo>> listarRegistrosTempoDaDemanda(
+    int demandaId,
+  ) => caller.callServerEndpoint<List<_i7.RegistroTempo>>(
+    'registroTempo',
+    'listarRegistrosTempoDaDemanda',
+    {'demandaId': demandaId},
+  );
+
+  _i2.Future<bool> excluirRegistroTempo(int id) =>
+      caller.callServerEndpoint<bool>(
+        'registroTempo',
+        'excluirRegistroTempo',
+        {'id': id},
       );
 }
 
@@ -102,7 +157,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i7.Protocol(),
+         _i9.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -113,16 +168,20 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     demanda = EndpointDemanda(this);
     greeting = EndpointGreeting(this);
+    registroTempo = EndpointRegistroTempo(this);
   }
 
   late final EndpointDemanda demanda;
 
   late final EndpointGreeting greeting;
 
+  late final EndpointRegistroTempo registroTempo;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'demanda': demanda,
     'greeting': greeting,
+    'registroTempo': registroTempo,
   };
 
   @override

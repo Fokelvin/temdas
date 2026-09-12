@@ -4,5 +4,11 @@ demanda:
   - buscarDemandaPorId:
   - atualizarDemanda:
   - excluirDemanda:
+  - excluirArvoreDemanda:
 greeting:
   - hello:
+registroTempo:
+  - registrarTempo:
+  - listarRegistrosTempoPorPeriodo:
+  - listarRegistrosTempoDaDemanda:
+  - excluirRegistroTempo:

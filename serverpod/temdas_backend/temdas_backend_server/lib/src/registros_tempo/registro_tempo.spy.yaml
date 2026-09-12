@@ -1,0 +1,12 @@
+class: RegistroTempo
+table: registros_tempo
+fields:
+  demandaId: int, relation(parent=demandas, onDelete=Cascade)
+  inicioEm: DateTime
+  duracaoMinutos: int
+  criadoEm: DateTime
+indexes:
+  registros_tempo_inicio_em_idx:
+    fields: inicioEm
+  registros_tempo_demanda_inicio_em_idx:
+    fields: demandaId, inicioEm

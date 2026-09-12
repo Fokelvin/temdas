@@ -1,0 +1,5 @@
+class: RegistroTempoCreateRequest
+fields:
+  demandaId: int
+  inicioEm: DateTime
+  duracaoMinutos: int

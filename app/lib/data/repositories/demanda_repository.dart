@@ -11,12 +11,14 @@ class DemandaRepository {
   Future<backend.Demanda> criarDemanda({
     required String titulo,
     required int tempoEstimadoMinutos,
+    int? demandaPaiId,
     String? descricao,
     backend.Prioridade? prioridade,
     String? sprint,
     String? observacoes,
   }) {
     final request = backend.DemandaCreateRequest(
+      demandaPaiId: demandaPaiId,
       titulo: titulo,
       descricao: descricao,
       prioridade: prioridade,
@@ -54,5 +56,17 @@ class DemandaRepository {
 
   Future<List<backend.Demanda>> listarDemandas() {
     return _client.demanda.listarDemandas();
+  }
+
+  Future<backend.Demanda?> buscarDemandaPorId(int id) {
+    return _client.demanda.buscarDemandaPorId(id);
+  }
+
+  Future<bool> excluirDemanda(int id) {
+    return _client.demanda.excluirDemanda(id);
+  }
+
+  Future<bool> excluirArvoreDemanda(int id) {
+    return _client.demanda.excluirArvoreDemanda(id);
   }
 }

@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'demandas/demanda.dart' as _i2;
 import 'demandas/demanda_create_request.dart' as _i3;
@@ -17,14 +18,20 @@ import 'demandas/demanda_status.dart' as _i4;
 import 'demandas/demanda_update_request.dart' as _i5;
 import 'demandas/prioridade.dart' as _i6;
 import 'greetings/greeting.dart' as _i7;
+import 'registros_tempo/registro_tempo.dart' as _i8;
+import 'registros_tempo/registro_tempo_create_request.dart' as _i9;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i8;
+    as _i10;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
+    as _i11;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
 export 'demandas/demanda_update_request.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
+export 'registros_tempo/registro_tempo.dart';
+export 'registros_tempo/registro_tempo_create_request.dart';
 export 'client.dart';
 
 class Protocol extends _i1.SerializationManager {
@@ -79,6 +86,12 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i7.Greeting) {
       return _i7.Greeting.fromJson(data) as T;
     }
+    if (t == _i8.RegistroTempo) {
+      return _i8.RegistroTempo.fromJson(data) as T;
+    }
+    if (t == _i9.RegistroTempoCreateRequest) {
+      return _i9.RegistroTempoCreateRequest.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
     }
@@ -99,8 +112,23 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i7.Greeting?>()) {
       return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
     }
-    if (t == List<_i8.Demanda>) {
-      return (data as List).map((e) => deserialize<_i8.Demanda>(e)).toList()
+    if (t == _i1.getType<_i8.RegistroTempo?>()) {
+      return (data != null ? _i8.RegistroTempo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i9.RegistroTempoCreateRequest?>()) {
+      return (data != null
+              ? _i9.RegistroTempoCreateRequest.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == List<_i10.Demanda>) {
+      return (data as List).map((e) => deserialize<_i10.Demanda>(e)).toList()
+          as T;
+    }
+    if (t == List<_i11.RegistroTempo>) {
+      return (data as List)
+              .map((e) => deserialize<_i11.RegistroTempo>(e))
+              .toList()
           as T;
     }
     return super.deserialize<T>(data, t);
@@ -114,6 +142,8 @@ class Protocol extends _i1.SerializationManager {
       _i5.DemandaUpdateRequest => 'DemandaUpdateRequest',
       _i6.Prioridade => 'Prioridade',
       _i7.Greeting => 'Greeting',
+      _i8.RegistroTempo => 'RegistroTempo',
+      _i9.RegistroTempoCreateRequest => 'RegistroTempoCreateRequest',
       _ => null,
     };
   }
@@ -143,6 +173,10 @@ class Protocol extends _i1.SerializationManager {
         return 'Prioridade';
       case _i7.Greeting():
         return 'Greeting';
+      case _i8.RegistroTempo():
+        return 'RegistroTempo';
+      case _i9.RegistroTempoCreateRequest():
+        return 'RegistroTempoCreateRequest';
     }
     return null;
   }
@@ -170,6 +204,12 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName == 'Greeting') {
       return deserialize<_i7.Greeting>(data['data']);
+    }
+    if (dataClassName == 'RegistroTempo') {
+      return deserialize<_i8.RegistroTempo>(data['data']);
+    }
+    if (dataClassName == 'RegistroTempoCreateRequest') {
+      return deserialize<_i9.RegistroTempoCreateRequest>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

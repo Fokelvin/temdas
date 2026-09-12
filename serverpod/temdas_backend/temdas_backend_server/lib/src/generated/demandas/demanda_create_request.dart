@@ -10,12 +10,14 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/prioridade.dart' as _i2;
 
 abstract class DemandaCreateRequest
     implements _i1.SerializableModel, _i1.ProtocolSerialization {
   DemandaCreateRequest._({
+    this.demandaPaiId,
     required this.titulo,
     this.descricao,
     this.prioridade,
@@ -25,6 +27,7 @@ abstract class DemandaCreateRequest
   });
 
   factory DemandaCreateRequest({
+    int? demandaPaiId,
     required String titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
@@ -37,6 +40,7 @@ abstract class DemandaCreateRequest
     Map<String, dynamic> jsonSerialization,
   ) {
     return DemandaCreateRequest(
+      demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       titulo: jsonSerialization['titulo'] as String,
       descricao: jsonSerialization['descricao'] as String?,
       prioridade: jsonSerialization['prioridade'] == null
@@ -49,6 +53,8 @@ abstract class DemandaCreateRequest
       observacoes: jsonSerialization['observacoes'] as String?,
     );
   }
+
+  int? demandaPaiId;
 
   String titulo;
 
@@ -66,6 +72,7 @@ abstract class DemandaCreateRequest
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
   DemandaCreateRequest copyWith({
+    int? demandaPaiId,
     String? titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
@@ -77,6 +84,7 @@ abstract class DemandaCreateRequest
   Map<String, dynamic> toJson() {
     return {
       '__className__': 'DemandaCreateRequest',
+      if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       if (prioridade != null) 'prioridade': prioridade?.toJson(),
@@ -90,6 +98,7 @@ abstract class DemandaCreateRequest
   Map<String, dynamic> toJsonForProtocol() {
     return {
       '__className__': 'DemandaCreateRequest',
+      if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       if (prioridade != null) 'prioridade': prioridade?.toJson(),
@@ -109,6 +118,7 @@ class _Undefined {}
 
 class _DemandaCreateRequestImpl extends DemandaCreateRequest {
   _DemandaCreateRequestImpl({
+    int? demandaPaiId,
     required String titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
@@ -116,6 +126,7 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) : super._(
+         demandaPaiId: demandaPaiId,
          titulo: titulo,
          descricao: descricao,
          prioridade: prioridade,
@@ -129,6 +140,7 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
   @_i1.useResult
   @override
   DemandaCreateRequest copyWith({
+    Object? demandaPaiId = _Undefined,
     String? titulo,
     Object? descricao = _Undefined,
     Object? prioridade = _Undefined,
@@ -137,6 +149,7 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
     Object? observacoes = _Undefined,
   }) {
     return DemandaCreateRequest(
+      demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       titulo: titulo ?? this.titulo,
       descricao: descricao is String? ? descricao : this.descricao,
       prioridade: prioridade is _i2.Prioridade? ? prioridade : this.prioridade,

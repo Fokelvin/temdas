@@ -1,23 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../view_model/workspace_view_model.dart';
 import 'app_routes.dart';
 
-class TemdasApp extends StatefulWidget {
+class TemdasApp extends StatelessWidget {
   const TemdasApp({super.key});
-
-  @override
-  State<TemdasApp> createState() => _TemdasAppState();
-}
-
-class _TemdasAppState extends State<TemdasApp> {
-  final _viewModel = WorkspaceViewModel();
-
-  @override
-  void dispose() {
-    _viewModel.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +31,8 @@ class _TemdasAppState extends State<TemdasApp> {
         ),
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.demandas,
-      onGenerateRoute: (settings) =>
-          AppRoutes.onGenerateRoute(settings, _viewModel),
+      initialRoute: Navigator.defaultRouteName,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }

@@ -44,6 +44,7 @@ class AppDrawer extends StatelessWidget {
   int _indexFor(String route) => switch (route) {
     AppRoutes.sprint => 1,
     AppRoutes.logTime => 2,
+    AppRoutes.demandas || AppRoutes.demandaDetalhe => 0,
     _ => 0,
   };
 }

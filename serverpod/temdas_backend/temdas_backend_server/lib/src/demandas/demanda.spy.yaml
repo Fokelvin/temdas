@@ -1,6 +1,7 @@
 class: Demanda
 table: demandas
 fields:
+  demandaPaiId: int?, relation(parent=demandas, onDelete=Cascade)
   titulo: String
   descricao: String?
   status: DemandaStatus
@@ -12,3 +13,6 @@ fields:
   criadoEm: DateTime
   atualizadoEm: DateTime
   concluidoEm: DateTime?
+indexes:
+  demandas_demanda_pai_id_idx:
+    fields: demandaPaiId

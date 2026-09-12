@@ -4,6 +4,7 @@
 *.pyc
 *.swp
 .DS_Store
+*:Zone.Identifier
 .idea/
 .vscode/
 
@@ -16,6 +17,9 @@
 .pub-cache/
 build/
 coverage/
+
+# Local Dart / Flutter DevTools settings
+/serverpod/temdas_backend/devtools_options.yaml
 
 # Generated
 **/generated_plugin_registrant.dart

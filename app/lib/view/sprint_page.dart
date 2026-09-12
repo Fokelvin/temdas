@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_routes.dart';
-import '../view_model/workspace_view_model.dart';
 import 'widgets/app_drawer.dart';
 
 class SprintPage extends StatelessWidget {
-  const SprintPage({super.key, required this.viewModel});
-  final WorkspaceViewModel viewModel;
+  const SprintPage({super.key});
 
   @override
   Widget build(BuildContext context) => PageScaffold(

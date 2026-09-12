@@ -23,23 +23,49 @@ class DemandaEndpoint extends Endpoint {
       );
     }
 
-    final agora = DateTime.now().toUtc();
+    final demandaCriada = await session.db.transaction((transaction) async {
+      if (request.demandaPaiId case final demandaPaiId?) {
+        final demandaPai = await Demanda.db.findById(
+          session,
+          demandaPaiId,
+          transaction: transaction,
+          lockMode: LockMode.forKeyShare,
+        );
 
-    final demanda = Demanda(
-      titulo: titulo,
-      descricao: _normalizarTextoOpcional(request.descricao),
-      status: DemandaStatus.aberta,
-      prioridade: request.prioridade ?? Prioridade.media,
-      sprint: _normalizarTextoOpcional(request.sprint),
-      tempoEstimadoMinutos: request.tempoEstimadoMinutos,
-      tempoExecutadoMinutos: 0,
-      observacoes: _normalizarTextoOpcional(request.observacoes),
-      criadoEm: agora,
-      atualizadoEm: agora,
-      concluidoEm: null,
+        if (demandaPai == null) {
+          throw Exception('Demanda mãe não encontrada.');
+        }
+      }
+
+      final agora = DateTime.now().toUtc();
+
+      final demanda = Demanda(
+        demandaPaiId: request.demandaPaiId,
+        titulo: titulo,
+        descricao: _normalizarTextoOpcional(request.descricao),
+        status: DemandaStatus.aberta,
+        prioridade: request.prioridade ?? Prioridade.media,
+        sprint: _normalizarTextoOpcional(request.sprint),
+        tempoEstimadoMinutos: request.tempoEstimadoMinutos,
+        tempoExecutadoMinutos: 0,
+        observacoes: _normalizarTextoOpcional(request.observacoes),
+        criadoEm: agora,
+        atualizadoEm: agora,
+        concluidoEm: null,
+      );
+
+      return Demanda.db.insertRow(
+        session,
+        demanda,
+        transaction: transaction,
+      );
+    });
+
+    session.log(
+      'Demanda criada: id=${demandaCriada.id}, '
+      'demandaPaiId=${demandaCriada.demandaPaiId}.',
     );
-
-    return Demanda.db.insertRow(session, demanda);
+    return demandaCriada;
   }
 
   Future<List<Demanda>> listarDemandas(Session session) async {
@@ -61,12 +87,6 @@ class DemandaEndpoint extends Endpoint {
     Session session,
     DemandaUpdateRequest request,
   ) async {
-    final demandaAtual = await Demanda.db.findById(session, request.id);
-
-    if (demandaAtual == null) {
-      throw Exception('Demanda não encontrada.');
-    }
-
     final titulo = request.titulo.trim();
 
     if (titulo.isEmpty) {
@@ -83,39 +103,121 @@ class DemandaEndpoint extends Endpoint {
       );
     }
 
-    final agora = DateTime.now().toUtc();
+    final demandaAtualizada = await session.db.transaction((transaction) async {
+      final demandaAtual = await Demanda.db.findById(
+        session,
+        request.id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
 
-    final concluidoEm = request.status == DemandaStatus.concluida
-        ? demandaAtual.concluidoEm ?? agora
-        : null;
+      if (demandaAtual == null) {
+        throw Exception('Demanda não encontrada.');
+      }
 
-    final demandaAtualizada = demandaAtual.copyWith(
-      titulo: titulo,
-      descricao: _normalizarTextoOpcional(request.descricao),
-      status: request.status,
-      prioridade: request.prioridade,
-      sprint: _normalizarTextoOpcional(request.sprint),
-      tempoEstimadoMinutos: request.tempoEstimadoMinutos,
-      observacoes: _normalizarTextoOpcional(request.observacoes),
-      atualizadoEm: agora,
-      concluidoEm: concluidoEm,
-    );
+      final agora = DateTime.now().toUtc();
+      final concluidoEm = request.status == DemandaStatus.concluida
+          ? demandaAtual.concluidoEm ?? agora
+          : null;
 
-    return Demanda.db.updateRow(session, demandaAtualizada);
+      final demandaAtualizada = await Demanda.db.updateById(
+        session,
+        request.id,
+        columnValues: (t) => [
+          t.titulo(titulo),
+          t.descricao(_normalizarTextoOpcional(request.descricao)),
+          t.status(request.status),
+          t.prioridade(request.prioridade),
+          t.sprint(_normalizarTextoOpcional(request.sprint)),
+          t.tempoEstimadoMinutos(request.tempoEstimadoMinutos),
+          t.observacoes(_normalizarTextoOpcional(request.observacoes)),
+          t.atualizadoEm(agora),
+          t.concluidoEm(concluidoEm),
+        ],
+        transaction: transaction,
+      );
+
+      if (demandaAtualizada == null) {
+        throw Exception('Demanda não encontrada.');
+      }
+
+      return demandaAtualizada;
+    });
+
+    session.log('Demanda atualizada: id=${demandaAtualizada.id}.');
+    return demandaAtualizada;
   }
 
   Future<bool> excluirDemanda(
     Session session,
     int id,
   ) async {
-    final demanda = await Demanda.db.findById(session, id);
+    final excluida = await session.db.transaction((transaction) async {
+      final demanda = await Demanda.db.findById(
+        session,
+        id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
 
-    if (demanda == null) {
-      return false;
+      if (demanda == null) {
+        return false;
+      }
+
+      final filha = await Demanda.db.findFirstRow(
+        session,
+        where: (t) => t.demandaPaiId.equals(id),
+        transaction: transaction,
+      );
+
+      if (filha != null) {
+        throw Exception(
+          'A demanda possui descendentes. Confirme a exclusão da árvore inteira.',
+        );
+      }
+
+      await Demanda.db.deleteRow(
+        session,
+        demanda,
+        transaction: transaction,
+      );
+      return true;
+    });
+
+    if (excluida) {
+      session.log('Demanda folha excluída: id=$id.');
     }
+    return excluida;
+  }
 
-    await Demanda.db.deleteRow(session, demanda);
-    return true;
+  Future<bool> excluirArvoreDemanda(
+    Session session,
+    int id,
+  ) async {
+    final excluida = await session.db.transaction((transaction) async {
+      final demandaRaiz = await Demanda.db.findById(
+        session,
+        id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+
+      if (demandaRaiz == null) {
+        return false;
+      }
+
+      await Demanda.db.deleteRow(
+        session,
+        demandaRaiz,
+        transaction: transaction,
+      );
+      return true;
+    });
+
+    if (excluida) {
+      session.log('Árvore de demandas excluída: raizId=$id.');
+    }
+    return excluida;
   }
 
   String? _normalizarTextoOpcional(String? valor) {

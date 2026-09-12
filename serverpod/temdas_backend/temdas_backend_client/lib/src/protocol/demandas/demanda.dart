@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import '../demandas/demanda_status.dart' as _i2;
 import '../demandas/prioridade.dart' as _i3;
@@ -17,6 +18,7 @@ import '../demandas/prioridade.dart' as _i3;
 abstract class Demanda implements _i1.SerializableModel {
   Demanda._({
     this.id,
+    this.demandaPaiId,
     required this.titulo,
     this.descricao,
     required this.status,
@@ -32,6 +34,7 @@ abstract class Demanda implements _i1.SerializableModel {
 
   factory Demanda({
     int? id,
+    int? demandaPaiId,
     required String titulo,
     String? descricao,
     required _i2.DemandaStatus status,
@@ -48,6 +51,7 @@ abstract class Demanda implements _i1.SerializableModel {
   factory Demanda.fromJson(Map<String, dynamic> jsonSerialization) {
     return Demanda(
       id: jsonSerialization['id'] as int?,
+      demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       titulo: jsonSerialization['titulo'] as String,
       descricao: jsonSerialization['descricao'] as String?,
       status: _i2.DemandaStatus.fromJson(
@@ -79,6 +83,8 @@ abstract class Demanda implements _i1.SerializableModel {
   /// the id will be null.
   int? id;
 
+  int? demandaPaiId;
+
   String titulo;
 
   String? descricao;
@@ -106,6 +112,7 @@ abstract class Demanda implements _i1.SerializableModel {
   @_i1.useResult
   Demanda copyWith({
     int? id,
+    int? demandaPaiId,
     String? titulo,
     String? descricao,
     _i2.DemandaStatus? status,
@@ -123,6 +130,7 @@ abstract class Demanda implements _i1.SerializableModel {
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
+      if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       'status': status.toJson(),
@@ -148,6 +156,7 @@ class _Undefined {}
 class _DemandaImpl extends Demanda {
   _DemandaImpl({
     int? id,
+    int? demandaPaiId,
     required String titulo,
     String? descricao,
     required _i2.DemandaStatus status,
@@ -161,6 +170,7 @@ class _DemandaImpl extends Demanda {
     DateTime? concluidoEm,
   }) : super._(
          id: id,
+         demandaPaiId: demandaPaiId,
          titulo: titulo,
          descricao: descricao,
          status: status,
@@ -180,6 +190,7 @@ class _DemandaImpl extends Demanda {
   @override
   Demanda copyWith({
     Object? id = _Undefined,
+    Object? demandaPaiId = _Undefined,
     String? titulo,
     Object? descricao = _Undefined,
     _i2.DemandaStatus? status,
@@ -194,6 +205,7 @@ class _DemandaImpl extends Demanda {
   }) {
     return Demanda(
       id: id is int? ? id : this.id,
+      demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       titulo: titulo ?? this.titulo,
       descricao: descricao is String? ? descricao : this.descricao,
       status: status ?? this.status,

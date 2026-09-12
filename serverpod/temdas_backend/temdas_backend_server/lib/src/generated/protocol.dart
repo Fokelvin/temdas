@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import 'package:serverpod/protocol.dart' as _i2;
 import 'demandas/demanda.dart' as _i3;
@@ -18,14 +19,20 @@ import 'demandas/demanda_status.dart' as _i5;
 import 'demandas/demanda_update_request.dart' as _i6;
 import 'demandas/prioridade.dart' as _i7;
 import 'greetings/greeting.dart' as _i8;
+import 'registros_tempo/registro_tempo.dart' as _i9;
+import 'registros_tempo/registro_tempo_create_request.dart' as _i10;
 import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
-    as _i9;
+    as _i11;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
+    as _i12;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
 export 'demandas/demanda_update_request.dart';
 export 'demandas/prioridade.dart';
 export 'greetings/greeting.dart';
+export 'registros_tempo/registro_tempo.dart';
+export 'registros_tempo/registro_tempo_create_request.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -47,6 +54,12 @@ class Protocol extends _i1.SerializationManagerServer {
           isNullable: false,
           dartType: 'int?',
           columnDefault: 'nextval(\'demandas_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'demandaPaiId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
         ),
         _i2.ColumnDefinition(
           name: 'titulo',
@@ -115,7 +128,18 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'DateTime?',
         ),
       ],
-      foreignKeys: [],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'demandas_fk_0',
+          columns: ['demandaPaiId'],
+          referenceTable: 'demandas',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
       indexes: [
         _i2.IndexDefinition(
           indexName: 'demandas_pkey',
@@ -129,6 +153,116 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'demandas_demanda_pai_id_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'demandaPaiId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'registros_tempo',
+      dartName: 'RegistroTempo',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'registros_tempo_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'demandaId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'inicioEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'duracaoMinutos',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'criadoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'registros_tempo_fk_0',
+          columns: ['demandaId'],
+          referenceTable: 'demandas',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'registros_tempo_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'registros_tempo_inicio_em_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'inicioEm',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'registros_tempo_demanda_inicio_em_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'demandaId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'inicioEm',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
       ],
       managed: true,
@@ -181,6 +315,12 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i8.Greeting) {
       return _i8.Greeting.fromJson(data) as T;
     }
+    if (t == _i9.RegistroTempo) {
+      return _i9.RegistroTempo.fromJson(data) as T;
+    }
+    if (t == _i10.RegistroTempoCreateRequest) {
+      return _i10.RegistroTempoCreateRequest.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i3.Demanda?>()) {
       return (data != null ? _i3.Demanda.fromJson(data) : null) as T;
     }
@@ -201,8 +341,23 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i8.Greeting?>()) {
       return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
     }
-    if (t == List<_i9.Demanda>) {
-      return (data as List).map((e) => deserialize<_i9.Demanda>(e)).toList()
+    if (t == _i1.getType<_i9.RegistroTempo?>()) {
+      return (data != null ? _i9.RegistroTempo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i10.RegistroTempoCreateRequest?>()) {
+      return (data != null
+              ? _i10.RegistroTempoCreateRequest.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == List<_i11.Demanda>) {
+      return (data as List).map((e) => deserialize<_i11.Demanda>(e)).toList()
+          as T;
+    }
+    if (t == List<_i12.RegistroTempo>) {
+      return (data as List)
+              .map((e) => deserialize<_i12.RegistroTempo>(e))
+              .toList()
           as T;
     }
     try {
@@ -219,6 +374,8 @@ class Protocol extends _i1.SerializationManagerServer {
       _i6.DemandaUpdateRequest => 'DemandaUpdateRequest',
       _i7.Prioridade => 'Prioridade',
       _i8.Greeting => 'Greeting',
+      _i9.RegistroTempo => 'RegistroTempo',
+      _i10.RegistroTempoCreateRequest => 'RegistroTempoCreateRequest',
       _ => null,
     };
   }
@@ -248,6 +405,10 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'Prioridade';
       case _i8.Greeting():
         return 'Greeting';
+      case _i9.RegistroTempo():
+        return 'RegistroTempo';
+      case _i10.RegistroTempoCreateRequest():
+        return 'RegistroTempoCreateRequest';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -280,6 +441,12 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'Greeting') {
       return deserialize<_i8.Greeting>(data['data']);
     }
+    if (dataClassName == 'RegistroTempo') {
+      return deserialize<_i9.RegistroTempo>(data['data']);
+    }
+    if (dataClassName == 'RegistroTempoCreateRequest') {
+      return deserialize<_i10.RegistroTempoCreateRequest>(data['data']);
+    }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
@@ -298,6 +465,8 @@ class Protocol extends _i1.SerializationManagerServer {
     switch (t) {
       case _i3.Demanda:
         return _i3.Demanda.t;
+      case _i9.RegistroTempo:
+        return _i9.RegistroTempo.t;
     }
     return null;
   }

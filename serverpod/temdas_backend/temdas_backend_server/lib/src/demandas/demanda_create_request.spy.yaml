@@ -1,5 +1,6 @@
 class: DemandaCreateRequest
 fields:
+  demandaPaiId: int?
   titulo: String
   descricao: String?
   prioridade: Prioridade?
