@@ -60,6 +60,10 @@ class FakeDemandaRepository implements DemandaRepository {
   bool resultadoExclusao = true;
   bool resultadoExclusaoArvore = true;
   Object? erroAoListar;
+  Completer<backend.Demanda>? respostaCriarPendente;
+  Completer<backend.Demanda>? respostaAtualizarPendente;
+  Completer<bool>? respostaExcluirPendente;
+  Completer<bool>? respostaExcluirArvorePendente;
   final List<Completer<List<backend.Demanda>>> respostasListarPendentes = [];
 
   @override
@@ -80,6 +84,7 @@ class FakeDemandaRepository implements DemandaRepository {
       descricao: descricao,
       prioridade: prioridade,
     );
+    if (respostaCriarPendente case final resposta?) return resposta.future;
     final agora = DateTime.utc(2026, 9, 9, 12);
     final maiorId = _demandas.fold<int>(
       0,
@@ -144,6 +149,7 @@ class FakeDemandaRepository implements DemandaRepository {
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       observacoes: observacoes,
     );
+    if (respostaAtualizarPendente case final resposta?) return resposta.future;
 
     final index = _demandas.indexWhere((demanda) => demanda.id == id);
     if (index == -1) throw StateError('Demanda não encontrada.');
@@ -170,6 +176,7 @@ class FakeDemandaRepository implements DemandaRepository {
   Future<bool> excluirDemanda(int id) async {
     chamadasExcluir++;
     ultimoIdExcluido = id;
+    if (respostaExcluirPendente case final resposta?) return resposta.future;
     if (!resultadoExclusao) return false;
 
     final quantidadeAnterior = _demandas.length;
@@ -181,6 +188,9 @@ class FakeDemandaRepository implements DemandaRepository {
   Future<bool> excluirArvoreDemanda(int id) async {
     chamadasExcluirArvore++;
     ultimoIdArvoreExcluida = id;
+    if (respostaExcluirArvorePendente case final resposta?) {
+      return resposta.future;
+    }
     if (!resultadoExclusaoArvore) return false;
 
     final idsExcluidos = <int>{id};

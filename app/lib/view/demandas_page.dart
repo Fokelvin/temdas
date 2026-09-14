@@ -26,6 +26,7 @@ class _DemandasPageState extends State<DemandasPage> {
   late final bool _possuiViewModel;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
+  bool _criandoDemanda = false;
 
   @override
   void initState() {
@@ -47,15 +48,23 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   Future<void> _criarDemanda() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_viewModel.enviando || !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
 
     final descricao = _descricaoController.text.trim();
-    final criada = await _viewModel.criarDemanda(
-      titulo: _tituloController.text.trim(),
-      tempoEstimadoHoras: _parseHoras(_tempoController.text)!,
-      descricao: descricao.isEmpty ? null : descricao,
-      prioridade: _prioridade,
-    );
+    setState(() => _criandoDemanda = true);
+    late final bool criada;
+    try {
+      criada = await _viewModel.criarDemanda(
+        titulo: _tituloController.text.trim(),
+        tempoEstimadoHoras: _parseHoras(_tempoController.text)!,
+        descricao: descricao.isEmpty ? null : descricao,
+        prioridade: _prioridade,
+      );
+    } finally {
+      if (mounted) setState(() => _criandoDemanda = false);
+    }
 
     if (!mounted) return;
     if (criada) {
@@ -78,21 +87,21 @@ class _DemandasPageState extends State<DemandasPage> {
       return;
     }
 
-    final dados = await showDialog<DemandaFilhaFormData>(
+    final criada = await showDialog<bool>(
       context: context,
-      builder: (_) => CriarDemandaFilhaDialog(demandaMae: demandaMae),
+      builder: (_) => CriarDemandaFilhaDialog(
+        demandaMae: demandaMae,
+        onSalvar: (dados) => _viewModel.criarDemanda(
+          titulo: dados.titulo,
+          descricao: dados.descricao,
+          tempoEstimadoHoras: dados.tempoEstimadoHoras,
+          prioridade: dados.prioridade,
+          demandaPaiId: demandaMaeId,
+        ),
+      ),
     );
 
-    if (dados == null || !mounted) return;
-    final criada = await _viewModel.criarDemanda(
-      titulo: dados.titulo,
-      descricao: dados.descricao,
-      tempoEstimadoHoras: dados.tempoEstimadoHoras,
-      prioridade: dados.prioridade,
-      demandaPaiId: demandaMaeId,
-    );
-
-    if (!mounted) return;
+    if (criada == null || !mounted) return;
     _mostrarFeedback(
       criada
           ? 'Demanda filha criada com sucesso.'
@@ -102,23 +111,22 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   Future<void> _editarDemanda(backend.Demanda demanda) async {
-    final dados = await showDialog<DemandaEdicaoFormData>(
+    final atualizada = await showDialog<bool>(
       context: context,
-      builder: (_) => EditarDemandaDialog(demanda: demanda),
+      builder: (_) => EditarDemandaDialog(
+        demanda: demanda,
+        onSalvar: (dados) => _viewModel.atualizarDemanda(
+          demanda: demanda,
+          titulo: dados.titulo,
+          descricao: dados.descricao,
+          tempoEstimadoHoras: dados.tempoEstimadoHoras,
+          status: dados.status,
+          prioridade: dados.prioridade,
+        ),
+      ),
     );
 
-    if (dados == null || !mounted) return;
-
-    final atualizada = await _viewModel.atualizarDemanda(
-      demanda: demanda,
-      titulo: dados.titulo,
-      descricao: dados.descricao,
-      tempoEstimadoHoras: dados.tempoEstimadoHoras,
-      status: dados.status,
-      prioridade: dados.prioridade,
-    );
-
-    if (!mounted) return;
+    if (atualizada == null || !mounted) return;
     _mostrarFeedback(
       atualizada
           ? 'Demanda atualizada com sucesso.'
@@ -132,47 +140,72 @@ class _DemandasPageState extends State<DemandasPage> {
     final descendentes = possuiDescendentes
         ? _viewModel.descendentesDe(demanda).length
         : 0;
-    final confirmada = await showDialog<bool>(
+    var excluindo = false;
+    final excluida = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          possuiDescendentes
-              ? 'Excluir demanda e descendentes?'
-              : 'Excluir demanda?',
-        ),
-        content: Text(
-          possuiDescendentes
-              ? 'A demanda “${demanda.titulo}” possui $descendentes '
-                    '${descendentes == 1 ? 'descendente' : 'descendentes'}. '
-                    'A demanda, toda a árvore abaixo dela e todos os registros '
-                    'de tempo vinculados serão excluídos permanentemente.'
-              : 'A demanda “${demanda.titulo}” será excluída permanentemente. '
-                    'Essa ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            key: ValueKey('confirmar-exclusao-${demanda.id}'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => PopScope(
+          canPop: !excluindo,
+          child: AlertDialog(
+            title: Text(
+              possuiDescendentes
+                  ? 'Excluir demanda e descendentes?'
+                  : 'Excluir demanda?',
             ),
-            child: Text(possuiDescendentes ? 'Excluir tudo' : 'Excluir'),
+            content: Text(
+              possuiDescendentes
+                  ? 'A demanda “${demanda.titulo}” possui $descendentes '
+                        '${descendentes == 1 ? 'descendente' : 'descendentes'}. '
+                        'A demanda, toda a árvore abaixo dela e todos os registros '
+                        'de tempo vinculados serão excluídos permanentemente.'
+                  : 'A demanda “${demanda.titulo}” será excluída permanentemente. '
+                        'Essa ação não pode ser desfeita.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: excluindo
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                key: ValueKey('confirmar-exclusao-${demanda.id}'),
+                onPressed: excluindo
+                    ? null
+                    : () async {
+                        if (excluindo) return;
+                        setDialogState(() => excluindo = true);
+                        final resultado = possuiDescendentes
+                            ? await _viewModel.excluirArvoreDemanda(demanda)
+                            : await _viewModel.excluirDemanda(demanda);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, resultado);
+                        }
+                      },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                ),
+                icon: excluindo
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                label: Text(
+                  excluindo
+                      ? 'Excluindo...'
+                      : possuiDescendentes
+                      ? 'Excluir tudo'
+                      : 'Excluir',
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
 
-    if (confirmada != true || !mounted) return;
-
-    final excluida = possuiDescendentes
-        ? await _viewModel.excluirArvoreDemanda(demanda)
-        : await _viewModel.excluirDemanda(demanda);
-
-    if (!mounted) return;
+    if (excluida == null || !mounted) return;
     _mostrarFeedback(
       excluida
           ? possuiDescendentes
@@ -383,13 +416,18 @@ class _DemandasPageState extends State<DemandasPage> {
                 validator: _validarHorasEstimadas,
               ),
               const SizedBox(height: 20),
-              FilledButton(
+              FilledButton.icon(
+                key: const ValueKey('criar-demanda'),
                 onPressed: _viewModel.carregando || _viewModel.enviando
                     ? null
                     : _criarDemanda,
-                child: Text(
-                  _viewModel.enviando ? 'Enviando...' : 'Criar demanda',
-                ),
+                icon: _criandoDemanda
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                label: Text(_criandoDemanda ? 'Criando...' : 'Criar demanda'),
               ),
             ],
           ),

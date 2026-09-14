@@ -109,8 +109,12 @@ class DemandasViewModel extends ChangeNotifier {
       );
 
       if (!_descartado) {
+        _invalidarCarregamentoPendente();
         _demandaCriada = demandaCriada;
-        await _recarregarAposMutacao();
+        final index = _demandas.indexWhere(
+          (demanda) => demandaCriada.criadoEm.isAfter(demanda.criadoEm),
+        );
+        _demandas.insert(index == -1 ? _demandas.length : index, demandaCriada);
       }
       return true;
     } catch (error, stackTrace) {
@@ -154,10 +158,12 @@ class DemandasViewModel extends ChangeNotifier {
       );
 
       if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        final index = _demandas.indexWhere((item) => item.id == id);
+        if (index != -1) _demandas[index] = demandaAtualizada;
         if (_demandaCriada?.id == id) {
           _demandaCriada = demandaAtualizada;
         }
-        await _recarregarAposMutacao();
       }
       return true;
     } catch (error, stackTrace) {
@@ -224,6 +230,12 @@ class DemandasViewModel extends ChangeNotifier {
     final id = _idValido(demanda);
     if (id == null) return false;
 
+    final idsExcluidos = <int>{
+      id,
+      if (arvoreCompleta)
+        ...descendentesDe(demanda).map((item) => item.id).whereType<int>(),
+    };
+
     _iniciarEnvio();
 
     try {
@@ -236,11 +248,12 @@ class DemandasViewModel extends ChangeNotifier {
         return false;
       }
 
-      final listaAtualizada = !_descartado && await _recarregarAposMutacao();
-      if (listaAtualizada &&
-          _demandaCriada != null &&
-          !_demandas.any((item) => item.id == _demandaCriada!.id)) {
-        _demandaCriada = null;
+      if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        _demandas.removeWhere((item) => idsExcluidos.contains(item.id));
+        if (idsExcluidos.contains(_demandaCriada?.id)) {
+          _demandaCriada = null;
+        }
       }
       return true;
     } catch (error, stackTrace) {
@@ -260,6 +273,12 @@ class DemandasViewModel extends ChangeNotifier {
     _erro = 'A demanda não possui um ID válido.';
     notifyListeners();
     return null;
+  }
+
+  void _invalidarCarregamentoPendente() {
+    // Uma carga anterior não pode sobrescrever a mutação confirmada.
+    _versaoCarregamento++;
+    _carregando = false;
   }
 
   Future<bool> _recarregarAposMutacao() {
@@ -285,7 +304,7 @@ class DemandasViewModel extends ChangeNotifier {
       final demandas = await _repository.listarDemandas();
       if (!_carregamentoAtual(versao)) return false;
 
-      _demandas = demandas;
+      _demandas = List.of(demandas);
       return true;
     } catch (error, stackTrace) {
       if (!_carregamentoAtual(versao)) return false;
