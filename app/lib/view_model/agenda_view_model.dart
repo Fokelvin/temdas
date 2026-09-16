@@ -33,6 +33,7 @@ class AgendaViewModel extends ChangeNotifier {
   bool _enviando = false;
   bool _disposed = false;
   String? _erro;
+  String? _erroEdicao;
   int _requestToken = 0;
   List<backend.Demanda> _demandas = const [];
   List<backend.RegistroTempo> _registros = const [];
@@ -45,6 +46,7 @@ class AgendaViewModel extends ChangeNotifier {
   bool get carregando => _carregando;
   bool get enviando => _enviando;
   String? get erro => _erro;
+  String? get erroEdicao => _erroEdicao;
 
   List<backend.Demanda> get demandas => UnmodifiableListView(_demandas);
   List<backend.RegistroTempo> get registros => UnmodifiableListView(_registros);
@@ -235,9 +237,68 @@ class AgendaViewModel extends ChangeNotifier {
       if (!_disposed) await carregarAgenda();
       return true;
     } catch (error, stackTrace) {
+      if (error is backend.ConflitoHorarioException) {
+        _erro =
+            'Conflito de horário com um lançamento de outra demanda. '
+            'Ajuste a data, o horário ou a duração e tente novamente.';
+        return false;
+      }
       debugPrint('[AgendaViewModel] Falha ao registrar tempo: $error');
       debugPrintStack(stackTrace: stackTrace);
       _erro = 'Não foi possível registrar o tempo. Tente novamente.';
+      return false;
+    } finally {
+      _enviando = false;
+      _notificar();
+    }
+  }
+
+  Future<bool> editarRegistroTempo({
+    required int id,
+    required DateTime data,
+    required TimeOfDay hora,
+    required double duracaoHoras,
+  }) async {
+    if (_disposed || _enviando) return false;
+
+    _erroEdicao = null;
+    final duracaoMinutos = converterHorasEmMinutos(duracaoHoras);
+    if (duracaoMinutos == null) {
+      _erroEdicao =
+          'A duração deve ser positiva e resultar em minutos inteiros.';
+      _notificar();
+      return false;
+    }
+
+    final inicioLocal = DateTime(
+      data.year,
+      data.month,
+      data.day,
+      hora.hour,
+      hora.minute,
+    );
+
+    _enviando = true;
+    _notificar();
+    try {
+      await _registroTempoRepository.editarRegistroTempo(
+        id: id,
+        inicioEm: inicioLocal.toUtc(),
+        duracaoMinutos: duracaoMinutos,
+      );
+      // Reconsulta o período para refletir mudanças de data e registros
+      // absorvidos, usando apenas os valores persistidos pelo backend.
+      if (!_disposed) await carregarAgenda();
+      return true;
+    } on backend.ConflitoHorarioException {
+      _erroEdicao =
+          'Conflito de horário com um lançamento de outra demanda. '
+          'Ajuste a data, o horário ou a duração e tente novamente.';
+      return false;
+    } catch (error, stackTrace) {
+      debugPrint('[AgendaViewModel] Falha ao editar lançamento: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _erroEdicao = 'Não foi possível editar o lançamento. Tente novamente.';
       return false;
     } finally {
       _enviando = false;

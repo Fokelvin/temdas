@@ -336,6 +336,9 @@ class DemandasViewModel extends ChangeNotifier {
           registrado
               ? 'O tempo foi registrado, mas não foi possível atualizar a demanda. '
                     'Recarregue as demandas.'
+              : error is backend.ConflitoHorarioException
+              ? 'Conflito de horário com um lançamento de outra demanda. '
+                    'Ajuste a data, o horário ou a duração e tente novamente.'
               : 'Não foi possível registrar o tempo. Tente novamente.',
         );
       }

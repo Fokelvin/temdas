@@ -298,6 +298,15 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
   Completer<backend.RegistroTempo>? respostaRegistrarPendente;
 
   @override
+  Future<backend.RegistroTempo> editarRegistroTempo({
+    required int id,
+    required DateTime inicioEm,
+    required int duracaoMinutos,
+  }) async {
+    throw UnsupportedError('Edição não configurada neste fake.');
+  }
+
+  @override
   Future<backend.RegistroTempo> registrarTempo({
     required int demandaId,
     required DateTime inicioEm,

@@ -6,7 +6,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import '../../view_model/tempo_executado_total.dart';
 import 'demanda_card.dart';
 
-class DemandaTree extends StatelessWidget {
+class DemandaTree extends StatefulWidget {
   const DemandaTree({
     super.key,
     required this.horizontalController,
@@ -35,7 +35,45 @@ class DemandaTree extends StatelessWidget {
   final Set<int> demandasEmProcessamento;
 
   @override
+  State<DemandaTree> createState() => _DemandaTreeState();
+}
+
+class _DemandaTreeState extends State<DemandaTree> {
+  // O mesmo controller governa os detalhes do card e a visibilidade das filhas.
+  final _expansoes = <String, ExpansibleController>{};
+  bool _atualizacaoAgendada = false;
+
+  String _chaveExpansao(backend.Demanda demanda) =>
+      'demanda-expansao-${demanda.id ?? demanda.titulo}';
+
+  ExpansibleController _expansaoDe(backend.Demanda demanda) =>
+      _expansoes.putIfAbsent(
+        _chaveExpansao(demanda),
+        () => ExpansibleController()..addListener(_atualizarVisibilidade),
+      );
+
+  void _atualizarVisibilidade() {
+    if (_atualizacaoAgendada) return;
+    _atualizacaoAgendada = true;
+    // PageStorage também restaura a expansão durante a montagem de um card.
+    // Aguarda o fim do frame para não reconstruir a árvore durante esse build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _atualizacaoAgendada = false;
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _expansoes.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final demandas = widget.demandas;
     final temposTotais = calcularTemposExecutadosTotais(demandas);
     final ids = demandas.map((demanda) => demanda.id).whereType<int>().toSet();
     final porPai = <int, List<backend.Demanda>>{};
@@ -53,7 +91,7 @@ class DemandaTree extends StatelessWidget {
               !ids.contains(demanda.demandaPaiId),
         )
         .toList();
-    final idsRenderizados = <int>{};
+    final idsVisitados = <int>{};
     final porStatus = {
       for (final status in backend.DemandaStatus.values)
         status: <_DemandaNivel>[],
@@ -65,9 +103,10 @@ class DemandaTree extends StatelessWidget {
       _visitar(
         raiz,
         nivel: 0,
+        visivel: true,
         porPai: porPai,
         caminho: const {},
-        idsRenderizados: idsRenderizados,
+        idsVisitados: idsVisitados,
         nos: porStatus[raiz.status]!,
       );
     }
@@ -75,13 +114,14 @@ class DemandaTree extends StatelessWidget {
     // Relações inválidas ou cíclicas não devem fazer uma demanda desaparecer.
     for (final demanda in demandas) {
       final id = demanda.id;
-      if (id != null && idsRenderizados.contains(id)) continue;
+      if (id != null && idsVisitados.contains(id)) continue;
       _visitar(
         demanda,
         nivel: 0,
+        visivel: true,
         porPai: porPai,
         caminho: const {},
-        idsRenderizados: idsRenderizados,
+        idsVisitados: idsVisitados,
         nos: porStatus[demanda.status]!,
       );
     }
@@ -126,14 +166,14 @@ class DemandaTree extends StatelessWidget {
             ),
             child: Scrollbar(
               key: const ValueKey('demandas-quadro-scrollbar'),
-              controller: horizontalController,
+              controller: widget.horizontalController,
               thumbVisibility: possuiOverflow,
               trackVisibility: false,
               interactive: true,
               scrollbarOrientation: ScrollbarOrientation.bottom,
               child: SingleChildScrollView(
                 key: const ValueKey('demandas-quadro-status'),
-                controller: horizontalController,
+                controller: widget.horizontalController,
                 scrollDirection: Axis.horizontal,
                 // A Row assume a altura da maior coluna. A faixa inferior reserva
                 // espaço para a barra no fim do conteúdo, inclusive durante hover.
@@ -225,19 +265,21 @@ class DemandaTree extends StatelessWidget {
   void _visitar(
     backend.Demanda demanda, {
     required int nivel,
+    required bool visivel,
     required Map<int, List<backend.Demanda>> porPai,
     required Set<int> caminho,
-    required Set<int> idsRenderizados,
+    required Set<int> idsVisitados,
     required List<_DemandaNivel> nos,
   }) {
     final id = demanda.id;
     final proximoCaminho = {...caminho};
     if (id != null) {
       if (!proximoCaminho.add(id)) return;
-      idsRenderizados.add(id);
+      idsVisitados.add(id);
     }
 
-    nos.add(_DemandaNivel(demanda: demanda, nivel: nivel));
+    if (visivel) nos.add(_DemandaNivel(demanda: demanda, nivel: nivel));
+    final filhasVisiveis = visivel && _expansaoDe(demanda).isExpanded;
     final filhas = id == null
         ? const <backend.Demanda>[]
         : porPai[id] ?? const [];
@@ -246,9 +288,12 @@ class DemandaTree extends StatelessWidget {
       _visitar(
         filha,
         nivel: nivel + 1,
+        visivel: filhasVisiveis,
         porPai: porPai,
         caminho: proximoCaminho,
-        idsRenderizados: idsRenderizados,
+        // Mesmo ocultos, descendentes são visitados para não virarem raízes
+        // na passagem que recupera relações inválidas ou cíclicas.
+        idsVisitados: idsVisitados,
         nos: nos,
       );
     }
@@ -256,7 +301,7 @@ class DemandaTree extends StatelessWidget {
 
   Widget _construirNo(_DemandaNivel no, int tempoExecutadoTotalMinutos) {
     final demanda = no.demanda;
-    final emProcessamento = demandasEmProcessamento.contains(demanda.id);
+    final emProcessamento = widget.demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
     final recuo = math.min(nivel * 20.0, 100.0);
 
@@ -273,20 +318,20 @@ class DemandaTree extends StatelessWidget {
           padding: EdgeInsets.only(left: nivel == 0 ? 0 : 10),
           child: DemandaCard(
             // A expansão acompanha a demanda quando ela muda de coluna.
-            key: PageStorageKey(
-              'demanda-expansao-${demanda.id ?? demanda.titulo}',
-            ),
+            key: PageStorageKey(_chaveExpansao(demanda)),
+            expansionController: _expansaoDe(demanda),
             demanda: demanda,
             tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
-            acoesHabilitadas: acoesHabilitadas && !emProcessamento,
+            acoesHabilitadas: widget.acoesHabilitadas && !emProcessamento,
             emProcessamento: emProcessamento,
-            onAlterarStatus: (status) => onAlterarStatus(demanda, status),
-            onConcluir: () => onConcluir(demanda),
-            onEditar: () => onEditar(demanda),
-            onExcluir: () => onExcluir(demanda),
-            onCriarFilha: () => onCriarFilha(demanda),
-            onLancarTempo: () => onLancarTempo(demanda),
-            onMostrarTudo: () => onMostrarTudo(demanda),
+            onAlterarStatus: (status) =>
+                widget.onAlterarStatus(demanda, status),
+            onConcluir: () => widget.onConcluir(demanda),
+            onEditar: () => widget.onEditar(demanda),
+            onExcluir: () => widget.onExcluir(demanda),
+            onCriarFilha: () => widget.onCriarFilha(demanda),
+            onLancarTempo: () => widget.onLancarTempo(demanda),
+            onMostrarTudo: () => widget.onMostrarTudo(demanda),
           ),
         ),
       ),

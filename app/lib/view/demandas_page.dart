@@ -3,6 +3,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
 import '../view_model/demandas_view_model.dart';
+import 'demanda_detalhe_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/demanda_dialog.dart';
 import 'widgets/demanda_status_dialog.dart';
@@ -370,43 +371,30 @@ class _DemandasPageState extends State<DemandasPage> {
 
     final dados = await showDialog<LogTimeFormData>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => LogTimeDialog(
+        demandaId: demanda.id,
         demandaTitulo: demanda.titulo,
         dataInicial: DateTime.now(),
+        onSalvar: (dados) async {
+          final registrado = await _viewModel.registrarTempo(
+            demanda: demanda,
+            inicioEm: dados.inicioEm,
+            duracaoMinutos: dados.duracaoMinutos,
+          );
+          return registrado
+              ? null
+              : _viewModel.erroDaDemanda(demanda.id) ??
+                    'Não foi possível registrar o tempo.';
+        },
       ),
     );
     if (dados == null || !mounted) return;
 
-    final duracaoMinutos = (dados.duracaoHoras * 60).round();
-    if (duracaoMinutos <= 0) {
-      _mostrarFeedback(
-        'Informe uma duração de pelo menos um minuto.',
-        erro: true,
-      );
-      return;
-    }
-
-    final inicioLocal = DateTime(
-      dados.data.year,
-      dados.data.month,
-      dados.data.day,
-      dados.hora.hour,
-      dados.hora.minute,
-    );
-    final registrado = await _viewModel.registrarTempo(
-      demanda: demanda,
-      inicioEm: inicioLocal.toUtc(),
-      duracaoMinutos: duracaoMinutos,
-    );
-
-    if (!mounted) return;
     final erro = _viewModel.erroDaDemanda(demanda.id);
     _mostrarFeedback(
-      erro ??
-          (registrado
-              ? 'Tempo registrado com sucesso.'
-              : 'Não foi possível registrar o tempo.'),
-      erro: !registrado || erro != null,
+      erro ?? 'Tempo registrado com sucesso.',
+      erro: erro != null,
     );
   }
 
@@ -416,7 +404,7 @@ class _DemandasPageState extends State<DemandasPage> {
       _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
       return;
     }
-    Navigator.pushNamed(context, AppRoutes.demandaDetalhe, arguments: id);
+    mostrarDetalhesDemandaDialog(context, id);
   }
 
   void _mostrarFeedback(String mensagem, {required bool erro}) {

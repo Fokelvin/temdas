@@ -202,7 +202,12 @@ class RegistroTempoEndpoint extends Endpoint {
   ) async {
     final existentes = await RegistroTempo.db.find(
       session,
-      where: (t) => t.demandaId.equals(registro.demandaId),
+      where: (t) {
+        final filtro = t.demandaId.equals(registro.demandaId);
+        return registro.id == null
+            ? filtro
+            : filtro & t.id.notEquals(registro.id!);
+      },
       transaction: transaction,
     );
     final normalizacao = RegistroTempoNormalizacaoService().normalizar(

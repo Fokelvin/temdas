@@ -17,6 +17,7 @@ class DemandaCard extends StatelessWidget {
     this.onCriarFilha,
     this.onLancarTempo,
     this.onMostrarTudo,
+    this.expansionController,
   });
 
   final backend.Demanda demanda;
@@ -30,6 +31,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onCriarFilha;
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
+  final ExpansibleController? expansionController;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +39,7 @@ class DemandaCard extends StatelessWidget {
       child: Card(
         key: ValueKey('demanda-card-${demanda.id}'),
         child: ExpansionTile(
+          controller: expansionController,
           tilePadding: const EdgeInsets.symmetric(horizontal: 12),
           title: Text(
             demanda.titulo,
