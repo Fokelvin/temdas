@@ -15,12 +15,14 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/demanda_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
 import '../registros_tempo/registro_tempo_endpoint.dart' as _i4;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
     as _i5;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i6;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i7;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+    as _i8;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -49,12 +51,87 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'demanda',
       endpoint: endpoints['demanda']!,
       methodConnectors: {
+        'alterarStatusDemanda': _i1.MethodConnector(
+          name: 'alterarStatusDemanda',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'status': _i1.ParameterDescription(
+              name: 'status',
+              type: _i1.getType<_i5.DemandaStatus>(),
+              nullable: false,
+            ),
+            'motivoCancelamento': _i1.ParameterDescription(
+              name: 'motivoCancelamento',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+                  .alterarStatusDemanda(
+                    session,
+                    params['id'],
+                    params['status'],
+                    motivoCancelamento: params['motivoCancelamento'],
+                  ),
+        ),
+        'concluirDemandaEmCascata': _i1.MethodConnector(
+          name: 'concluirDemandaEmCascata',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+                  .concluirDemandaEmCascata(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'cancelarDemandaEmCascata': _i1.MethodConnector(
+          name: 'cancelarDemandaEmCascata',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'motivoCancelamento': _i1.ParameterDescription(
+              name: 'motivoCancelamento',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+                  .cancelarDemandaEmCascata(
+                    session,
+                    params['id'],
+                    params['motivoCancelamento'],
+                  ),
+        ),
         'criarDemanda': _i1.MethodConnector(
           name: 'criarDemanda',
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i5.DemandaCreateRequest>(),
+              type: _i1.getType<_i6.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -102,7 +179,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i6.DemandaUpdateRequest>(),
+              type: _i1.getType<_i7.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -189,7 +266,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i7.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i8.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },

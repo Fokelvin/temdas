@@ -15,6 +15,9 @@ class DemandaTree extends StatelessWidget {
     required this.onCriarFilha,
     required this.onLancarTempo,
     required this.onMostrarTudo,
+    required this.onAlterarStatus,
+    required this.onConcluir,
+    this.demandasEmProcessamento = const {},
   });
 
   final List<backend.Demanda> demandas;
@@ -24,6 +27,9 @@ class DemandaTree extends StatelessWidget {
   final ValueChanged<backend.Demanda> onCriarFilha;
   final ValueChanged<backend.Demanda> onLancarTempo;
   final ValueChanged<backend.Demanda> onMostrarTudo;
+  final void Function(backend.Demanda, backend.DemandaStatus) onAlterarStatus;
+  final ValueChanged<backend.Demanda> onConcluir;
+  final Set<int> demandasEmProcessamento;
 
   @override
   Widget build(BuildContext context) {
@@ -44,8 +50,13 @@ class DemandaTree extends StatelessWidget {
         )
         .toList();
     final idsRenderizados = <int>{};
-    final nos = <_DemandaNivel>[];
+    final porStatus = {
+      for (final status in backend.DemandaStatus.values)
+        status: <_DemandaNivel>[],
+    };
 
+    // A raiz define a coluna de toda a árvore; a visita mantém a ordem,
+    // os níveis e o status próprio de cada descendente.
     for (final raiz in raizes) {
       _visitar(
         raiz,
@@ -53,7 +64,7 @@ class DemandaTree extends StatelessWidget {
         porPai: porPai,
         caminho: const {},
         idsRenderizados: idsRenderizados,
-        nos: nos,
+        nos: porStatus[raiz.status]!,
       );
     }
 
@@ -67,11 +78,87 @@ class DemandaTree extends StatelessWidget {
         porPai: porPai,
         caminho: const {},
         idsRenderizados: idsRenderizados,
-        nos: nos,
+        nos: porStatus[demanda.status]!,
       );
     }
 
-    return Column(children: [for (final no in nos) _construirNo(no)]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const espacamento = 16.0;
+        final larguraColuna = math.max(
+          360.0,
+          (constraints.maxWidth - espacamento * (porStatus.length - 1)) /
+              porStatus.length,
+        );
+
+        return SingleChildScrollView(
+          key: const ValueKey('demandas-quadro-status'),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final grupo in porStatus.entries) ...[
+                if (grupo.key != porStatus.keys.first)
+                  const SizedBox(width: espacamento),
+                SizedBox(
+                  width: larguraColuna,
+                  child: Column(
+                    key: ValueKey('demanda-coluna-${grupo.key.name}'),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        key: ValueKey('demanda-status-${grupo.key.name}'),
+                        padding: const EdgeInsets.only(top: 16, bottom: 12),
+                        child: Semantics(
+                          header: true,
+                          child: Row(
+                            children: [
+                              Text(
+                                _statusLabel(grupo.key),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '(${grupo.value.where((no) => no.nivel == 0).length})',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (grupo.value.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Nenhuma demanda neste status.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        )
+                      else
+                        for (final no in grupo.value) _construirNo(no),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _visitar(
@@ -108,6 +195,7 @@ class DemandaTree extends StatelessWidget {
 
   Widget _construirNo(_DemandaNivel no) {
     final demanda = no.demanda;
+    final emProcessamento = demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
     final recuo = math.min(nivel * 20.0, 100.0);
 
@@ -123,8 +211,15 @@ class DemandaTree extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.only(left: nivel == 0 ? 0 : 10),
           child: DemandaCard(
+            // A expansão acompanha a demanda quando ela muda de coluna.
+            key: PageStorageKey(
+              'demanda-expansao-${demanda.id ?? demanda.titulo}',
+            ),
             demanda: demanda,
-            acoesHabilitadas: acoesHabilitadas,
+            acoesHabilitadas: acoesHabilitadas && !emProcessamento,
+            emProcessamento: emProcessamento,
+            onAlterarStatus: (status) => onAlterarStatus(demanda, status),
+            onConcluir: () => onConcluir(demanda),
             onEditar: () => onEditar(demanda),
             onExcluir: () => onExcluir(demanda),
             onCriarFilha: () => onCriarFilha(demanda),
@@ -135,6 +230,14 @@ class DemandaTree extends StatelessWidget {
       ),
     );
   }
+
+  String _statusLabel(backend.DemandaStatus status) => switch (status) {
+    backend.DemandaStatus.aberta => 'Abertas',
+    backend.DemandaStatus.emAndamento => 'Em andamento',
+    backend.DemandaStatus.pausada => 'Pausadas',
+    backend.DemandaStatus.concluida => 'Concluídas',
+    backend.DemandaStatus.cancelada => 'Canceladas',
+  };
 }
 
 class _DemandaNivel {

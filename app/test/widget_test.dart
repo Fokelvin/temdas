@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/app/app_routes.dart';
 import 'package:temdas/view/demandas_page.dart';
+import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
@@ -22,20 +23,50 @@ void main() {
         final viewModel = DemandasViewModel(repository: repository);
         addTearDown(viewModel.dispose);
         await _abrirPagina(tester, viewModel);
+        expect(find.byType(Form), findsNothing);
+        final abrir = find.byKey(const ValueKey('abrir-criar-demanda'));
+        expect(
+          find.descendant(of: find.byType(AppBar), matching: abrir),
+          findsOneWidget,
+        );
+        await tester.tap(abrir);
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+
+        if (!falha) {
+          await tester.tap(find.byKey(const ValueKey('criar-demanda')));
+          await tester.pumpAndSettle();
+          expect(find.text('Informe o título.'), findsOneWidget);
+          expect(repository.chamadasCriar, 0);
+          await tester.tap(find.text('Cancelar'));
+          await tester.pumpAndSettle();
+          expect(find.byType(AlertDialog), findsNothing);
+          await tester.tap(abrir);
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('Fechar'));
+          await tester.pumpAndSettle();
+          expect(find.byType(AlertDialog), findsNothing);
+          expect(repository.chamadasCriar, 0);
+          await tester.tap(abrir);
+          await tester.pumpAndSettle();
+        }
         await tester.enterText(
           find.byType(TextFormField).first,
           'Nova demanda',
         );
+        await tester.enterText(find.byType(TextFormField).last, '1,5');
 
-        await _confirmarComLoading(
-          tester,
-          'criar-demanda',
-          'Criando...',
-          dialogo: false,
-        );
+        await _confirmarComLoading(tester, 'criar-demanda', 'Criando...');
         expect(repository.chamadasCriar, 1);
+        expect(repository.ultimaCriacao?.tempoEstimadoMinutos, 90);
         expect(viewModel.demandas, [original]);
         expect(find.text('Demanda inicial'), findsOneWidget);
+        expect(
+          tester
+              .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close))
+              .onPressed,
+          isNull,
+        );
         if (falha) {
           resposta.completeError(StateError('Falha ao criar'));
         } else {
@@ -45,13 +76,16 @@ void main() {
 
         expect(repository.chamadasListar, 1);
         expect(find.byType(CircularProgressIndicator), findsNothing);
-        expect(
-          tester
-              .widget<FilledButton>(find.byKey(const ValueKey('criar-demanda')))
-              .onPressed,
-          isNotNull,
-        );
         if (falha) {
+          expect(find.byType(AlertDialog), findsOneWidget);
+          expect(
+            tester
+                .widget<FilledButton>(
+                  find.byKey(const ValueKey('criar-demanda')),
+                )
+                .onPressed,
+            isNotNull,
+          );
           expect(viewModel.demandas, [original]);
           expect(
             find.widgetWithText(
@@ -68,6 +102,7 @@ void main() {
             'Nova demanda',
           );
         } else {
+          expect(find.byType(AlertDialog), findsNothing);
           expect(viewModel.demandas, hasLength(2));
           expect(find.text('Nova demanda'), findsOneWidget);
           expect(find.text('Demanda criada com sucesso.'), findsOneWidget);
@@ -122,6 +157,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await _abrirPagina(tester, viewModel);
       await _expandirDemanda(tester, 'Demanda inicial');
+      if (operacao != 'filha') await _abrirMenuAcoes(tester, 1);
       await tester.ensureVisible(find.byKey(ValueKey(abrir)));
       await tester.tap(find.byKey(ValueKey(abrir)));
       await tester.pumpAndSettle();
@@ -145,11 +181,22 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.widgetWithText(SnackBar, mensagem), findsOneWidget);
-      await _expandirDemanda(tester, 'Demanda inicial');
-      expect(
-        tester.widget<TextButton>(find.byKey(ValueKey(abrir))).onPressed,
-        isNotNull,
-      );
+      expect(find.text('ID: 1'), findsOneWidget);
+      if (operacao == 'filha') {
+        expect(
+          tester.widget<TextButton>(find.byKey(ValueKey(abrir))).onPressed,
+          isNotNull,
+        );
+      } else {
+        expect(
+          tester
+              .widget<PopupMenuButton<dynamic>>(
+                find.byKey(const ValueKey('acoes-demanda-1')),
+              )
+              .enabled,
+          isTrue,
+        );
+      }
     });
   }
 
@@ -164,6 +211,7 @@ void main() {
 
     await _abrirPagina(tester, viewModel);
     await _expandirDemanda(tester, 'Demanda inicial');
+    await _abrirMenuAcoes(tester, 1);
     await tester.ensureVisible(find.byKey(const ValueKey('editar-demanda-1')));
     await tester.tap(find.byKey(const ValueKey('editar-demanda-1')));
     await tester.pumpAndSettle();
@@ -177,6 +225,10 @@ void main() {
       find.byKey(const ValueKey('editar-demanda-tempo')),
       '1,5',
     );
+    await tester.tap(find.byKey(const ValueKey('editar-demanda-status')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Concluída').last);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const ValueKey('salvar-edicao-demanda')),
     );
@@ -187,6 +239,7 @@ void main() {
       original.copyWith(
         titulo: 'Demanda editada pela tela',
         tempoEstimadoMinutos: 90,
+        status: backend.DemandaStatus.concluida,
       ),
     );
     await tester.pumpAndSettle();
@@ -194,8 +247,28 @@ void main() {
     expect(repository.chamadasAtualizar, 1);
     expect(repository.chamadasListar, 1);
     expect(repository.ultimaAtualizacao?.tempoEstimadoMinutos, 90);
+    expect(
+      repository.ultimaAtualizacao?.status,
+      backend.DemandaStatus.concluida,
+    );
     expect(find.text('Demanda editada pela tela'), findsOneWidget);
     expect(find.text('Demanda atualizada com sucesso.'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('demanda-tree-node-1-0'))).dy,
+      greaterThan(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('demanda-status-concluida')))
+            .dy,
+      ),
+    );
+    // O card continua expandido depois de mudar de coluna.
+    expect(find.text('Estimado: 1 h 30 min'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('acoes-demanda-1')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('acoes-demanda-1')).hitTestable(),
+      findsOneWidget,
+    );
   });
 
   testWidgets('cria filha mantendo a demanda mãe fixa', (tester) async {
@@ -257,6 +330,7 @@ void main() {
 
     await _abrirPagina(tester, viewModel);
     await _expandirDemanda(tester, 'Demanda inicial');
+    await _abrirMenuAcoes(tester, 1);
     await tester.ensureVisible(find.byKey(const ValueKey('excluir-demanda-1')));
     await tester.tap(find.byKey(const ValueKey('excluir-demanda-1')));
     await tester.pumpAndSettle();
@@ -274,7 +348,7 @@ void main() {
     expect(repository.chamadasExcluir, 1);
     expect(repository.chamadasExcluirArvore, 0);
     expect(repository.chamadasListar, 1);
-    expect(find.text('Nenhuma demanda cadastrada.'), findsOneWidget);
+    expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(5));
     expect(find.text('Demanda excluída com sucesso.'), findsOneWidget);
   });
 
@@ -293,6 +367,7 @@ void main() {
 
     await _abrirPagina(tester, viewModel);
     await _expandirDemanda(tester, 'Mãe');
+    await _abrirMenuAcoes(tester, 1);
     await tester.ensureVisible(find.byKey(const ValueKey('excluir-demanda-1')));
     await tester.tap(find.byKey(const ValueKey('excluir-demanda-1')));
     await tester.pumpAndSettle();
@@ -304,6 +379,7 @@ void main() {
     expect(repository.chamadasExcluirArvore, 0);
     expect(find.text('Mãe'), findsOneWidget);
 
+    await _abrirMenuAcoes(tester, 1);
     await tester.tap(find.byKey(const ValueKey('excluir-demanda-1')));
     await tester.pumpAndSettle();
     await _confirmarComLoading(tester, 'confirmar-exclusao-1', 'Excluindo...');
@@ -315,12 +391,414 @@ void main() {
     expect(repository.chamadasExcluir, 0);
     expect(repository.chamadasExcluirArvore, 1);
     expect(repository.chamadasListar, 1);
-    expect(find.text('Nenhuma demanda cadastrada.'), findsOneWidget);
+    expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(5));
     expect(
       find.text('Demanda e descendentes excluídos com sucesso.'),
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'agrupa árvores pelo status da raiz preservando status e ordem das filhas',
+    (tester) async {
+      await _configurarTela(tester);
+      final demandas = [
+        demandaFixture(
+          id: 2,
+          demandaPaiId: 1,
+          titulo: 'Filha pausada',
+          status: backend.DemandaStatus.pausada,
+        ),
+        demandaFixture(id: 3, titulo: 'Primeira aberta'),
+        demandaFixture(id: 4, demandaPaiId: 2, titulo: 'Neta aberta'),
+        demandaFixture(
+          id: 1,
+          titulo: 'Mãe concluída',
+          status: backend.DemandaStatus.concluida,
+        ),
+        demandaFixture(id: 5, titulo: 'Última aberta'),
+        demandaFixture(
+          id: 6,
+          titulo: 'Em execução',
+          status: backend.DemandaStatus.emAndamento,
+        ),
+        demandaFixture(
+          id: 7,
+          titulo: 'Cancelada',
+          status: backend.DemandaStatus.cancelada,
+        ),
+      ];
+      final repository = FakeDemandaRepository(demandas: demandas);
+      final viewModel = DemandasViewModel(repository: repository);
+      addTearDown(viewModel.dispose);
+      await _abrirPagina(tester, viewModel);
+
+      final grupos = {
+        backend.DemandaStatus.aberta: (raizes: 2, ids: [3, 5]),
+        backend.DemandaStatus.emAndamento: (raizes: 1, ids: [6]),
+        backend.DemandaStatus.pausada: (raizes: 0, ids: <int>[]),
+        backend.DemandaStatus.concluida: (raizes: 1, ids: [1, 2, 4]),
+        backend.DemandaStatus.cancelada: (raizes: 1, ids: [7]),
+      };
+      expect(find.byType(DemandaCard), findsNWidgets(demandas.length));
+      var ultimoX = double.negativeInfinity;
+      final primeiroY = tester
+          .getTopLeft(find.byKey(const ValueKey('demanda-status-aberta')))
+          .dy;
+      for (final grupo in grupos.entries) {
+        final coluna = find.byKey(ValueKey('demanda-coluna-${grupo.key.name}'));
+        final cabecalho = find.byKey(
+          ValueKey('demanda-status-${grupo.key.name}'),
+        );
+        final posicao = tester.getTopLeft(cabecalho);
+        expect(posicao.dx, greaterThan(ultimoX));
+        expect(posicao.dy, primeiroY);
+        ultimoX = tester.getTopRight(coluna).dx;
+        expect(
+          find.descendant(
+            of: cabecalho,
+            matching: find.text('(${grupo.value.raizes})'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: coluna, matching: find.byType(DemandaCard)),
+          findsNWidgets(grupo.value.ids.length),
+        );
+        var ultimoY = tester.getBottomLeft(cabecalho).dy;
+        for (final id in grupo.value.ids) {
+          final card = find.byKey(ValueKey('demanda-card-$id'));
+          expect(card, findsOneWidget);
+          expect(find.descendant(of: coluna, matching: card), findsOneWidget);
+          final cardY = tester.getTopLeft(card).dy;
+          expect(cardY, greaterThanOrEqualTo(ultimoY));
+          ultimoY = tester.getBottomLeft(card).dy;
+        }
+      }
+      expect(
+        find.byKey(const ValueKey('demanda-tree-node-2-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('demanda-tree-node-4-2')),
+        findsOneWidget,
+      );
+      expect(viewModel.demandas, demandas);
+      await _expandirDemanda(tester, 'Filha pausada');
+      await _expandirDemanda(tester, 'Neta aberta');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('demanda-card-2')),
+          matching: find.text('Pausada'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('demanda-card-4')),
+          matching: find.text('Aberta'),
+        ),
+        findsOneWidget,
+      );
+      expect(repository.chamadasListar, 1);
+      expect(repository.chamadasAtualizar, 0);
+    },
+  );
+
+  for (final largura in [390.0, 1200.0, 2400.0]) {
+    testWidgets(
+      'quadro com largura $largura mantém colunas e usa só o scroll vertical da página',
+      (tester) async {
+        await tester.binding.setSurfaceSize(Size(largura, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final repository = FakeDemandaRepository(
+          demandas: [
+            for (var id = 1; id <= 12; id++)
+              demandaFixture(id: id, titulo: 'Demanda $id'),
+            demandaFixture(
+              id: 100,
+              demandaPaiId: 1,
+              status: backend.DemandaStatus.concluida,
+            ),
+          ],
+        );
+        final viewModel = DemandasViewModel(repository: repository);
+        addTearDown(viewModel.dispose);
+        await _abrirPagina(tester, viewModel);
+
+        final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
+        final scrollQuadro = find.descendant(
+          of: quadro,
+          matching: find.byType(Scrollable),
+        );
+        expect(scrollQuadro, findsOneWidget);
+        final horizontal = tester.state<ScrollableState>(scrollQuadro);
+        expect(horizontal.position.axis, Axis.horizontal);
+        final scrollVertical = find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
+        );
+        expect(scrollVertical, findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('demandas-pagina-scroll')),
+            matching: scrollVertical,
+          ),
+          findsOneWidget,
+        );
+        final vertical = tester.state<ScrollableState>(scrollVertical);
+        expect(vertical.position.maxScrollExtent, greaterThan(0));
+
+        final nomes = {
+          backend.DemandaStatus.aberta: 'Abertas',
+          backend.DemandaStatus.emAndamento: 'Em andamento',
+          backend.DemandaStatus.pausada: 'Pausadas',
+          backend.DemandaStatus.concluida: 'Concluídas',
+          backend.DemandaStatus.cancelada: 'Canceladas',
+        };
+        var ultimoX = double.negativeInfinity;
+        final topo = tester
+            .getTopLeft(find.byKey(const ValueKey('demanda-status-aberta')))
+            .dy;
+        for (final status in nomes.entries) {
+          final coluna = find.byKey(
+            ValueKey('demanda-coluna-${status.key.name}'),
+          );
+          final cabecalho = find.byKey(
+            ValueKey('demanda-status-${status.key.name}'),
+          );
+          expect(
+            find.descendant(of: cabecalho, matching: find.text(status.value)),
+            findsOneWidget,
+          );
+          expect(tester.getSize(coluna).width, greaterThanOrEqualTo(360));
+          expect(tester.getTopLeft(cabecalho).dy, topo);
+          expect(tester.getTopLeft(coluna).dx, greaterThan(ultimoX));
+          ultimoX = tester.getTopRight(coluna).dx;
+        }
+        expect(
+          tester
+              .getSize(find.byKey(const ValueKey('demanda-coluna-aberta')))
+              .height,
+          greaterThan(vertical.position.viewportDimension),
+        );
+        expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(4));
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('demanda-status-aberta')),
+            matching: find.text('(12)'),
+          ),
+          findsOneWidget,
+        );
+
+        final tituloPagina = find.text('Demandas salvas');
+        final posicaoTitulo = tester.getTopLeft(tituloPagina);
+        if (largura < 2000) {
+          expect(horizontal.position.maxScrollExtent, greaterThan(0));
+          await tester.dragFrom(
+            tester.getTopLeft(quadro) + const Offset(250, 20),
+            const Offset(-200, 0),
+          );
+          await tester.pumpAndSettle();
+          expect(horizontal.position.pixels, greaterThan(0));
+          expect(vertical.position.pixels, 0);
+          expect(tester.getTopLeft(tituloPagina), posicaoTitulo);
+        } else {
+          expect(horizontal.position.maxScrollExtent, 0);
+          expect(ultimoX, closeTo(largura - 24, 0.01));
+        }
+
+        final deslocamentoHorizontal = horizontal.position.pixels;
+        final topoQuadro = tester.getTopLeft(quadro).dy;
+        await tester.dragFrom(const Offset(200, 400), const Offset(0, -250));
+        await tester.pumpAndSettle();
+        expect(vertical.position.pixels, greaterThan(0));
+        expect(horizontal.position.pixels, deslocamentoHorizontal);
+        expect(tester.getTopLeft(quadro).dy, lessThan(topoQuadro));
+        final ultimoCard = find.byKey(const ValueKey('demanda-card-12'));
+        await tester.ensureVisible(ultimoCard);
+        await tester.pumpAndSettle();
+        expect(ultimoCard.hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('quadro vazio mantém as cinco colunas e contagens zeradas', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final viewModel = DemandasViewModel(repository: FakeDemandaRepository());
+    addTearDown(viewModel.dispose);
+    await _abrirPagina(tester, viewModel);
+
+    expect(find.byType(DemandaCard), findsNothing);
+    for (final status in backend.DemandaStatus.values) {
+      final coluna = find.byKey(ValueKey('demanda-coluna-${status.name}'));
+      expect(coluna, findsOneWidget);
+      expect(
+        find.descendant(of: coluna, matching: find.text('(0)')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: coluna,
+          matching: find.text('Nenhuma demanda neste status.'),
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('expande e recolhe cards sem mudar a posição dos descendentes', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final viewModel = DemandasViewModel(
+      repository: FakeDemandaRepository(
+        demandas: [
+          demandaFixture(id: 1, titulo: 'Mãe'),
+          demandaFixture(
+            id: 2,
+            demandaPaiId: 1,
+            titulo: 'Filha',
+            status: backend.DemandaStatus.pausada,
+          ),
+        ],
+      ),
+    );
+    addTearDown(viewModel.dispose);
+    await _abrirPagina(tester, viewModel);
+
+    for (final titulo in ['Mãe', 'Filha']) {
+      final id = titulo == 'Mãe' ? 1 : 2;
+      expect(find.text('ID: $id'), findsNothing);
+      await _expandirDemanda(tester, titulo);
+      expect(find.text('ID: $id'), findsOneWidget);
+      await _expandirDemanda(tester, titulo);
+      expect(find.text('ID: $id'), findsNothing);
+    }
+    final mae = find.byKey(const ValueKey('demanda-card-1'));
+    final filha = find.byKey(const ValueKey('demanda-card-2'));
+    final coluna = find.byKey(const ValueKey('demanda-coluna-aberta'));
+    expect(find.descendant(of: coluna, matching: mae), findsOneWidget);
+    expect(find.descendant(of: coluna, matching: filha), findsOneWidget);
+    expect(tester.getTopLeft(filha).dx, greaterThan(tester.getTopLeft(mae).dx));
+    expect(
+      tester.getTopLeft(filha).dy,
+      greaterThan(tester.getBottomLeft(mae).dy),
+    );
+  });
+
+  for (final editarRaiz in [true, false]) {
+    testWidgets(
+      editarRaiz
+          ? 'mudar status da raiz move toda a árvore e mantém os cards expandidos'
+          : 'mudar só o status da filha mantém a árvore na coluna da raiz',
+      (tester) async {
+        await _configurarTela(tester);
+        final mae = demandaFixture(id: 1, titulo: 'Mãe');
+        final filha = demandaFixture(
+          id: 2,
+          demandaPaiId: 1,
+          titulo: 'Filha',
+          status: backend.DemandaStatus.concluida,
+        );
+        final neta = demandaFixture(
+          id: 3,
+          demandaPaiId: 2,
+          titulo: 'Neta',
+          status: backend.DemandaStatus.emAndamento,
+        );
+        final repository = FakeDemandaRepository(demandas: [mae, filha, neta]);
+        final viewModel = DemandasViewModel(repository: repository);
+        addTearDown(viewModel.dispose);
+        await _abrirPagina(tester, viewModel);
+        for (final titulo in ['Mãe', 'Filha', 'Neta']) {
+          await _expandirDemanda(tester, titulo);
+        }
+
+        void verificarArvore(backend.DemandaStatus statusRaiz) {
+          final coluna = find.byKey(
+            ValueKey('demanda-coluna-${statusRaiz.name}'),
+          );
+          final limites = tester.getRect(coluna);
+          var ultimoY = tester
+              .getBottomLeft(
+                find.byKey(ValueKey('demanda-status-${statusRaiz.name}')),
+              )
+              .dy;
+          var ultimoX = double.negativeInfinity;
+          for (final id in [1, 2, 3]) {
+            final card = find.byKey(ValueKey('demanda-card-$id'));
+            expect(card, findsOneWidget);
+            expect(find.descendant(of: coluna, matching: card), findsOneWidget);
+            final posicao = tester.getTopLeft(card);
+            expect(posicao.dy, greaterThanOrEqualTo(ultimoY));
+            expect(tester.getBottomLeft(card).dy, lessThan(limites.bottom));
+            expect(posicao.dx, greaterThanOrEqualTo(limites.left));
+            expect(
+              tester.getTopRight(card).dx,
+              lessThanOrEqualTo(limites.right),
+            );
+            expect(posicao.dx, greaterThan(ultimoX));
+            ultimoY = tester.getBottomLeft(card).dy;
+            ultimoX = posicao.dx;
+            // O conteúdo só fica visível enquanto o card está expandido.
+            expect(
+              find.descendant(of: card, matching: find.text('ID: $id')),
+              findsOneWidget,
+            );
+          }
+        }
+
+        verificarArvore(backend.DemandaStatus.aberta);
+        final idEditado = editarRaiz ? 1 : 2;
+        await _abrirMenuAcoes(tester, idEditado);
+        final botaoEditar = find.byKey(ValueKey('editar-demanda-$idEditado'));
+        await tester.ensureVisible(botaoEditar);
+        await tester.tap(botaoEditar);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('editar-demanda-status')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.text(editarRaiz ? 'Em andamento' : 'Cancelada').last,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('salvar-edicao-demanda')));
+        await tester.pumpAndSettle();
+
+        verificarArvore(
+          editarRaiz
+              ? backend.DemandaStatus.emAndamento
+              : backend.DemandaStatus.aberta,
+        );
+        expect(find.byType(DemandaCard), findsNWidgets(3));
+        expect(repository.chamadasAtualizar, 1);
+        expect(repository.ultimaAtualizacao?.id, idEditado);
+        expect(repository.chamadasListar, editarRaiz ? 1 : 2);
+        expect(
+          viewModel.demandas[0].status,
+          editarRaiz ? backend.DemandaStatus.emAndamento : mae.status,
+        );
+        expect(
+          viewModel.demandas[1].status,
+          editarRaiz ? filha.status : backend.DemandaStatus.cancelada,
+        );
+        expect(viewModel.demandas[2], neta);
+        expect(viewModel.demandas[1].demandaPaiId, 1);
+        expect(viewModel.demandas[2].demandaPaiId, 2);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('demanda-card-2')),
+            matching: find.text(editarRaiz ? 'Concluída' : 'Cancelada'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+  }
 
   testWidgets('renderiza árvore recursiva e comparação de tempo', (
     tester,
@@ -424,6 +902,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _expandirDemanda(tester, 'Demanda inicial');
+    await _abrirMenuAcoes(tester, 42);
     await tester.ensureVisible(find.byKey(const ValueKey('mostrar-tudo-42')));
     await tester.tap(find.byKey(const ValueKey('mostrar-tudo-42')));
     await tester.pumpAndSettle();
@@ -462,7 +941,15 @@ Future<void> _confirmarComLoading(
     ),
     findsOneWidget,
   );
-  expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  expect(
+    dialogo
+        ? find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(CircularProgressIndicator),
+          )
+        : find.byType(CircularProgressIndicator),
+    findsOneWidget,
+  );
   await tester.tap(botao);
   await tester.pump();
   if (dialogo) {
@@ -475,13 +962,15 @@ Future<void> _confirmarComLoading(
     await tester.tapAt(const Offset(10, 10));
     await tester.pump();
     expect(find.byType(AlertDialog), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('criar-demanda')),
-        matching: find.byType(CircularProgressIndicator),
-      ),
-      findsNothing,
-    );
+    if (chave != 'criar-demanda') {
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('criar-demanda')),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
+    }
   }
 }
 
@@ -498,5 +987,12 @@ Future<void> _abrirPagina(
 Future<void> _expandirDemanda(WidgetTester tester, String titulo) async {
   await tester.ensureVisible(find.text(titulo));
   await tester.tap(find.text(titulo));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _abrirMenuAcoes(WidgetTester tester, int id) async {
+  final menu = find.byKey(ValueKey('acoes-demanda-$id'));
+  await tester.ensureVisible(menu);
+  await tester.tap(menu);
   await tester.pumpAndSettle();
 }

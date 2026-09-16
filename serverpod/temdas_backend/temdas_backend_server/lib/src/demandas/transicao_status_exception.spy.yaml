@@ -1,0 +1,5 @@
+exception: TransicaoStatusException
+fields:
+  codigo: TransicaoStatusErroCodigo
+  mensagem: String
+  podeConcluirEmCascata: bool, default=false

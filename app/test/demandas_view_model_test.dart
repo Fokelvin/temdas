@@ -9,6 +9,85 @@ import 'support/fake_demanda_repository.dart';
 void main() {
   group('DemandasViewModel', () {
     test(
+      'encaminha motivo e sincroniza descendentes após cancelamento no backend',
+      () async {
+        final mae = demandaFixture();
+        final filha = demandaFixture(id: 2, demandaPaiId: 1);
+        final cancelada = mae.copyWith(
+          status: backend.DemandaStatus.cancelada,
+          motivoCancelamento: 'Mudança de planos',
+        );
+        final filhaCancelada = filha.copyWith(
+          status: backend.DemandaStatus.cancelada,
+          motivoCancelamento: 'Mudança de planos',
+        );
+        final repository = FakeDemandaRepository(demandas: [mae, filha]);
+        final viewModel = DemandasViewModel(repository: repository);
+        addTearDown(viewModel.dispose);
+        await viewModel.carregarDemandas();
+        repository.respostaAtualizarPendente = Completer<backend.Demanda>()
+          ..complete(cancelada);
+        repository.respostasListarPendentes.add(
+          Completer<List<backend.Demanda>>()
+            ..complete([cancelada, filhaCancelada]),
+        );
+        expect(
+          await viewModel.atualizarDemanda(
+            demanda: mae,
+            titulo: mae.titulo,
+            tempoEstimadoHoras: 1,
+            status: backend.DemandaStatus.cancelada,
+            motivoCancelamento: 'Mudança de planos',
+            prioridade: mae.prioridade,
+          ),
+          isTrue,
+        );
+        expect(
+          repository.ultimaAtualizacao?.motivoCancelamento,
+          'Mudança de planos',
+        );
+        expect(repository.chamadasListar, 2);
+        expect(viewModel.demandas, [cancelada, filhaCancelada]);
+      },
+    );
+
+    test(
+      'preserva dados e apresenta a recusa de transição recebida do backend',
+      () async {
+        final mae = demandaFixture();
+        final repository = FakeDemandaRepository(demandas: [mae]);
+        final viewModel = DemandasViewModel(repository: repository);
+        addTearDown(viewModel.dispose);
+        await viewModel.carregarDemandas();
+        final resposta = Completer<backend.Demanda>();
+        repository.respostaAtualizarPendente = resposta;
+        final atualizacao = viewModel.atualizarDemanda(
+          demanda: mae,
+          titulo: mae.titulo,
+          tempoEstimadoHoras: 1,
+          status: backend.DemandaStatus.concluida,
+          prioridade: mae.prioridade,
+        );
+        final erro = backend.TransicaoStatusException(
+          codigo: backend.TransicaoStatusErroCodigo.descendentesAtivos,
+          mensagem: 'A demanda possui descendentes ativos.',
+          podeConcluirEmCascata: true,
+        );
+        resposta.completeError(erro);
+        expect(await atualizacao, isFalse);
+        expect(viewModel.demandas, [mae]);
+        expect(viewModel.erro, 'A demanda possui descendentes ativos.');
+        expect(viewModel.erroTransicaoStatus, same(erro));
+        expect(
+          viewModel.erroTransicaoStatus?.codigo,
+          backend.TransicaoStatusErroCodigo.descendentesAtivos,
+        );
+        expect(viewModel.erroTransicaoStatus?.podeConcluirEmCascata, isTrue);
+        expect(viewModel.enviando, isFalse);
+      },
+    );
+
+    test(
       'substitui somente a demanda atualizada, preservando ordem e campos',
       () async {
         final mae = demandaFixture(id: 2, titulo: 'Mãe');

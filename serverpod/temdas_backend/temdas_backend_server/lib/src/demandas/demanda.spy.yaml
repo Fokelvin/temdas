@@ -5,6 +5,7 @@ fields:
   titulo: String
   descricao: String?
   status: DemandaStatus
+  motivoCancelamento: String?
   prioridade: Prioridade
   sprint: String?
   tempoEstimadoMinutos: int

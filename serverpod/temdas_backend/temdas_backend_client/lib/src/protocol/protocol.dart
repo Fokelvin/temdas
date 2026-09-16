@@ -17,18 +17,22 @@ import 'demandas/demanda_create_request.dart' as _i3;
 import 'demandas/demanda_status.dart' as _i4;
 import 'demandas/demanda_update_request.dart' as _i5;
 import 'demandas/prioridade.dart' as _i6;
-import 'greetings/greeting.dart' as _i7;
-import 'registros_tempo/registro_tempo.dart' as _i8;
-import 'registros_tempo/registro_tempo_create_request.dart' as _i9;
+import 'demandas/transicao_status_erro_codigo.dart' as _i7;
+import 'demandas/transicao_status_exception.dart' as _i8;
+import 'greetings/greeting.dart' as _i9;
+import 'registros_tempo/registro_tempo.dart' as _i10;
+import 'registros_tempo/registro_tempo_create_request.dart' as _i11;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i10;
+    as _i12;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
-    as _i11;
+    as _i13;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_status.dart';
 export 'demandas/demanda_update_request.dart';
 export 'demandas/prioridade.dart';
+export 'demandas/transicao_status_erro_codigo.dart';
+export 'demandas/transicao_status_exception.dart';
 export 'greetings/greeting.dart';
 export 'registros_tempo/registro_tempo.dart';
 export 'registros_tempo/registro_tempo_create_request.dart';
@@ -83,14 +87,20 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i6.Prioridade) {
       return _i6.Prioridade.fromJson(data) as T;
     }
-    if (t == _i7.Greeting) {
-      return _i7.Greeting.fromJson(data) as T;
+    if (t == _i7.TransicaoStatusErroCodigo) {
+      return _i7.TransicaoStatusErroCodigo.fromJson(data) as T;
     }
-    if (t == _i8.RegistroTempo) {
-      return _i8.RegistroTempo.fromJson(data) as T;
+    if (t == _i8.TransicaoStatusException) {
+      return _i8.TransicaoStatusException.fromJson(data) as T;
     }
-    if (t == _i9.RegistroTempoCreateRequest) {
-      return _i9.RegistroTempoCreateRequest.fromJson(data) as T;
+    if (t == _i9.Greeting) {
+      return _i9.Greeting.fromJson(data) as T;
+    }
+    if (t == _i10.RegistroTempo) {
+      return _i10.RegistroTempo.fromJson(data) as T;
+    }
+    if (t == _i11.RegistroTempoCreateRequest) {
+      return _i11.RegistroTempoCreateRequest.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
@@ -109,25 +119,35 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i6.Prioridade?>()) {
       return (data != null ? _i6.Prioridade.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.Greeting?>()) {
-      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i8.RegistroTempo?>()) {
-      return (data != null ? _i8.RegistroTempo.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i9.RegistroTempoCreateRequest?>()) {
+    if (t == _i1.getType<_i7.TransicaoStatusErroCodigo?>()) {
       return (data != null
-              ? _i9.RegistroTempoCreateRequest.fromJson(data)
+              ? _i7.TransicaoStatusErroCodigo.fromJson(data)
               : null)
           as T;
     }
-    if (t == List<_i10.Demanda>) {
-      return (data as List).map((e) => deserialize<_i10.Demanda>(e)).toList()
+    if (t == _i1.getType<_i8.TransicaoStatusException?>()) {
+      return (data != null ? _i8.TransicaoStatusException.fromJson(data) : null)
           as T;
     }
-    if (t == List<_i11.RegistroTempo>) {
+    if (t == _i1.getType<_i9.Greeting?>()) {
+      return (data != null ? _i9.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i10.RegistroTempo?>()) {
+      return (data != null ? _i10.RegistroTempo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i11.RegistroTempoCreateRequest?>()) {
+      return (data != null
+              ? _i11.RegistroTempoCreateRequest.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == List<_i12.Demanda>) {
+      return (data as List).map((e) => deserialize<_i12.Demanda>(e)).toList()
+          as T;
+    }
+    if (t == List<_i13.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i11.RegistroTempo>(e))
+              .map((e) => deserialize<_i13.RegistroTempo>(e))
               .toList()
           as T;
     }
@@ -141,9 +161,11 @@ class Protocol extends _i1.SerializationManager {
       _i4.DemandaStatus => 'DemandaStatus',
       _i5.DemandaUpdateRequest => 'DemandaUpdateRequest',
       _i6.Prioridade => 'Prioridade',
-      _i7.Greeting => 'Greeting',
-      _i8.RegistroTempo => 'RegistroTempo',
-      _i9.RegistroTempoCreateRequest => 'RegistroTempoCreateRequest',
+      _i7.TransicaoStatusErroCodigo => 'TransicaoStatusErroCodigo',
+      _i8.TransicaoStatusException => 'TransicaoStatusException',
+      _i9.Greeting => 'Greeting',
+      _i10.RegistroTempo => 'RegistroTempo',
+      _i11.RegistroTempoCreateRequest => 'RegistroTempoCreateRequest',
       _ => null,
     };
   }
@@ -171,11 +193,15 @@ class Protocol extends _i1.SerializationManager {
         return 'DemandaUpdateRequest';
       case _i6.Prioridade():
         return 'Prioridade';
-      case _i7.Greeting():
+      case _i7.TransicaoStatusErroCodigo():
+        return 'TransicaoStatusErroCodigo';
+      case _i8.TransicaoStatusException():
+        return 'TransicaoStatusException';
+      case _i9.Greeting():
         return 'Greeting';
-      case _i8.RegistroTempo():
+      case _i10.RegistroTempo():
         return 'RegistroTempo';
-      case _i9.RegistroTempoCreateRequest():
+      case _i11.RegistroTempoCreateRequest():
         return 'RegistroTempoCreateRequest';
     }
     return null;
@@ -202,14 +228,20 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'Prioridade') {
       return deserialize<_i6.Prioridade>(data['data']);
     }
+    if (dataClassName == 'TransicaoStatusErroCodigo') {
+      return deserialize<_i7.TransicaoStatusErroCodigo>(data['data']);
+    }
+    if (dataClassName == 'TransicaoStatusException') {
+      return deserialize<_i8.TransicaoStatusException>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i7.Greeting>(data['data']);
+      return deserialize<_i9.Greeting>(data['data']);
     }
     if (dataClassName == 'RegistroTempo') {
-      return deserialize<_i8.RegistroTempo>(data['data']);
+      return deserialize<_i10.RegistroTempo>(data['data']);
     }
     if (dataClassName == 'RegistroTempoCreateRequest') {
-      return deserialize<_i9.RegistroTempoCreateRequest>(data['data']);
+      return deserialize<_i11.RegistroTempoCreateRequest>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

@@ -16,16 +16,31 @@ class DemandasViewModel extends ChangeNotifier {
   final RegistroTempoRepository _registroTempoRepository;
 
   bool _enviando = false;
+  final Set<int> _demandasEmProcessamento = {};
+  final _errosPorDemanda =
+      <int, ({String mensagem, backend.TransicaoStatusException? transicao})>{};
   bool _carregando = false;
   bool _descartado = false;
   int _versaoCarregamento = 0;
   String? _erro;
+  backend.TransicaoStatusException? _erroTransicaoStatus;
   backend.Demanda? _demandaCriada;
   List<backend.Demanda> _demandas = [];
 
-  bool get enviando => _enviando;
+  // Os fluxos globais continuam exclusivos; mutações locais bloqueiam só seu ID.
+  bool get enviando => _enviando || _demandasEmProcessamento.isNotEmpty;
+  bool get envioGlobalEmAndamento => _enviando;
+  Set<int> get demandasEmProcessamento =>
+      Set.unmodifiable(_demandasEmProcessamento);
+  bool demandaEmProcessamento(int? id) => _demandasEmProcessamento.contains(id);
+  String? erroDaDemanda(int? id) =>
+      id == null ? _erro : _errosPorDemanda[id]?.mensagem;
+  backend.TransicaoStatusException? erroTransicaoDaDemanda(int? id) =>
+      id == null ? _erroTransicaoStatus : _errosPorDemanda[id]?.transicao;
   bool get carregando => _carregando;
   String? get erro => _erro;
+  backend.TransicaoStatusException? get erroTransicaoStatus =>
+      _erroTransicaoStatus;
   backend.Demanda? get demandaCriada => _demandaCriada;
   List<backend.Demanda> get demandas => List.unmodifiable(_demandas);
 
@@ -93,7 +108,7 @@ class DemandasViewModel extends ChangeNotifier {
     String? descricao,
     backend.Prioridade? prioridade,
   }) async {
-    if (_descartado || _enviando) return false;
+    if (_descartado || enviando) return false;
 
     _iniciarEnvio();
 
@@ -111,10 +126,7 @@ class DemandasViewModel extends ChangeNotifier {
       if (!_descartado) {
         _invalidarCarregamentoPendente();
         _demandaCriada = demandaCriada;
-        final index = _demandas.indexWhere(
-          (demanda) => demandaCriada.criadoEm.isAfter(demanda.criadoEm),
-        );
-        _demandas.insert(index == -1 ? _demandas.length : index, demandaCriada);
+        _inserirDemanda(demandaCriada);
       }
       return true;
     } catch (error, stackTrace) {
@@ -133,6 +145,7 @@ class DemandasViewModel extends ChangeNotifier {
     required String titulo,
     required double tempoEstimadoHoras,
     required backend.DemandaStatus status,
+    String? motivoCancelamento,
     required backend.Prioridade prioridade,
     String? descricao,
   }) async {
@@ -141,7 +154,16 @@ class DemandasViewModel extends ChangeNotifier {
     final id = _idValido(demanda);
     if (id == null) return false;
 
-    _iniciarEnvio();
+    final index = _indiceDemanda(id);
+    final statusAnterior = index == -1
+        ? demanda.status
+        : _demandas[index].status;
+    final novoCancelamento =
+        status == backend.DemandaStatus.cancelada && statusAnterior != status;
+    if (!_podeIniciarMutacao(id, global: novoCancelamento)) return false;
+    final idProcessamento = novoCancelamento ? null : id;
+    _errosPorDemanda.remove(id);
+    _iniciarEnvio(demandaId: idProcessamento);
 
     try {
       final tempoEstimadoMinutos = (tempoEstimadoHoras * 60).round();
@@ -151,6 +173,7 @@ class DemandasViewModel extends ChangeNotifier {
         titulo: titulo,
         descricao: descricao,
         status: status,
+        motivoCancelamento: motivoCancelamento,
         prioridade: prioridade,
         sprint: demanda.sprint,
         tempoEstimadoMinutos: tempoEstimadoMinutos,
@@ -159,21 +182,97 @@ class DemandasViewModel extends ChangeNotifier {
 
       if (!_descartado) {
         _invalidarCarregamentoPendente();
-        final index = _demandas.indexWhere((item) => item.id == id);
-        if (index != -1) _demandas[index] = demandaAtualizada;
-        if (_demandaCriada?.id == id) {
-          _demandaCriada = demandaAtualizada;
+        _substituirDemanda(demandaAtualizada);
+        // Só uma nova transição no update pode cancelar descendentes.
+        if (novoCancelamento) {
+          await _recarregarAposMutacao(demandaId: id);
         }
       }
       return true;
     } catch (error, stackTrace) {
       if (!_descartado) {
         _registrarFalha('atualizar a demanda $id', error, stackTrace);
-        _erro = 'Não foi possível atualizar a demanda. Tente novamente.';
+        _definirErroDemanda(
+          id,
+          error,
+          'Não foi possível atualizar a demanda. Tente novamente.',
+        );
       }
       return false;
     } finally {
-      _finalizarEnvio();
+      _finalizarEnvio(demandaId: idProcessamento);
+    }
+  }
+
+  Future<bool> alterarStatusDemanda({
+    required backend.Demanda demanda,
+    required backend.DemandaStatus status,
+    String? motivoCancelamento,
+  }) => _executarTransicaoStatus(
+    demanda,
+    (id) => _repository.alterarStatusDemanda(
+      id: id,
+      status: status,
+      motivoCancelamento: motivoCancelamento,
+    ),
+    // O endpoint de status sempre processa descendentes ao cancelar.
+    recarregar: status == backend.DemandaStatus.cancelada,
+  );
+
+  Future<bool> concluirDemanda(backend.Demanda demanda) =>
+      _executarTransicaoStatus(demanda, _repository.concluirDemanda);
+
+  Future<bool> concluirDemandaEmCascata(backend.Demanda demanda) =>
+      _executarTransicaoStatus(
+        demanda,
+        _repository.concluirDemandaEmCascata,
+        recarregar: true,
+      );
+
+  Future<bool> cancelarDemandaEmCascata(
+    backend.Demanda demanda,
+    String motivo,
+  ) => _executarTransicaoStatus(
+    demanda,
+    (id) => _repository.cancelarDemandaEmCascata(id, motivo),
+    recarregar: true,
+  );
+
+  Future<bool> _executarTransicaoStatus(
+    backend.Demanda demanda,
+    Future<backend.Demanda> Function(int id) executar, {
+    bool recarregar = false,
+  }) async {
+    if (_descartado || _enviando) return false;
+
+    final id = _idValido(demanda);
+    if (id == null) return false;
+
+    if (!_podeIniciarMutacao(id, global: recarregar)) return false;
+    final idProcessamento = recarregar ? null : id;
+    _errosPorDemanda.remove(id);
+    _iniciarEnvio(demandaId: idProcessamento);
+
+    try {
+      final atualizada = await executar(id);
+      if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        _substituirDemanda(atualizada);
+        if (recarregar) await _recarregarAposMutacao(demandaId: id);
+      }
+      return true;
+    } catch (error, stackTrace) {
+      if (!_descartado) {
+        _registrarFalha('alterar o status da demanda $id', error, stackTrace);
+        _definirErroDemanda(
+          id,
+          error,
+          'Não foi possível alterar o status da demanda. Tente novamente.',
+        );
+      }
+      return false;
+    } finally {
+      _finalizarEnvio(demandaId: idProcessamento);
     }
   }
 
@@ -190,11 +289,12 @@ class DemandasViewModel extends ChangeNotifier {
     required DateTime inicioEm,
     required int duracaoMinutos,
   }) async {
-    if (_descartado || _enviando) return false;
+    if (_descartado || enviando) return false;
 
     final id = _idValido(demanda);
     if (id == null) return false;
     if (duracaoMinutos <= 0) {
+      _erroTransicaoStatus = null;
       _erro = 'Informe uma duração de pelo menos um minuto.';
       notifyListeners();
       return false;
@@ -225,7 +325,7 @@ class DemandasViewModel extends ChangeNotifier {
     backend.Demanda demanda, {
     required bool arvoreCompleta,
   }) async {
-    if (_descartado || _enviando) return false;
+    if (_descartado || enviando) return false;
 
     final id = _idValido(demanda);
     if (id == null) return false;
@@ -250,10 +350,7 @@ class DemandasViewModel extends ChangeNotifier {
 
       if (!_descartado) {
         _invalidarCarregamentoPendente();
-        _demandas.removeWhere((item) => idsExcluidos.contains(item.id));
-        if (idsExcluidos.contains(_demandaCriada?.id)) {
-          _demandaCriada = null;
-        }
+        _removerDemandas(idsExcluidos);
       }
       return true;
     } catch (error, stackTrace) {
@@ -267,9 +364,32 @@ class DemandasViewModel extends ChangeNotifier {
     }
   }
 
+  int _indiceDemanda(int? id) =>
+      id == null ? -1 : _demandas.indexWhere((item) => item.id == id);
+
+  void _substituirDemanda(backend.Demanda atualizada) {
+    final index = _indiceDemanda(atualizada.id);
+    if (index != -1) _demandas[index] = atualizada;
+    if (_demandaCriada?.id == atualizada.id) _demandaCriada = atualizada;
+  }
+
+  void _inserirDemanda(backend.Demanda criada) {
+    final index = _demandas.indexWhere(
+      (demanda) => criada.criadoEm.isAfter(demanda.criadoEm),
+    );
+    _demandas.insert(index == -1 ? _demandas.length : index, criada);
+  }
+
+  void _removerDemandas(Set<int> ids) {
+    _demandas.removeWhere((item) => ids.contains(item.id));
+    if (ids.contains(_demandaCriada?.id)) _demandaCriada = null;
+    _errosPorDemanda.removeWhere((id, _) => ids.contains(id));
+  }
+
   int? _idValido(backend.Demanda demanda) {
     final id = demanda.id;
     if (id != null) return id;
+    _erroTransicaoStatus = null;
     _erro = 'A demanda não possui um ID válido.';
     notifyListeners();
     return null;
@@ -281,13 +401,17 @@ class DemandasViewModel extends ChangeNotifier {
     _carregando = false;
   }
 
-  Future<bool> _recarregarAposMutacao() {
-    return _carregarDemandas(
+  Future<bool> _recarregarAposMutacao({int? demandaId}) async {
+    final sucesso = await _carregarDemandas(
       operacao: 'atualizar a lista de demandas após uma alteração',
       mensagemFalha:
           'A alteração foi salva, mas não foi possível atualizar a lista. '
           'Recarregue as demandas.',
     );
+    if (!_descartado && demandaId != null && !sucesso && _erro != null) {
+      _errosPorDemanda[demandaId] = (mensagem: _erro!, transicao: null);
+    }
+    return sucesso;
   }
 
   Future<bool> _carregarDemandas({
@@ -298,6 +422,7 @@ class DemandasViewModel extends ChangeNotifier {
 
     _carregando = true;
     _erro = null;
+    _erroTransicaoStatus = null;
     _notificar();
 
     try {
@@ -305,6 +430,10 @@ class DemandasViewModel extends ChangeNotifier {
       if (!_carregamentoAtual(versao)) return false;
 
       _demandas = List.of(demandas);
+      if (_demandaCriada case final criada?) {
+        final index = _indiceDemanda(criada.id);
+        if (index != -1) _demandaCriada = _demandas[index];
+      }
       return true;
     } catch (error, stackTrace) {
       if (!_carregamentoAtual(versao)) return false;
@@ -320,16 +449,40 @@ class DemandasViewModel extends ChangeNotifier {
     }
   }
 
-  void _iniciarEnvio() {
-    _enviando = true;
+  bool _podeIniciarMutacao(int id, {required bool global}) =>
+      !_descartado &&
+      !_enviando &&
+      !_demandasEmProcessamento.contains(id) &&
+      (!global || _demandasEmProcessamento.isEmpty);
+
+  void _iniciarEnvio({int? demandaId}) {
+    if (demandaId == null) {
+      _enviando = true;
+    } else {
+      _demandasEmProcessamento.add(demandaId);
+    }
     _erro = null;
+    _erroTransicaoStatus = null;
     notifyListeners();
   }
 
-  void _finalizarEnvio() {
+  void _finalizarEnvio({int? demandaId}) {
     if (_descartado) return;
-    _enviando = false;
+    if (demandaId == null) {
+      _enviando = false;
+    } else {
+      _demandasEmProcessamento.remove(demandaId);
+    }
     _notificar();
+  }
+
+  void _definirErroDemanda(int id, Object error, String mensagemFalha) {
+    _erroTransicaoStatus = error is backend.TransicaoStatusException
+        ? error
+        : null;
+    _erro = _erroTransicaoStatus?.mensagem ?? mensagemFalha;
+    // Respostas simultâneas não devem trocar o erro consultado por cada card.
+    _errosPorDemanda[id] = (mensagem: _erro!, transicao: _erroTransicaoStatus);
   }
 
   void _registrarFalha(String operacao, Object error, StackTrace stackTrace) {
@@ -348,6 +501,7 @@ class DemandasViewModel extends ChangeNotifier {
   void dispose() {
     _descartado = true;
     _versaoCarregamento++;
+    _demandasEmProcessamento.clear();
     super.dispose();
   }
 }

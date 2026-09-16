@@ -1,8 +1,32 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import 'demanda_status_service.dart';
 
 class DemandaEndpoint extends Endpoint {
+  final _statusService = DemandaStatusService();
+
+  Future<Demanda> alterarStatusDemanda(
+    Session session,
+    int id,
+    DemandaStatus status, {
+    String? motivoCancelamento,
+  }) => _statusService.alterarStatus(
+    session,
+    id,
+    status,
+    motivoCancelamento: motivoCancelamento,
+  );
+
+  Future<Demanda> concluirDemandaEmCascata(Session session, int id) =>
+      _statusService.concluirEmCascata(session, id);
+
+  Future<Demanda> cancelarDemandaEmCascata(
+    Session session,
+    int id,
+    String motivoCancelamento,
+  ) => _statusService.cancelarEmCascata(session, id, motivoCancelamento);
+
   Future<Demanda> criarDemanda(
     Session session,
     DemandaCreateRequest request,
@@ -112,13 +136,21 @@ class DemandaEndpoint extends Endpoint {
       );
 
       if (demandaAtual == null) {
-        throw Exception('Demanda não encontrada.');
+        throw TransicaoStatusException(
+          codigo: TransicaoStatusErroCodigo.demandaNaoEncontrada,
+          mensagem: 'Demanda não encontrada.',
+        );
       }
 
-      final agora = DateTime.now().toUtc();
-      final concluidoEm = request.status == DemandaStatus.concluida
-          ? demandaAtual.concluidoEm ?? agora
-          : null;
+      if (demandaAtual.status != request.status) {
+        await _statusService.alterarStatus(
+          session,
+          request.id,
+          request.status,
+          motivoCancelamento: request.motivoCancelamento,
+          transaction: transaction,
+        );
+      }
 
       final demandaAtualizada = await Demanda.db.updateById(
         session,
@@ -126,13 +158,11 @@ class DemandaEndpoint extends Endpoint {
         columnValues: (t) => [
           t.titulo(titulo),
           t.descricao(_normalizarTextoOpcional(request.descricao)),
-          t.status(request.status),
           t.prioridade(request.prioridade),
           t.sprint(_normalizarTextoOpcional(request.sprint)),
           t.tempoEstimadoMinutos(request.tempoEstimadoMinutos),
           t.observacoes(_normalizarTextoOpcional(request.observacoes)),
-          t.atualizadoEm(agora),
-          t.concluidoEm(concluidoEm),
+          t.atualizadoEm(DateTime.now().toUtc()),
         ],
         transaction: transaction,
       );

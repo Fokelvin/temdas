@@ -1,0 +1,6 @@
+enum: TransicaoStatusErroCodigo
+serialized: byName
+values:
+  - descendentesAtivos
+  - motivoCancelamentoObrigatorio
+  - demandaNaoEncontrada

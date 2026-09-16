@@ -113,11 +113,17 @@ vínculo `registros_tempo.demandaId → demandas.id` também usa cascade.
 
 ## Endpoints de domínio
 
+As regras centralizadas de status, cascatas e motivo de cancelamento estão
+descritas em [Transições de status](transicoes-status.md).
+
 ```text
 demanda.criarDemanda
 demanda.listarDemandas
 demanda.buscarDemandaPorId
 demanda.atualizarDemanda
+demanda.alterarStatusDemanda
+demanda.concluirDemandaEmCascata
+demanda.cancelarDemandaEmCascata
 demanda.excluirDemanda
 demanda.excluirArvoreDemanda
 

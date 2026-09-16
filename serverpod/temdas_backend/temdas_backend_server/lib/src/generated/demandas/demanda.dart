@@ -23,6 +23,7 @@ abstract class Demanda
     required this.titulo,
     this.descricao,
     required this.status,
+    this.motivoCancelamento,
     required this.prioridade,
     this.sprint,
     required this.tempoEstimadoMinutos,
@@ -39,6 +40,7 @@ abstract class Demanda
     required String titulo,
     String? descricao,
     required _i2.DemandaStatus status,
+    String? motivoCancelamento,
     required _i3.Prioridade prioridade,
     String? sprint,
     required int tempoEstimadoMinutos,
@@ -58,6 +60,7 @@ abstract class Demanda
       status: _i2.DemandaStatus.fromJson(
         (jsonSerialization['status'] as String),
       ),
+      motivoCancelamento: jsonSerialization['motivoCancelamento'] as String?,
       prioridade: _i3.Prioridade.fromJson(
         (jsonSerialization['prioridade'] as String),
       ),
@@ -94,6 +97,8 @@ abstract class Demanda
 
   _i2.DemandaStatus status;
 
+  String? motivoCancelamento;
+
   _i3.Prioridade prioridade;
 
   String? sprint;
@@ -122,6 +127,7 @@ abstract class Demanda
     String? titulo,
     String? descricao,
     _i2.DemandaStatus? status,
+    String? motivoCancelamento,
     _i3.Prioridade? prioridade,
     String? sprint,
     int? tempoEstimadoMinutos,
@@ -140,6 +146,7 @@ abstract class Demanda
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       'status': status.toJson(),
+      if (motivoCancelamento != null) 'motivoCancelamento': motivoCancelamento,
       'prioridade': prioridade.toJson(),
       if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
@@ -160,6 +167,7 @@ abstract class Demanda
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       'status': status.toJson(),
+      if (motivoCancelamento != null) 'motivoCancelamento': motivoCancelamento,
       'prioridade': prioridade.toJson(),
       if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
@@ -210,6 +218,7 @@ class _DemandaImpl extends Demanda {
     required String titulo,
     String? descricao,
     required _i2.DemandaStatus status,
+    String? motivoCancelamento,
     required _i3.Prioridade prioridade,
     String? sprint,
     required int tempoEstimadoMinutos,
@@ -224,6 +233,7 @@ class _DemandaImpl extends Demanda {
          titulo: titulo,
          descricao: descricao,
          status: status,
+         motivoCancelamento: motivoCancelamento,
          prioridade: prioridade,
          sprint: sprint,
          tempoEstimadoMinutos: tempoEstimadoMinutos,
@@ -244,6 +254,7 @@ class _DemandaImpl extends Demanda {
     String? titulo,
     Object? descricao = _Undefined,
     _i2.DemandaStatus? status,
+    Object? motivoCancelamento = _Undefined,
     _i3.Prioridade? prioridade,
     Object? sprint = _Undefined,
     int? tempoEstimadoMinutos,
@@ -259,6 +270,9 @@ class _DemandaImpl extends Demanda {
       titulo: titulo ?? this.titulo,
       descricao: descricao is String? ? descricao : this.descricao,
       status: status ?? this.status,
+      motivoCancelamento: motivoCancelamento is String?
+          ? motivoCancelamento
+          : this.motivoCancelamento,
       prioridade: prioridade ?? this.prioridade,
       sprint: sprint is String? ? sprint : this.sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos ?? this.tempoEstimadoMinutos,
@@ -296,6 +310,12 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
     table.status,
     value,
   );
+
+  _i1.ColumnValue<String, String> motivoCancelamento(String? value) =>
+      _i1.ColumnValue(
+        table.motivoCancelamento,
+        value,
+      );
 
   _i1.ColumnValue<_i3.Prioridade, _i3.Prioridade> prioridade(
     _i3.Prioridade value,
@@ -363,6 +383,10 @@ class DemandaTable extends _i1.Table<int?> {
       this,
       _i1.EnumSerialization.byName,
     );
+    motivoCancelamento = _i1.ColumnString(
+      'motivoCancelamento',
+      this,
+    );
     prioridade = _i1.ColumnEnum(
       'prioridade',
       this,
@@ -408,6 +432,8 @@ class DemandaTable extends _i1.Table<int?> {
 
   late final _i1.ColumnEnum<_i2.DemandaStatus> status;
 
+  late final _i1.ColumnString motivoCancelamento;
+
   late final _i1.ColumnEnum<_i3.Prioridade> prioridade;
 
   late final _i1.ColumnString sprint;
@@ -431,6 +457,7 @@ class DemandaTable extends _i1.Table<int?> {
     titulo,
     descricao,
     status,
+    motivoCancelamento,
     prioridade,
     sprint,
     tempoEstimadoMinutos,

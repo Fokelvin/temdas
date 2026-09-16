@@ -35,6 +35,7 @@ class DemandaRepository {
     required String titulo,
     String? descricao,
     required backend.DemandaStatus status,
+    String? motivoCancelamento,
     required backend.Prioridade prioridade,
     String? sprint,
     required int tempoEstimadoMinutos,
@@ -45,6 +46,7 @@ class DemandaRepository {
       titulo: titulo,
       descricao: descricao,
       status: status,
+      motivoCancelamento: motivoCancelamento,
       prioridade: prioridade,
       sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
@@ -53,6 +55,25 @@ class DemandaRepository {
 
     return _client.demanda.atualizarDemanda(request);
   }
+
+  Future<backend.Demanda> alterarStatusDemanda({
+    required int id,
+    required backend.DemandaStatus status,
+    String? motivoCancelamento,
+  }) => _client.demanda.alterarStatusDemanda(
+    id,
+    status,
+    motivoCancelamento: motivoCancelamento,
+  );
+
+  Future<backend.Demanda> concluirDemanda(int id) =>
+      alterarStatusDemanda(id: id, status: backend.DemandaStatus.concluida);
+
+  Future<backend.Demanda> concluirDemandaEmCascata(int id) =>
+      _client.demanda.concluirDemandaEmCascata(id);
+
+  Future<backend.Demanda> cancelarDemandaEmCascata(int id, String motivo) =>
+      _client.demanda.cancelarDemandaEmCascata(id, motivo);
 
   Future<List<backend.Demanda>> listarDemandas() {
     return _client.demanda.listarDemandas();

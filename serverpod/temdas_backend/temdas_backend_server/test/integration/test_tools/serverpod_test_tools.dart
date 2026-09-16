@@ -16,16 +16,18 @@ import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
     as _i4;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
     as _i5;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i6;
-import 'package:temdas_backend_server/src/generated/greetings/greeting.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i7;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
+import 'package:temdas_backend_server/src/generated/greetings/greeting.dart'
     as _i8;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
     as _i9;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+    as _i10;
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:temdas_backend_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -179,9 +181,112 @@ class _DemandaEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
+  _i3.Future<_i4.Demanda> alterarStatusDemanda(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+    _i5.DemandaStatus status, {
+    String? motivoCancelamento,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'demanda',
+            method: 'alterarStatusDemanda',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'demanda',
+          methodName: 'alterarStatusDemanda',
+          parameters: _i1.testObjectToJson({
+            'id': id,
+            'status': status,
+            'motivoCancelamento': motivoCancelamento,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i4.Demanda>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i4.Demanda> concluirDemandaEmCascata(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'demanda',
+            method: 'concluirDemandaEmCascata',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'demanda',
+          methodName: 'concluirDemandaEmCascata',
+          parameters: _i1.testObjectToJson({'id': id}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i4.Demanda>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i4.Demanda> cancelarDemandaEmCascata(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+    String motivoCancelamento,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'demanda',
+            method: 'cancelarDemandaEmCascata',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'demanda',
+          methodName: 'cancelarDemandaEmCascata',
+          parameters: _i1.testObjectToJson({
+            'id': id,
+            'motivoCancelamento': motivoCancelamento,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i4.Demanda>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _i3.Future<_i4.Demanda> criarDemanda(
     _i1.TestSessionBuilder sessionBuilder,
-    _i5.DemandaCreateRequest request,
+    _i6.DemandaCreateRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -273,7 +378,7 @@ class _DemandaEndpoint {
 
   _i3.Future<_i4.Demanda> atualizarDemanda(
     _i1.TestSessionBuilder sessionBuilder,
-    _i6.DemandaUpdateRequest request,
+    _i7.DemandaUpdateRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -375,7 +480,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i7.Greeting> hello(
+  _i3.Future<_i8.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -398,7 +503,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i7.Greeting>);
+                as _i3.Future<_i8.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -417,9 +522,9 @@ class _RegistroTempoEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i8.RegistroTempo> registrarTempo(
+  _i3.Future<_i9.RegistroTempo> registrarTempo(
     _i1.TestSessionBuilder sessionBuilder,
-    _i9.RegistroTempoCreateRequest request,
+    _i10.RegistroTempoCreateRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -440,7 +545,7 @@ class _RegistroTempoEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.RegistroTempo>);
+                as _i3.Future<_i9.RegistroTempo>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -448,7 +553,7 @@ class _RegistroTempoEndpoint {
     });
   }
 
-  _i3.Future<List<_i8.RegistroTempo>> listarRegistrosTempoPorPeriodo(
+  _i3.Future<List<_i9.RegistroTempo>> listarRegistrosTempoPorPeriodo(
     _i1.TestSessionBuilder sessionBuilder,
     DateTime inicio,
     DateTime fim,
@@ -475,7 +580,7 @@ class _RegistroTempoEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<List<_i8.RegistroTempo>>);
+                as _i3.Future<List<_i9.RegistroTempo>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -483,7 +588,7 @@ class _RegistroTempoEndpoint {
     });
   }
 
-  _i3.Future<List<_i8.RegistroTempo>> listarRegistrosTempoDaDemanda(
+  _i3.Future<List<_i9.RegistroTempo>> listarRegistrosTempoDaDemanda(
     _i1.TestSessionBuilder sessionBuilder,
     int demandaId,
   ) async {
@@ -506,7 +611,7 @@ class _RegistroTempoEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<List<_i8.RegistroTempo>>);
+                as _i3.Future<List<_i9.RegistroTempo>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

@@ -5,6 +5,7 @@ import '../app/app_routes.dart';
 import '../view_model/demandas_view_model.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/demanda_dialog.dart';
+import 'widgets/demanda_status_dialog.dart';
 import 'widgets/demanda_tree.dart';
 import 'widgets/log_time_dialog.dart';
 
@@ -26,7 +27,7 @@ class _DemandasPageState extends State<DemandasPage> {
   late final bool _possuiViewModel;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
-  bool _criandoDemanda = false;
+  final Set<int> _demandasEmStatus = {};
 
   @override
   void initState() {
@@ -47,30 +48,78 @@ class _DemandasPageState extends State<DemandasPage> {
     super.dispose();
   }
 
-  Future<void> _criarDemanda() async {
+  Future<void> _abrirFormulario() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ListenableBuilder(
+        listenable: _viewModel,
+        builder: (context, _) => PopScope(
+          canPop: !_viewModel.enviando,
+          child: AlertDialog(
+            title: Row(
+              children: [
+                const Expanded(child: Text('Criar demanda')),
+                IconButton(
+                  tooltip: 'Fechar',
+                  onPressed: _viewModel.enviando
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(child: _buildFormulario(context)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: _viewModel.enviando
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                key: const ValueKey('criar-demanda'),
+                onPressed: _viewModel.carregando || _viewModel.enviando
+                    ? null
+                    : () => _criarDemanda(dialogContext),
+                icon: _viewModel.enviando
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                label: Text(
+                  _viewModel.enviando ? 'Criando...' : 'Criar demanda',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _criarDemanda(BuildContext dialogContext) async {
     if (_viewModel.enviando || !(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
     final descricao = _descricaoController.text.trim();
-    setState(() => _criandoDemanda = true);
-    late final bool criada;
-    try {
-      criada = await _viewModel.criarDemanda(
-        titulo: _tituloController.text.trim(),
-        tempoEstimadoHoras: _parseHoras(_tempoController.text)!,
-        descricao: descricao.isEmpty ? null : descricao,
-        prioridade: _prioridade,
-      );
-    } finally {
-      if (mounted) setState(() => _criandoDemanda = false);
-    }
+    final criada = await _viewModel.criarDemanda(
+      titulo: _tituloController.text.trim(),
+      tempoEstimadoHoras: _parseHoras(_tempoController.text)!,
+      descricao: descricao.isEmpty ? null : descricao,
+      prioridade: _prioridade,
+    );
 
     if (!mounted) return;
     if (criada) {
       _tituloController.clear();
       _descricaoController.clear();
       _tempoController.text = '1';
+      if (dialogContext.mounted) Navigator.pop(dialogContext);
     }
     _mostrarFeedback(
       criada
@@ -111,6 +160,11 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   Future<void> _editarDemanda(backend.Demanda demanda) async {
+    if (_viewModel.envioGlobalEmAndamento ||
+        _viewModel.demandaEmProcessamento(demanda.id) ||
+        _demandasEmStatus.contains(demanda.id)) {
+      return;
+    }
     final atualizada = await showDialog<bool>(
       context: context,
       builder: (_) => EditarDemandaDialog(
@@ -130,8 +184,98 @@ class _DemandasPageState extends State<DemandasPage> {
     _mostrarFeedback(
       atualizada
           ? 'Demanda atualizada com sucesso.'
-          : _viewModel.erro ?? 'Não foi possível atualizar a demanda.',
+          : _viewModel.erroDaDemanda(demanda.id) ??
+                'Não foi possível atualizar a demanda.',
       erro: !atualizada,
+    );
+  }
+
+  Future<void> _alterarStatusDemanda(
+    backend.Demanda demanda,
+    backend.DemandaStatus status,
+  ) async {
+    final id = demanda.id;
+    if (_demandasEmStatus.contains(id) ||
+        _viewModel.demandaEmProcessamento(id) ||
+        _viewModel.envioGlobalEmAndamento ||
+        _viewModel.carregando) {
+      return;
+    }
+    if (id == null) {
+      _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
+      return;
+    }
+
+    setState(() => _demandasEmStatus.add(id));
+    try {
+      switch (status) {
+        case backend.DemandaStatus.concluida:
+          await _concluirDemanda(demanda);
+        case backend.DemandaStatus.cancelada:
+          final cancelada = await mostrarCancelamentoDemandaDialog(
+            context,
+            demanda: demanda,
+            viewModel: _viewModel,
+          );
+          if (mounted && cancelada == true) {
+            _mostrarResultadoStatus(
+              demanda,
+              true,
+              'Demanda cancelada com sucesso.',
+            );
+          }
+        default:
+          final alterada = await _viewModel.alterarStatusDemanda(
+            demanda: demanda,
+            status: status,
+          );
+          if (mounted) {
+            _mostrarResultadoStatus(
+              demanda,
+              alterada,
+              'Status atualizado com sucesso.',
+            );
+          }
+      }
+    } finally {
+      if (mounted) setState(() => _demandasEmStatus.remove(id));
+    }
+  }
+
+  Future<void> _concluirDemanda(backend.Demanda demanda) async {
+    final concluida = await _viewModel.concluirDemanda(demanda);
+    if (!mounted) return;
+    if (concluida) {
+      _mostrarResultadoStatus(demanda, true, 'Demanda concluída com sucesso.');
+      return;
+    }
+
+    final erro = _viewModel.erroTransicaoDaDemanda(demanda.id);
+    if (erro?.codigo == backend.TransicaoStatusErroCodigo.descendentesAtivos &&
+        erro?.podeConcluirEmCascata == true) {
+      final cascata = await mostrarConclusaoEmCascataDialog(
+        context,
+        demanda: demanda,
+        viewModel: _viewModel,
+      );
+      if (mounted && cascata == true) {
+        _mostrarResultadoStatus(demanda, true, 'Demanda concluída em cascata.');
+      }
+    } else {
+      _mostrarResultadoStatus(demanda, false, '');
+    }
+  }
+
+  void _mostrarResultadoStatus(
+    backend.Demanda demanda,
+    bool sucesso,
+    String mensagemSucesso,
+  ) {
+    final erro = _viewModel.erroDaDemanda(demanda.id);
+    _mostrarFeedback(
+      erro ??
+          (sucesso ? mensagemSucesso : 'Não foi possível alterar o status.'),
+      erro: !sucesso || erro != null,
     );
   }
 
@@ -289,149 +433,147 @@ class _DemandasPageState extends State<DemandasPage> {
       builder: (context, _) => PageScaffold(
         title: 'Demandas',
         route: AppRoutes.demandas,
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                _buildFormulario(context),
-                if (_viewModel.erro != null) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        _viewModel.erro!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Demandas salvas',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Recarregar demandas',
-                      onPressed: _viewModel.carregando || _viewModel.enviando
-                          ? null
-                          : _viewModel.carregarDemandas,
-                      icon: const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (_viewModel.carregando)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (_viewModel.demandas.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('Nenhuma demanda cadastrada.'),
-                    ),
-                  )
-                else
-                  DemandaTree(
-                    demandas: _viewModel.demandas,
-                    acoesHabilitadas: !_viewModel.enviando,
-                    onEditar: _editarDemanda,
-                    onExcluir: _excluirDemanda,
-                    onCriarFilha: _criarDemandaFilha,
-                    onLancarTempo: _lancarTempo,
-                    onMostrarTudo: _mostrarTudo,
-                  ),
-              ],
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FilledButton.icon(
+              key: const ValueKey('abrir-criar-demanda'),
+              onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
+                  ? null
+                  : _abrirFormulario,
+              icon: const Icon(Icons.add),
+              label: const Text('Criar demanda'),
             ),
           ),
+        ],
+        body: ListView(
+          key: const ValueKey('demandas-pagina-scroll'),
+          padding: const EdgeInsets.all(24),
+          children: [
+            if (_viewModel.erro != null) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    _viewModel.erro!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Demandas salvas',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Recarregar demandas',
+                  onPressed:
+                      _viewModel.carregando ||
+                          _viewModel.enviando ||
+                          _demandasEmStatus.isNotEmpty
+                      ? null
+                      : _viewModel.carregarDemandas,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_viewModel.carregando)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else
+              DemandaTree(
+                // Preserva o quadro quando o aviso de erro muda os índices da lista.
+                key: const ValueKey('demandas-arvore'),
+                demandas: _viewModel.demandas,
+                acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
+                demandasEmProcessamento: {
+                  ..._viewModel.demandasEmProcessamento,
+                  if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
+                },
+                onAlterarStatus: _alterarStatusDemanda,
+                onConcluir: (demanda) => _alterarStatusDemanda(
+                  demanda,
+                  backend.DemandaStatus.concluida,
+                ),
+                onEditar: _editarDemanda,
+                onExcluir: _excluirDemanda,
+                onCriarFilha: _criarDemandaFilha,
+                onLancarTempo: _lancarTempo,
+                onMostrarTudo: _mostrarTudo,
+              ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildFormulario(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Criar demanda',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _tituloController,
-                decoration: const InputDecoration(labelText: 'Título'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Informe o título.'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descricaoController,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Descrição'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<backend.Prioridade>(
-                initialValue: _prioridade,
-                decoration: const InputDecoration(labelText: 'Prioridade'),
-                items: backend.Prioridade.values
-                    .map(
-                      (prioridade) => DropdownMenuItem(
-                        value: prioridade,
-                        child: Text(_prioridadeLabel(prioridade)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) setState(() => _prioridade = value);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _tempoController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Tempo estimado (horas)',
-                ),
-                validator: _validarHorasEstimadas,
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                key: const ValueKey('criar-demanda'),
-                onPressed: _viewModel.carregando || _viewModel.enviando
-                    ? null
-                    : _criarDemanda,
-                icon: _criandoDemanda
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-                label: Text(_criandoDemanda ? 'Criando...' : 'Criar demanda'),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _tituloController,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Título'),
+            validator: (value) => value == null || value.trim().isEmpty
+                ? 'Informe o título.'
+                : null,
           ),
-        ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descricaoController,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'Descrição'),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<backend.Prioridade>(
+            initialValue: _prioridade,
+            decoration: const InputDecoration(labelText: 'Prioridade'),
+            items: backend.Prioridade.values
+                .map(
+                  (prioridade) => DropdownMenuItem(
+                    value: prioridade,
+                    child: Text(_prioridadeLabel(prioridade)),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _prioridade = value);
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _tempoController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Tempo estimado (horas)',
+            ),
+            validator: _validarHorasEstimadas,
+          ),
+          if (_viewModel.erro != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              _viewModel.erro!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }

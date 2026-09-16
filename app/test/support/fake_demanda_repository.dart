@@ -26,6 +26,7 @@ class AtualizacaoDemandaCapturada {
     required this.titulo,
     required this.descricao,
     required this.status,
+    this.motivoCancelamento,
     required this.prioridade,
     required this.sprint,
     required this.tempoEstimadoMinutos,
@@ -36,6 +37,7 @@ class AtualizacaoDemandaCapturada {
   final String titulo;
   final String? descricao;
   final backend.DemandaStatus status;
+  final String? motivoCancelamento;
   final backend.Prioridade prioridade;
   final String? sprint;
   final int tempoEstimadoMinutos;
@@ -51,10 +53,17 @@ class FakeDemandaRepository implements DemandaRepository {
   int chamadasListar = 0;
   int chamadasBuscar = 0;
   int chamadasAtualizar = 0;
+  int chamadasAlterarStatus = 0;
+  int chamadasConcluirEmCascata = 0;
+  int chamadasCancelarEmCascata = 0;
   int chamadasExcluir = 0;
   int chamadasExcluirArvore = 0;
   CriacaoDemandaCapturada? ultimaCriacao;
   AtualizacaoDemandaCapturada? ultimaAtualizacao;
+  ({int id, backend.DemandaStatus status, String? motivoCancelamento})?
+  ultimaAlteracaoStatus;
+  int? ultimoIdConclusaoEmCascata;
+  ({int id, String motivo})? ultimoCancelamentoEmCascata;
   int? ultimoIdExcluido;
   int? ultimoIdArvoreExcluida;
   bool resultadoExclusao = true;
@@ -62,6 +71,9 @@ class FakeDemandaRepository implements DemandaRepository {
   Object? erroAoListar;
   Completer<backend.Demanda>? respostaCriarPendente;
   Completer<backend.Demanda>? respostaAtualizarPendente;
+  Completer<backend.Demanda>? respostaAlterarStatusPendente;
+  Completer<backend.Demanda>? respostaConcluirEmCascataPendente;
+  Completer<backend.Demanda>? respostaCancelarEmCascataPendente;
   Completer<bool>? respostaExcluirPendente;
   Completer<bool>? respostaExcluirArvorePendente;
   final List<Completer<List<backend.Demanda>>> respostasListarPendentes = [];
@@ -133,6 +145,7 @@ class FakeDemandaRepository implements DemandaRepository {
     required String titulo,
     String? descricao,
     required backend.DemandaStatus status,
+    String? motivoCancelamento,
     required backend.Prioridade prioridade,
     String? sprint,
     required int tempoEstimadoMinutos,
@@ -144,6 +157,7 @@ class FakeDemandaRepository implements DemandaRepository {
       titulo: titulo,
       descricao: descricao,
       status: status,
+      motivoCancelamento: motivoCancelamento,
       prioridade: prioridade,
       sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
@@ -159,6 +173,7 @@ class FakeDemandaRepository implements DemandaRepository {
       titulo: titulo,
       descricao: descricao,
       status: status,
+      motivoCancelamento: motivoCancelamento ?? atual.motivoCancelamento,
       prioridade: prioridade,
       sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
@@ -169,6 +184,52 @@ class FakeDemandaRepository implements DemandaRepository {
           : null,
     );
     _demandas[index] = atualizada;
+    return atualizada;
+  }
+
+  @override
+  Future<backend.Demanda> alterarStatusDemanda({
+    required int id,
+    required backend.DemandaStatus status,
+    String? motivoCancelamento,
+  }) {
+    chamadasAlterarStatus++;
+    ultimaAlteracaoStatus = (
+      id: id,
+      status: status,
+      motivoCancelamento: motivoCancelamento,
+    );
+    return _responderTransicao(respostaAlterarStatusPendente);
+  }
+
+  @override
+  Future<backend.Demanda> concluirDemanda(int id) =>
+      alterarStatusDemanda(id: id, status: backend.DemandaStatus.concluida);
+
+  @override
+  Future<backend.Demanda> concluirDemandaEmCascata(int id) {
+    chamadasConcluirEmCascata++;
+    ultimoIdConclusaoEmCascata = id;
+    return _responderTransicao(respostaConcluirEmCascataPendente);
+  }
+
+  @override
+  Future<backend.Demanda> cancelarDemandaEmCascata(int id, String motivo) {
+    chamadasCancelarEmCascata++;
+    ultimoCancelamentoEmCascata = (id: id, motivo: motivo);
+    return _responderTransicao(respostaCancelarEmCascataPendente);
+  }
+
+  Future<backend.Demanda> _responderTransicao(
+    Completer<backend.Demanda>? resposta,
+  ) async {
+    if (resposta == null) {
+      throw StateError('Configure a resposta de status do backend no fake.');
+    }
+    // Apenas aplica a resposta configurada; não simula validações ou cascatas.
+    final atualizada = await resposta.future;
+    final index = _demandas.indexWhere((item) => item.id == atualizada.id);
+    if (index != -1) _demandas[index] = atualizada;
     return atualizada;
   }
 

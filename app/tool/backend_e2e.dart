@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 Future<void> main() async {
-  final client = backend.Client('http://localhost:8080/');
+  final client = backend.Client(
+    Platform.environment['TEMDAS_BACKEND_URL'] ?? 'http://localhost:8080/',
+  );
   final marcador = DateTime.now().toUtc().microsecondsSinceEpoch;
   int? raizId;
   int? folhaIdPendente;
@@ -29,18 +31,22 @@ Future<void> main() async {
     _verificar(filha.demandaPaiId == raizId, 'A filha não preservou a mãe.');
     _verificar(neta.demandaPaiId == filhaId, 'A neta não preservou a mãe.');
 
-    final concluida = await client.demanda.atualizarDemanda(
-      backend.DemandaUpdateRequest(
-        id: filhaId,
-        titulo: filha.titulo,
-        descricao: filha.descricao,
-        status: backend.DemandaStatus.concluida,
-        prioridade: filha.prioridade,
-        sprint: filha.sprint,
-        tempoEstimadoMinutos: filha.tempoEstimadoMinutos,
-        observacoes: filha.observacoes,
-      ),
+    var conclusaoSimplesBloqueada = false;
+    try {
+      await client.demanda.alterarStatusDemanda(
+        filhaId,
+        backend.DemandaStatus.concluida,
+      );
+    } on backend.TransicaoStatusException catch (erro) {
+      conclusaoSimplesBloqueada =
+          erro.codigo == backend.TransicaoStatusErroCodigo.descendentesAtivos &&
+          erro.podeConcluirEmCascata;
+    }
+    _verificar(
+      conclusaoSimplesBloqueada,
+      'Conclusão simples não retornou a recusa tipada.',
     );
+    final concluida = await client.demanda.concluirDemandaEmCascata(filhaId);
     _verificar(concluida.concluidoEm != null, 'Conclusão sem concluidoEm.');
 
     final reaberta = await client.demanda.atualizarDemanda(
@@ -134,6 +140,21 @@ Future<void> main() async {
       'A folha continuou persistida após exclusão.',
     );
     folhaIdPendente = null;
+
+    await client.demanda.cancelarDemandaEmCascata(raizId, 'Cancelamento E2E');
+    for (final id in [raizId, filhaId]) {
+      final cancelada = await client.demanda.buscarDemandaPorId(id);
+      _verificar(
+        cancelada?.status == backend.DemandaStatus.cancelada &&
+            cancelada?.motivoCancelamento == 'Cancelamento E2E',
+        'Cancelamento em cascata não persistiu status e motivo.',
+      );
+    }
+    _verificar(
+      (await client.demanda.buscarDemandaPorId(netaId))?.status ==
+          backend.DemandaStatus.concluida,
+      'Cancelamento alterou descendente já concluída.',
+    );
 
     _verificar(
       await client.demanda.excluirArvoreDemanda(raizId),
