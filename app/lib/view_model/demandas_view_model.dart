@@ -289,18 +289,24 @@ class DemandasViewModel extends ChangeNotifier {
     required DateTime inicioEm,
     required int duracaoMinutos,
   }) async {
-    if (_descartado || enviando) return false;
+    if (_descartado || _enviando) return false;
 
     final id = _idValido(demanda);
     if (id == null) return false;
+    if (!_podeIniciarMutacao(id, global: false)) return false;
     if (duracaoMinutos <= 0) {
-      _erroTransicaoStatus = null;
-      _erro = 'Informe uma duração de pelo menos um minuto.';
+      _definirErroDemanda(
+        id,
+        ArgumentError.value(duracaoMinutos),
+        'Informe uma duração de pelo menos um minuto.',
+      );
       notifyListeners();
       return false;
     }
 
-    _iniciarEnvio();
+    _errosPorDemanda.remove(id);
+    _iniciarEnvio(demandaId: id);
+    var registrado = false;
 
     try {
       await _registroTempoRepository.registrarTempo(
@@ -308,16 +314,35 @@ class DemandasViewModel extends ChangeNotifier {
         inicioEm: inicioEm.toUtc(),
         duracaoMinutos: duracaoMinutos,
       );
-      if (!_descartado) await _recarregarAposMutacao();
+      registrado = true;
+      if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        final atualizada = await _repository.buscarDemandaPorId(id);
+        if (!_descartado) {
+          if (atualizada == null) {
+            throw StateError('A demanda $id não foi encontrada.');
+          }
+          _invalidarCarregamentoPendente();
+          _substituirDemanda(atualizada);
+        }
+      }
       return true;
     } catch (error, stackTrace) {
       if (!_descartado) {
         _registrarFalha('registrar tempo na demanda $id', error, stackTrace);
-        _erro = 'Não foi possível registrar o tempo. Tente novamente.';
+        _definirErroDemanda(
+          id,
+          error,
+          registrado
+              ? 'O tempo foi registrado, mas não foi possível atualizar a demanda. '
+                    'Recarregue as demandas.'
+              : 'Não foi possível registrar o tempo. Tente novamente.',
+        );
       }
-      return false;
+      // Uma falha na leitura não desfaz o registro já salvo no backend.
+      return registrado;
     } finally {
-      _finalizarEnvio();
+      _finalizarEnvio(demandaId: id);
     }
   }
 

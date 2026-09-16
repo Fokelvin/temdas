@@ -23,6 +23,7 @@ class _DemandasPageState extends State<DemandasPage> {
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _tempoController = TextEditingController(text: '1');
+  final _quadroHorizontalController = ScrollController();
   late final DemandasViewModel _viewModel;
   late final bool _possuiViewModel;
 
@@ -42,6 +43,7 @@ class _DemandasPageState extends State<DemandasPage> {
     _tituloController.dispose();
     _descricaoController.dispose();
     _tempoController.dispose();
+    _quadroHorizontalController.dispose();
     if (_possuiViewModel) {
       _viewModel.dispose();
     }
@@ -398,11 +400,13 @@ class _DemandasPageState extends State<DemandasPage> {
     );
 
     if (!mounted) return;
+    final erro = _viewModel.erroDaDemanda(demanda.id);
     _mostrarFeedback(
-      registrado
-          ? 'Tempo registrado com sucesso.'
-          : _viewModel.erro ?? 'Não foi possível registrar o tempo.',
-      erro: !registrado,
+      erro ??
+          (registrado
+              ? 'Tempo registrado com sucesso.'
+              : 'Não foi possível registrar o tempo.'),
+      erro: !registrado || erro != null,
     );
   }
 
@@ -497,6 +501,7 @@ class _DemandasPageState extends State<DemandasPage> {
               DemandaTree(
                 // Preserva o quadro quando o aviso de erro muda os índices da lista.
                 key: const ValueKey('demandas-arvore'),
+                horizontalController: _quadroHorizontalController,
                 demandas: _viewModel.demandas,
                 acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
                 demandasEmProcessamento: {

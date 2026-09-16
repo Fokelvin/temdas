@@ -10,7 +10,6 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
@@ -27,7 +26,9 @@ import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_temp
     as _i8;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_create_request.dart'
     as _i9;
-import 'protocol.dart' as _i10;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_update_request.dart'
+    as _i10;
+import 'protocol.dart' as _i11;
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -144,6 +145,14 @@ class EndpointRegistroTempo extends _i1.EndpointRef {
     {'request': request},
   );
 
+  _i2.Future<_i8.RegistroTempo> editarRegistroTempo(
+    _i10.RegistroTempoUpdateRequest request,
+  ) => caller.callServerEndpoint<_i8.RegistroTempo>(
+    'registroTempo',
+    'editarRegistroTempo',
+    {'request': request},
+  );
+
   _i2.Future<List<_i8.RegistroTempo>> listarRegistrosTempoPorPeriodo(
     DateTime inicio,
     DateTime fim,
@@ -192,7 +201,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i10.Protocol(),
+         _i11.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

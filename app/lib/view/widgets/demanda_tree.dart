@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../../view_model/tempo_executado_total.dart';
 import 'demanda_card.dart';
 
 class DemandaTree extends StatelessWidget {
   const DemandaTree({
     super.key,
+    required this.horizontalController,
     required this.demandas,
     required this.acoesHabilitadas,
     required this.onEditar,
@@ -21,6 +23,7 @@ class DemandaTree extends StatelessWidget {
   });
 
   final List<backend.Demanda> demandas;
+  final ScrollController horizontalController;
   final bool acoesHabilitadas;
   final ValueChanged<backend.Demanda> onEditar;
   final ValueChanged<backend.Demanda> onExcluir;
@@ -33,6 +36,7 @@ class DemandaTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final temposTotais = calcularTemposExecutadosTotais(demandas);
     final ids = demandas.map((demanda) => demanda.id).whereType<int>().toSet();
     final porPai = <int, List<backend.Demanda>>{};
     for (final demanda in demandas) {
@@ -91,70 +95,127 @@ class DemandaTree extends StatelessWidget {
               porStatus.length,
         );
 
-        return SingleChildScrollView(
-          key: const ValueKey('demandas-quadro-status'),
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final grupo in porStatus.entries) ...[
-                if (grupo.key != porStatus.keys.first)
-                  const SizedBox(width: espacamento),
-                SizedBox(
-                  width: larguraColuna,
-                  child: Column(
-                    key: ValueKey('demanda-coluna-${grupo.key.name}'),
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        key: ValueKey('demanda-status-${grupo.key.name}'),
-                        padding: const EdgeInsets.only(top: 16, bottom: 12),
-                        child: Semantics(
-                          header: true,
-                          child: Row(
-                            children: [
-                              Text(
-                                _statusLabel(grupo.key),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+        final possuiOverflow =
+            larguraColuna * porStatus.length +
+                espacamento * (porStatus.length - 1) >
+            constraints.maxWidth;
+
+        return ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: ScrollbarTheme(
+            data: ScrollbarThemeData(
+              thickness: WidgetStateProperty.resolveWith(
+                (states) =>
+                    states.contains(WidgetState.hovered) ||
+                        states.contains(WidgetState.dragged)
+                    ? 9.0
+                    : 4.0,
+              ),
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                final opacity = states.contains(WidgetState.dragged)
+                    ? 0.75
+                    : states.contains(WidgetState.hovered)
+                    ? 0.60
+                    : 0.28;
+                return Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: opacity);
+              }),
+              crossAxisMargin: 4,
+              radius: const Radius.circular(5),
+            ),
+            child: Scrollbar(
+              key: const ValueKey('demandas-quadro-scrollbar'),
+              controller: horizontalController,
+              thumbVisibility: possuiOverflow,
+              trackVisibility: false,
+              interactive: true,
+              scrollbarOrientation: ScrollbarOrientation.bottom,
+              child: SingleChildScrollView(
+                key: const ValueKey('demandas-quadro-status'),
+                controller: horizontalController,
+                scrollDirection: Axis.horizontal,
+                // A Row assume a altura da maior coluna. A faixa inferior reserva
+                // espaço para a barra no fim do conteúdo, inclusive durante hover.
+                padding: EdgeInsets.only(bottom: possuiOverflow ? 18 : 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final grupo in porStatus.entries) ...[
+                      if (grupo.key != porStatus.keys.first)
+                        const SizedBox(width: espacamento),
+                      SizedBox(
+                        width: larguraColuna,
+                        child: Column(
+                          key: ValueKey('demanda-coluna-${grupo.key.name}'),
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              key: ValueKey('demanda-status-${grupo.key.name}'),
+                              padding: const EdgeInsets.only(
+                                top: 16,
+                                bottom: 12,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '(${grupo.value.where((no) => no.nivel == 0).length})',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                              child: Semantics(
+                                header: true,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      _statusLabel(grupo.key),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '(${grupo.value.where((no) => no.nivel == 0).length})',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(child: Divider()),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 12),
-                              const Expanded(child: Divider()),
-                            ],
-                          ),
+                            ),
+                            if (grupo.value.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Text(
+                                  'Nenhuma demanda neste status.',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              )
+                            else
+                              for (final no in grupo.value)
+                                _construirNo(
+                                  no,
+                                  temposTotais[no.demanda.id] ??
+                                      no.demanda.tempoExecutadoMinutos,
+                                ),
+                          ],
                         ),
                       ),
-                      if (grupo.value.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            'Nenhuma demanda neste status.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        )
-                      else
-                        for (final no in grupo.value) _construirNo(no),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         );
       },
@@ -193,7 +254,7 @@ class DemandaTree extends StatelessWidget {
     }
   }
 
-  Widget _construirNo(_DemandaNivel no) {
+  Widget _construirNo(_DemandaNivel no, int tempoExecutadoTotalMinutos) {
     final demanda = no.demanda;
     final emProcessamento = demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
@@ -216,6 +277,7 @@ class DemandaTree extends StatelessWidget {
               'demanda-expansao-${demanda.id ?? demanda.titulo}',
             ),
             demanda: demanda,
+            tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
             acoesHabilitadas: acoesHabilitadas && !emProcessamento,
             emProcessamento: emProcessamento,
             onAlterarStatus: (status) => onAlterarStatus(demanda, status),

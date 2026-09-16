@@ -153,7 +153,8 @@ void main() {
             sessionBuilder,
             demanda.id!,
           );
-          expect(persistida?.tempoExecutadoMinutos, 75);
+          // O terceiro intervalo está contido no segundo e é absorvido.
+          expect(persistida?.tempoExecutadoMinutos, 60);
 
           final periodo = await endpoints.registroTempo
               .listarRegistrosTempoPorPeriodo(sessionBuilder, inicio, fim);
@@ -171,7 +172,7 @@ void main() {
             sessionBuilder,
             demanda.id!,
           );
-          expect(aposExclusao?.tempoExecutadoMinutos, 50);
+          expect(aposExclusao?.tempoExecutadoMinutos, 35);
         },
       );
     },

@@ -476,7 +476,7 @@ void main() {
       expect(viewModel.demandas, hasLength(1));
     });
 
-    test('registra tempo em UTC e recarrega o total executado', () async {
+    test('registra tempo em UTC e busca apenas a demanda atualizada', () async {
       final original = demandaFixture(tempoExecutadoMinutos: 0);
       final repository = FakeDemandaRepository(demandas: [original]);
       final registroRepository = FakeRegistroTempoRepository(
@@ -501,7 +501,8 @@ void main() {
       expect(registroRepository.ultimaDemandaId, original.id);
       expect(registroRepository.ultimoInicioEm, inicioLocal.toUtc());
       expect(registroRepository.ultimaDuracaoMinutos, 75);
-      expect(repository.chamadasListar, 2);
+      expect(repository.chamadasListar, 1);
+      expect(repository.idsBuscados, [original.id]);
       expect(viewModel.demandas.single.tempoExecutadoMinutos, 75);
     });
 

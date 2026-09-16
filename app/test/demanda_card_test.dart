@@ -31,6 +31,7 @@ void main() {
                   width: filha ? 250 : 360,
                   child: DemandaCard(
                     demanda: demanda,
+                    tempoExecutadoTotalMinutos: demanda.tempoExecutadoMinutos,
                     onAlterarStatus: statuses.add,
                     onConcluir: () => chamadas.add('concluir'),
                     onEditar: () => chamadas.add('editar'),

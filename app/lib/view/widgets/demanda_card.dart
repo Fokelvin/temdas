@@ -7,6 +7,7 @@ class DemandaCard extends StatelessWidget {
   const DemandaCard({
     super.key,
     required this.demanda,
+    required this.tempoExecutadoTotalMinutos,
     required this.onEditar,
     required this.onExcluir,
     required this.onAlterarStatus,
@@ -19,6 +20,7 @@ class DemandaCard extends StatelessWidget {
   });
 
   final backend.Demanda demanda;
+  final int tempoExecutadoTotalMinutos;
   final VoidCallback onEditar;
   final VoidCallback onExcluir;
   final ValueChanged<backend.DemandaStatus> onAlterarStatus;
@@ -43,7 +45,7 @@ class DemandaCard extends StatelessWidget {
           subtitle: Text(
             '${_prioridadeLabel(demanda.prioridade)} · '
             'Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)} · '
-            'Real. ${_formatarHoras(demanda.tempoExecutadoMinutos)}',
+            'Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}',
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +82,7 @@ class DemandaCard extends StatelessWidget {
             const SizedBox(height: 12),
             TempoComparacao(
               estimadoMinutos: demanda.tempoEstimadoMinutos,
-              executadoMinutos: demanda.tempoExecutadoMinutos,
+              executadoMinutos: tempoExecutadoTotalMinutos,
             ),
             _Campo(
               titulo: 'Observações',
