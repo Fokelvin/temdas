@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../../theme/app_theme.dart';
+import '../../theme/temdas_semantic_colors.dart';
 import '../../view_model/tempo_executado_total.dart';
 import 'demanda_card.dart';
+import 'densidade_demanda.dart';
 
 class DemandaTree extends StatefulWidget {
   const DemandaTree({
@@ -20,6 +23,7 @@ class DemandaTree extends StatefulWidget {
     required this.onAlterarStatus,
     required this.onConcluir,
     this.demandasEmProcessamento = const {},
+    this.densidade = DensidadeDemanda.normal,
   });
 
   final List<backend.Demanda> demandas;
@@ -33,6 +37,7 @@ class DemandaTree extends StatefulWidget {
   final void Function(backend.Demanda, backend.DemandaStatus) onAlterarStatus;
   final ValueChanged<backend.Demanda> onConcluir;
   final Set<int> demandasEmProcessamento;
+  final DensidadeDemanda densidade;
 
   @override
   State<DemandaTree> createState() => _DemandaTreeState();
@@ -128,11 +133,10 @@ class _DemandaTreeState extends State<DemandaTree> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const espacamento = 16.0;
-        final larguraColuna = math.max(
-          360.0,
-          (constraints.maxWidth - espacamento * (porStatus.length - 1)) /
-              porStatus.length,
+        final espacamento = widget.densidade.espacamentoEntreColunas;
+        final larguraColuna = widget.densidade.larguraColunaPara(
+          constraints.maxWidth,
+          porStatus.length,
         );
 
         final possuiOverflow =
@@ -142,123 +146,105 @@ class _DemandaTreeState extends State<DemandaTree> {
 
         return ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: ScrollbarTheme(
-            data: ScrollbarThemeData(
-              thickness: WidgetStateProperty.resolveWith(
-                (states) =>
-                    states.contains(WidgetState.hovered) ||
-                        states.contains(WidgetState.dragged)
-                    ? 9.0
-                    : 4.0,
-              ),
-              thumbColor: WidgetStateProperty.resolveWith((states) {
-                final opacity = states.contains(WidgetState.dragged)
-                    ? 0.75
-                    : states.contains(WidgetState.hovered)
-                    ? 0.60
-                    : 0.28;
-                return Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: opacity);
-              }),
-              crossAxisMargin: 4,
-              radius: const Radius.circular(5),
-            ),
-            child: Scrollbar(
-              key: const ValueKey('demandas-quadro-scrollbar'),
+          child: Scrollbar(
+            key: const ValueKey('demandas-quadro-scrollbar'),
+            controller: widget.horizontalController,
+            thumbVisibility: possuiOverflow,
+            trackVisibility: false,
+            interactive: true,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              key: const ValueKey('demandas-quadro-status'),
               controller: widget.horizontalController,
-              thumbVisibility: possuiOverflow,
-              trackVisibility: false,
-              interactive: true,
-              scrollbarOrientation: ScrollbarOrientation.bottom,
-              child: SingleChildScrollView(
-                key: const ValueKey('demandas-quadro-status'),
-                controller: widget.horizontalController,
-                scrollDirection: Axis.horizontal,
-                // A Row assume a altura da maior coluna. A faixa inferior reserva
-                // espaço para a barra no fim do conteúdo, inclusive durante hover.
-                padding: EdgeInsets.only(bottom: possuiOverflow ? 18 : 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final grupo in porStatus.entries) ...[
-                      if (grupo.key != porStatus.keys.first)
-                        const SizedBox(width: espacamento),
-                      SizedBox(
-                        width: larguraColuna,
-                        child: Column(
-                          key: ValueKey('demanda-coluna-${grupo.key.name}'),
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
+              scrollDirection: Axis.horizontal,
+              // A Row assume a altura da maior coluna. A faixa inferior reserva
+              // espaço para a barra no fim do conteúdo, inclusive durante hover.
+              padding: EdgeInsets.only(bottom: possuiOverflow ? 18 : 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final grupo in porStatus.entries) ...[
+                    if (grupo.key != porStatus.keys.first)
+                      SizedBox(width: espacamento),
+                    SizedBox(
+                      width: larguraColuna,
+                      child: Column(
+                        key: ValueKey('demanda-coluna-${grupo.key.name}'),
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _cabecalhoColuna(
+                            grupo.key,
+                            grupo.value.where((no) => no.nivel == 0).length,
+                          ),
+                          if (grupo.value.isEmpty)
                             Padding(
-                              key: ValueKey('demanda-status-${grupo.key.name}'),
-                              padding: const EdgeInsets.only(
-                                top: 16,
-                                bottom: 12,
-                              ),
-                              child: Semantics(
-                                header: true,
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      _statusLabel(grupo.key),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                'Nenhuma demanda neste status.',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '(${grupo.value.where((no) => no.nivel == 0).length})',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Expanded(child: Divider()),
-                                  ],
-                                ),
                               ),
-                            ),
-                            if (grupo.value.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Text(
-                                  'Nenhuma demanda neste status.',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              )
-                            else
-                              for (final no in grupo.value)
-                                _construirNo(
-                                  no,
-                                  temposTotais[no.demanda.id] ??
-                                      no.demanda.tempoExecutadoMinutos,
-                                ),
-                          ],
-                        ),
+                            )
+                          else
+                            for (final no in grupo.value)
+                              _construirNo(
+                                no,
+                                temposTotais[no.demanda.id] ??
+                                    no.demanda.tempoExecutadoMinutos,
+                              ),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _cabecalhoColuna(backend.DemandaStatus status, int quantidade) {
+    final theme = Theme.of(context);
+    final semantic = TemdasSemanticColors.of(context);
+    final cor = switch (status) {
+      backend.DemandaStatus.aberta => semantic.aberta,
+      backend.DemandaStatus.emAndamento => semantic.emAndamento,
+      backend.DemandaStatus.pausada => semantic.pausada,
+      backend.DemandaStatus.concluida => semantic.concluida,
+      backend.DemandaStatus.cancelada => semantic.cancelada,
+    };
+    return Padding(
+      key: ValueKey('demanda-status-${status.name}'),
+      padding: EdgeInsets.only(
+        top: TemdasTokens.smallGap,
+        bottom: widget.densidade.espacamentoEntreCards,
+      ),
+      child: Semantics(
+        header: true,
+        child: Row(
+          children: [
+            Icon(Icons.circle, size: 7, color: cor),
+            const SizedBox(width: TemdasTokens.smallGap),
+            Flexible(
+              child: Text(
+                _statusLabel(status),
+                style: theme.textTheme.titleSmall,
+              ),
+            ),
+            const SizedBox(width: TemdasTokens.smallGap),
+            Text('($quantidade)', style: theme.textTheme.bodySmall),
+            const SizedBox(width: TemdasTokens.smallGap),
+            const Expanded(child: Divider()),
+          ],
+        ),
+      ),
     );
   }
 
@@ -303,23 +289,37 @@ class _DemandaTreeState extends State<DemandaTree> {
     final demanda = no.demanda;
     final emProcessamento = widget.demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
-    final recuo = math.min(nivel * 20.0, 100.0);
+    final recuo = math.min(
+      nivel * widget.densidade.recuoPorNivel,
+      widget.densidade.recuoMaximo,
+    );
 
     return Padding(
       key: ValueKey('demanda-tree-node-${demanda.id ?? demanda.titulo}-$nivel'),
-      padding: EdgeInsets.only(left: recuo, bottom: 12),
+      padding: EdgeInsets.only(
+        left: recuo,
+        bottom: widget.densidade.espacamentoEntreCards,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: nivel == 0
               ? null
-              : const Border(left: BorderSide(color: Color(0xFFD6DCE5))),
+              : Border(
+                  left: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: TemdasTokens.borderWidth,
+                  ),
+                ),
         ),
         child: Padding(
-          padding: EdgeInsets.only(left: nivel == 0 ? 0 : 10),
+          padding: EdgeInsets.only(
+            left: nivel == 0 ? 0 : widget.densidade.espacoAposLinhaArvore,
+          ),
           child: DemandaCard(
             // A expansão acompanha a demanda quando ela muda de coluna.
             key: PageStorageKey(_chaveExpansao(demanda)),
             expansionController: _expansaoDe(demanda),
+            densidade: widget.densidade,
             demanda: demanda,
             tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
             acoesHabilitadas: widget.acoesHabilitadas && !emProcessamento,

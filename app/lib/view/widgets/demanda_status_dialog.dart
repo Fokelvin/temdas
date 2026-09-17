@@ -100,7 +100,7 @@ class _DialogoStatusState extends State<_DialogoStatus> {
                   children: [
                     Text(
                       widget.demanda.titulo,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -136,9 +136,10 @@ class _DialogoStatusState extends State<_DialogoStatus> {
                         child: Text(
                           _erro!,
                           key: const ValueKey('erro-dialogo-status'),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                         ),
                       ),
                     ],

@@ -43,6 +43,24 @@ automático ou banco local na V1.
 - **Backend:** valida regras, executa mutações transacionais e acessa o banco.
 - **PostgreSQL:** garante chaves estrangeiras e exclusões em cascata.
 
+## Design system do frontend
+
+`app/lib/theme/app_theme.dart` fornece `AppTheme.light` e `AppTheme.dark` ao
+único `MaterialApp`, com `ThemeMode.system`. A paleta fica em `temdas_colors.dart`;
+prioridades e status usam a `ThemeExtension` `TemdasSemanticColors`. Radius,
+bordas e espaçamentos recorrentes ficam em `TemdasTokens`.
+
+Novas telas e componentes devem reutilizar `Theme.of(context)`, `ColorScheme`,
+`TextTheme` e os temas globais de componentes, sem HEX ou identidade visual
+própria. `DensidadeDemanda` controla somente a apresentação Normal/Compacta do
+board e não altera estado de negócio. Demandas é a primeira tela migrada;
+Log time apenas herda o tema global nesta etapa.
+
+IBM Plex Sans é a fonte global, empacotada nos pesos 400, 500, 600 e 700 em
+`app/assets/fonts/ibm_plex_sans`, sem dependência ou download em runtime.
+Os arquivos são do [repositório oficial IBM Plex](https://github.com/IBM/plex/tree/master/packages/plex-sans/fonts/complete/ttf),
+com a licença OFL incluída nos assets.
+
 ## Dados persistidos
 
 ### Demanda

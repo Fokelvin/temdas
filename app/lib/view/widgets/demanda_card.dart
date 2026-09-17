@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../../theme/app_theme.dart';
+import '../../theme/temdas_semantic_colors.dart';
+import 'densidade_demanda.dart';
 import 'tempo_comparacao.dart';
 
 class DemandaCard extends StatelessWidget {
@@ -18,6 +21,7 @@ class DemandaCard extends StatelessWidget {
     this.onLancarTempo,
     this.onMostrarTudo,
     this.expansionController,
+    this.densidade = DensidadeDemanda.normal,
   });
 
   final backend.Demanda demanda;
@@ -32,95 +36,235 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
   final ExpansibleController? expansionController;
+  final DensidadeDemanda densidade;
 
   @override
   Widget build(BuildContext context) {
     return SelectionArea(
       child: Card(
         key: ValueKey('demanda-card-${demanda.id}'),
-        child: ExpansionTile(
-          controller: expansionController,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-          title: Text(
-            demanda.titulo,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text(
-            '${_prioridadeLabel(demanda.prioridade)} · '
-            'Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)} · '
-            'Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}',
-          ),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: _menuStatus(context)),
-                IconButton(
-                  key: ValueKey('concluir-demanda-${demanda.id}'),
-                  tooltip: 'Concluir demanda',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: acoesHabilitadas ? onConcluir : null,
-                  icon: emProcessamento
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check),
-                ),
-                _menuAcoes(context),
-              ],
-            ),
-            _Campo(titulo: 'ID', valor: demanda.id?.toString() ?? '-'),
-            if (demanda.demandaPaiId != null)
-              _Campo(
-                titulo: 'Demanda mãe',
-                valor: demanda.demandaPaiId.toString(),
+        child: ListTileTheme.merge(
+          minVerticalPadding: densidade.paddingVerticalCabecalho,
+          horizontalTitleGap: densidade.espacamentoChevron,
+          child: ExpansionTile(
+            controller: expansionController,
+            tilePadding: densidade.paddingCabecalho,
+            minTileHeight: densidade.alturaMinimaCabecalho,
+            title: densidade.isCompacta
+                ? _cabecalhoCompacto(context)
+                : _cabecalhoNormal(context),
+            childrenPadding: densidade.paddingConteudo,
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _menuStatus(context)),
+                  IconButton(
+                    key: ValueKey('concluir-demanda-${demanda.id}'),
+                    tooltip: 'Concluir demanda',
+                    visualDensity: VisualDensity.compact,
+                    style: densidade.estiloBotao,
+                    onPressed: acoesHabilitadas ? onConcluir : null,
+                    icon: emProcessamento
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check),
+                  ),
+                  _menuAcoes(context),
+                ],
               ),
-            _Campo(
-              titulo: 'Descrição',
-              valor: demanda.descricao ?? 'Não informada',
-            ),
-            _Campo(titulo: 'Sprint', valor: demanda.sprint ?? 'Não informada'),
-            const SizedBox(height: 12),
-            TempoComparacao(
-              estimadoMinutos: demanda.tempoEstimadoMinutos,
-              executadoMinutos: tempoExecutadoTotalMinutos,
-            ),
-            _Campo(
-              titulo: 'Observações',
-              valor: demanda.observacoes ?? 'Não informadas',
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (onCriarFilha != null)
-                  Expanded(
-                    child: TextButton.icon(
-                      key: ValueKey('criar-filha-${demanda.id}'),
-                      onPressed: acoesHabilitadas ? onCriarFilha : null,
-                      icon: const Icon(Icons.account_tree_outlined),
-                      label: const Text('Criar filha'),
-                    ),
-                  ),
-                if (onLancarTempo != null)
-                  Expanded(
-                    child: TextButton.icon(
-                      key: ValueKey('lancar-tempo-${demanda.id}'),
-                      onPressed: acoesHabilitadas ? onLancarTempo : null,
-                      icon: const Icon(Icons.more_time),
-                      label: const Text('Lançar tempo'),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+              _Campo(
+                titulo: 'ID',
+                valor: demanda.id?.toString() ?? '-',
+                densidade: densidade,
+              ),
+              if (demanda.demandaPaiId != null)
+                _Campo(
+                  titulo: 'Demanda mãe',
+                  valor: demanda.demandaPaiId.toString(),
+                  densidade: densidade,
+                ),
+              _Campo(
+                titulo: 'Descrição',
+                valor: demanda.descricao ?? 'Não informada',
+                densidade: densidade,
+              ),
+              _Campo(
+                titulo: 'Sprint',
+                valor: demanda.sprint ?? 'Não informada',
+                densidade: densidade,
+              ),
+              SizedBox(height: densidade.espacamentoEntreSecoes),
+              TempoComparacao(
+                estimadoMinutos: demanda.tempoEstimadoMinutos,
+                executadoMinutos: tempoExecutadoTotalMinutos,
+              ),
+              _Campo(
+                titulo: 'Observações',
+                valor: demanda.observacoes ?? 'Não informadas',
+                densidade: densidade,
+              ),
+              SizedBox(height: densidade.espacamentoEntreSecoes),
+              _botoesAcoes(),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _cabecalhoNormal(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(demanda.titulo, style: text.titleSmall),
+        const SizedBox(height: 6),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: _prioridadeLabel(demanda.prioridade),
+                style: text.labelMedium?.copyWith(
+                  color: _coresPrioridade(context).cor,
+                ),
+              ),
+              TextSpan(
+                text:
+                    ' · Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)} · '
+                    'Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}',
+              ),
+            ],
+          ),
+          style: text.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  Widget _cabecalhoCompacto(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final prioridade = _coresPrioridade(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: prioridade.fundo,
+                borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                child: Text(
+                  _prioridadeLabel(demanda.prioridade),
+                  style: text.labelMedium?.copyWith(color: prioridade.cor),
+                ),
+              ),
+            ),
+            const SizedBox(width: TemdasTokens.smallGap),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final painter = TextPainter(
+                    text: TextSpan(
+                      text: demanda.titulo,
+                      style: text.titleSmall,
+                    ),
+                    maxLines: 1,
+                    textDirection: Directionality.of(context),
+                    textScaler: MediaQuery.textScalerOf(context),
+                  )..layout(maxWidth: constraints.maxWidth);
+                  final truncado = painter.didExceedMaxLines;
+                  painter.dispose();
+                  return Tooltip(
+                    message: truncado ? demanda.titulo : '',
+                    child: Text(
+                      demanda.titulo,
+                      style: text.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        DefaultTextStyle.merge(
+          style: text.bodySmall,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 2,
+            children: [
+              Text('Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)}'),
+              Text('Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  ({Color cor, Color fundo}) _coresPrioridade(BuildContext context) {
+    final semantic = TemdasSemanticColors.of(context);
+    return switch (demanda.prioridade) {
+      backend.Prioridade.baixa => (
+        cor: semantic.prioridadeBaixa,
+        fundo: semantic.prioridadeBaixaContainer,
+      ),
+      backend.Prioridade.media => (
+        cor: semantic.prioridadeMedia,
+        fundo: semantic.prioridadeMediaContainer,
+      ),
+      backend.Prioridade.alta || backend.Prioridade.urgente => (
+        cor: semantic.prioridadeAlta,
+        fundo: semantic.prioridadeAltaContainer,
+      ),
+    };
+  }
+
+  Widget _botoesAcoes() {
+    final botoes = [
+      if (onCriarFilha != null)
+        TextButton.icon(
+          key: ValueKey('criar-filha-${demanda.id}'),
+          onPressed: acoesHabilitadas ? onCriarFilha : null,
+          style: densidade.estiloBotao,
+          icon: const Icon(Icons.account_tree_outlined),
+          label: const Text('Criar filha'),
+        ),
+      if (onLancarTempo != null)
+        TextButton.icon(
+          key: ValueKey('lancar-tempo-${demanda.id}'),
+          onPressed: acoesHabilitadas ? onLancarTempo : null,
+          style: densidade.estiloBotao,
+          icon: const Icon(Icons.more_time),
+          label: const Text('Lançar tempo'),
+        ),
+    ];
+    if (densidade.isCompacta) {
+      return Wrap(spacing: 4, runSpacing: 2, children: botoes);
+    }
+    return Row(children: [for (final botao in botoes) Expanded(child: botao)]);
+  }
+
   Widget _menuStatus(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final semantic = TemdasSemanticColors.of(context);
+    final cor = switch (demanda.status) {
+      backend.DemandaStatus.aberta => semantic.aberta,
+      backend.DemandaStatus.emAndamento => semantic.emAndamento,
+      backend.DemandaStatus.pausada => semantic.pausada,
+      backend.DemandaStatus.concluida => semantic.concluida,
+      backend.DemandaStatus.cancelada => semantic.cancelada,
+    };
     return PopupMenuButton<backend.DemandaStatus>(
       key: ValueKey('status-demanda-${demanda.id}'),
       tooltip: 'Alterar status',
@@ -138,20 +282,26 @@ class DemandaCard extends StatelessWidget {
       ],
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          color: Color.alphaBlend(cor.withValues(alpha: 0.10), colors.surface),
+          border: Border.all(
+            color: cor.withValues(alpha: 0.20),
+            width: TemdasTokens.borderWidth,
+          ),
+          borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: densidade.paddingStatus,
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   _statusLabel(demanda.status),
-                  style: Theme.of(context).textTheme.labelLarge,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: cor),
                 ),
               ),
-              const Icon(Icons.arrow_drop_down, size: 18),
+              Icon(Icons.arrow_drop_down, size: 18, color: cor),
             ],
           ),
         ),
@@ -166,7 +316,9 @@ class DemandaCard extends StatelessWidget {
       tooltip: 'Mais ações da demanda',
       enabled: acoesHabilitadas,
       icon: const Icon(Icons.more_vert),
-      style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
+      style: IconButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+      ).merge(densidade.estiloBotao),
       onSelected: (acao) {
         switch (acao) {
           case _AcaoDemanda.editar:
@@ -204,7 +356,12 @@ class DemandaCard extends StatelessWidget {
           child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.delete_outline, color: corDestrutiva),
-            title: Text('Excluir', style: TextStyle(color: corDestrutiva)),
+            title: Text(
+              'Excluir',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: corDestrutiva),
+            ),
           ),
         ),
       ],
@@ -242,16 +399,24 @@ class DemandaCard extends StatelessWidget {
 enum _AcaoDemanda { editar, mostrarTudo, excluir }
 
 class _Campo extends StatelessWidget {
-  const _Campo({required this.titulo, required this.valor});
+  const _Campo({
+    required this.titulo,
+    required this.valor,
+    required this.densidade,
+  });
 
   final String titulo;
   final String valor;
+  final DensidadeDemanda densidade;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Text('$titulo: $valor'),
+      padding: EdgeInsets.only(top: densidade.espacamentoEntreCampos),
+      child: Text(
+        '$titulo: $valor',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
     );
   }
 }
