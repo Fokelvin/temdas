@@ -12,22 +12,22 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
 
-enum TransicaoStatusErroCodigo implements _i1.SerializableModel {
-  descendentesAtivos,
-  motivoCancelamentoObrigatorio,
-  demandaNaoEncontrada;
+enum MovimentacaoDemandaErroCodigo implements _i1.SerializableModel {
+  demandaNaoEncontrada,
+  demandaFilha,
+  statusTerminal;
 
-  static TransicaoStatusErroCodigo fromJson(String name) {
+  static MovimentacaoDemandaErroCodigo fromJson(String name) {
     switch (name) {
-      case 'descendentesAtivos':
-        return TransicaoStatusErroCodigo.descendentesAtivos;
-      case 'motivoCancelamentoObrigatorio':
-        return TransicaoStatusErroCodigo.motivoCancelamentoObrigatorio;
       case 'demandaNaoEncontrada':
-        return TransicaoStatusErroCodigo.demandaNaoEncontrada;
+        return MovimentacaoDemandaErroCodigo.demandaNaoEncontrada;
+      case 'demandaFilha':
+        return MovimentacaoDemandaErroCodigo.demandaFilha;
+      case 'statusTerminal':
+        return MovimentacaoDemandaErroCodigo.statusTerminal;
       default:
         throw ArgumentError(
-          'Value "$name" cannot be converted to "TransicaoStatusErroCodigo"',
+          'Value "$name" cannot be converted to "MovimentacaoDemandaErroCodigo"',
         );
     }
   }

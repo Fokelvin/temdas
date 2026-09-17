@@ -2,9 +2,11 @@ import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
 import 'demanda_status_service.dart';
+import 'demanda_ordem_service.dart';
 
 class DemandaEndpoint extends Endpoint {
   final _statusService = DemandaStatusService();
+  final _ordemService = DemandaOrdemService();
 
   Future<Demanda> alterarStatusDemanda(
     Session session,
@@ -26,6 +28,11 @@ class DemandaEndpoint extends Endpoint {
     int id,
     String motivoCancelamento,
   ) => _statusService.cancelarEmCascata(session, id, motivoCancelamento);
+
+  Future<Demanda> moverDemanda(
+    Session session,
+    DemandaMovimentacaoRequest request,
+  ) => _ordemService.mover(session, request);
 
   Future<Demanda> criarDemanda(
     Session session,
@@ -62,9 +69,13 @@ class DemandaEndpoint extends Endpoint {
       }
 
       final agora = DateTime.now().toUtc();
+      final ordem = request.demandaPaiId == null
+          ? await _proximaOrdem(session, transaction)
+          : null;
 
       final demanda = Demanda(
         demandaPaiId: request.demandaPaiId,
+        ordem: ordem,
         titulo: titulo,
         descricao: _normalizarTextoOpcional(request.descricao),
         status: DemandaStatus.aberta,
@@ -93,11 +104,37 @@ class DemandaEndpoint extends Endpoint {
   }
 
   Future<List<Demanda>> listarDemandas(Session session) async {
-    return Demanda.db.find(
+    final demandas = await Demanda.db.find(
       session,
       orderBy: (t) => t.criadoEm,
       orderDescending: true,
     );
+    final raizes = demandas.where((d) => d.demandaPaiId == null).toList()
+      ..sort((a, b) {
+        final status = a.status.index.compareTo(b.status.index);
+        if (status != 0) return status;
+        final ordem = (a.ordem ?? 1 << 30).compareTo(b.ordem ?? 1 << 30);
+        return ordem == 0 ? b.criadoEm.compareTo(a.criadoEm) : ordem;
+      });
+    final filhas = demandas.where((d) => d.demandaPaiId != null);
+    return [...raizes, ...filhas];
+  }
+
+  Future<int> _proximaOrdem(Session session, Transaction transaction) async {
+    final raizes = await Demanda.db.find(
+      session,
+      where: (t) =>
+          t.demandaPaiId.equals(null) & t.status.equals(DemandaStatus.aberta),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    final maior = raizes.fold<int>(
+      -1,
+      (atual, demanda) => demanda.ordem != null && demanda.ordem! > atual
+          ? demanda.ordem!
+          : atual,
+    );
+    return maior + 1;
   }
 
   Future<Demanda?> buscarDemandaPorId(

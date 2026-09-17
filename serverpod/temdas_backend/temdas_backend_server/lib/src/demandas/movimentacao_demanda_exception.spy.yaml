@@ -1,0 +1,4 @@
+exception: MovimentacaoDemandaException
+fields:
+  codigo: MovimentacaoDemandaErroCodigo
+  mensagem: String

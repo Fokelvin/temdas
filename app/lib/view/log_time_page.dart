@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import 'formatters/demanda_identificacao.dart';
 import '../view_model/agenda_view_model.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/log_time_dialog.dart';
+import 'widgets/log_time_calendar.dart';
 import 'widgets/resumo_card.dart';
 
 class LogTimePage extends StatefulWidget {
@@ -90,26 +92,11 @@ class _LogTimePageState extends State<LogTimePage> {
         onTentarNovamente: _viewModel.carregarAgenda,
       );
     }
-    if (_viewModel.registros.isEmpty) {
-      return _EmptyAgenda(
-        periodo: _viewModel.mode == AgendaMode.dia
-            ? 'neste dia'
-            : 'nesta semana',
-        possuiDemandas: _demandasSelecionaveis.isNotEmpty,
-        onLancarTempo: _demandasSelecionaveis.isEmpty ? null : _abrirLancamento,
-      );
-    }
-    return _viewModel.mode == AgendaMode.dia
-        ? _DayAgenda(
-            viewModel: _viewModel,
-            onEditar: _abrirEdicao,
-            onExcluir: _confirmarExclusao,
-          )
-        : _WeekAgenda(
-            viewModel: _viewModel,
-            onEditar: _abrirEdicao,
-            onExcluir: _confirmarExclusao,
-          );
+    return LogTimeCalendar(
+      viewModel: _viewModel,
+      onEditar: _abrirEdicao,
+      onExcluir: _confirmarExclusao,
+    );
   }
 
   Future<void> _abrirLancamento() async {
@@ -136,7 +123,7 @@ class _LogTimePageState extends State<LogTimePage> {
       barrierDismissible: false,
       builder: (_) => LogTimeDialog(
         demandaId: demandaId,
-        demandaTitulo: demanda.titulo,
+        demandaTitulo: formatarIdentificacaoDemanda(demanda),
         dataInicial: _viewModel.dataSelecionada,
         onSalvar: (dados) async {
           final salvo = await _viewModel.registrarTempo(
@@ -174,7 +161,9 @@ class _LogTimePageState extends State<LogTimePage> {
       barrierDismissible: false,
       builder: (_) => LogTimeDialog.editar(
         demandaId: registro.demandaId,
-        demandaTitulo: demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+        demandaTitulo: demanda == null
+            ? 'Demanda #${registro.demandaId}'
+            : formatarIdentificacaoDemanda(demanda),
         dataInicial: inicioLocal,
         horaInicial: TimeOfDay.fromDateTime(inicioLocal),
         duracaoInicialMinutos: registro.duracaoMinutos,
@@ -381,6 +370,8 @@ class _Summary extends StatelessWidget {
 
 typedef _AcaoRegistro = Future<void> Function(backend.RegistroTempo registro);
 
+// Kept as a compatibility reference for any existing private test harnesses.
+// ignore: unused_element
 class _DayAgenda extends StatelessWidget {
   const _DayAgenda({
     required this.viewModel,
@@ -411,6 +402,7 @@ class _DayAgenda extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _WeekAgenda extends StatelessWidget {
   const _WeekAgenda({
     required this.viewModel,
@@ -534,7 +526,9 @@ class _WeekRegistroCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+                          demanda == null
+                              ? 'Demanda #${registro.demandaId}'
+                              : formatarIdentificacaoDemanda(demanda!),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -608,7 +602,9 @@ class _RegistroTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+                    demanda == null
+                        ? 'Demanda #${registro.demandaId}'
+                        : formatarIdentificacaoDemanda(demanda!),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
@@ -633,6 +629,7 @@ class _RegistroTile extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _EmptyAgenda extends StatelessWidget {
   const _EmptyAgenda({
     required this.periodo,
@@ -744,7 +741,7 @@ class _SelecionarDemandaDialogState extends State<_SelecionarDemandaDialog> {
               (demanda) => DropdownMenuItem(
                 value: demanda.id!,
                 child: Text(
-                  demanda.titulo,
+                  formatarIdentificacaoDemanda(demanda),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

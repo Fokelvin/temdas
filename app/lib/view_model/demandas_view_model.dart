@@ -24,6 +24,7 @@ class DemandasViewModel extends ChangeNotifier {
   int _versaoCarregamento = 0;
   String? _erro;
   backend.TransicaoStatusException? _erroTransicaoStatus;
+  backend.MovimentacaoDemandaException? _erroMovimentacao;
   backend.Demanda? _demandaCriada;
   List<backend.Demanda> _demandas = [];
 
@@ -41,6 +42,8 @@ class DemandasViewModel extends ChangeNotifier {
   String? get erro => _erro;
   backend.TransicaoStatusException? get erroTransicaoStatus =>
       _erroTransicaoStatus;
+  backend.MovimentacaoDemandaException? get erroMovimentacao =>
+      _erroMovimentacao;
   backend.Demanda? get demandaCriada => _demandaCriada;
   List<backend.Demanda> get demandas => List.unmodifiable(_demandas);
 
@@ -229,6 +232,53 @@ class DemandasViewModel extends ChangeNotifier {
         recarregar: true,
       );
 
+  Future<bool> moverDemanda({
+    required backend.Demanda demanda,
+    required backend.DemandaStatus statusDestino,
+    required int posicaoDestino,
+  }) async {
+    if (_descartado || _enviando) return false;
+
+    final id = _idValido(demanda);
+    if (id == null || demanda.demandaPaiId != null) return false;
+    if (!_podeIniciarMutacao(id, global: false)) return false;
+
+    _erroMovimentacao = null;
+    _errosPorDemanda.remove(id);
+    _iniciarEnvio(demandaId: id);
+    try {
+      final atualizada = await _repository.moverDemanda(
+        demandaId: id,
+        statusDestino: statusDestino,
+        posicaoDestino: posicaoDestino,
+      );
+      if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        _aplicarMovimentacaoLocal(
+          id,
+          atualizada,
+          statusDestino,
+          posicaoDestino,
+        );
+      }
+      return true;
+    } catch (error, stackTrace) {
+      if (!_descartado) {
+        _registrarFalha('mover a demanda $id', error, stackTrace);
+        _erroMovimentacao = error is backend.MovimentacaoDemandaException
+            ? error
+            : null;
+        _erro =
+            _erroMovimentacao?.mensagem ??
+            'Não foi possível mover a demanda. Tente novamente.';
+        _errosPorDemanda[id] = (mensagem: _erro!, transicao: null);
+      }
+      return false;
+    } finally {
+      _finalizarEnvio(demandaId: id);
+    }
+  }
+
   Future<bool> cancelarDemandaEmCascata(
     backend.Demanda demanda,
     String motivo,
@@ -401,6 +451,58 @@ class DemandasViewModel extends ChangeNotifier {
     if (_demandaCriada?.id == atualizada.id) _demandaCriada = atualizada;
   }
 
+  void _aplicarMovimentacaoLocal(
+    int id,
+    backend.Demanda atualizada,
+    backend.DemandaStatus statusDestino,
+    int posicaoDestino,
+  ) {
+    final raizes = _demandas
+        .where((demanda) => demanda.demandaPaiId == null)
+        .toList();
+    final demandaAtual = raizes.firstWhere((demanda) => demanda.id == id);
+    final origem = demandaAtual.status;
+    final porOrigem = raizes.where((d) => d.status == origem).toList();
+    final porDestino = origem == statusDestino
+        ? porOrigem
+        : raizes.where((d) => d.status == statusDestino).toList();
+    porOrigem.removeWhere((d) => d.id == id);
+    final destino = atualizada.copyWith(status: statusDestino);
+    final posicao = posicaoDestino.clamp(0, porDestino.length);
+    porDestino.insert(posicao, destino);
+
+    for (var index = 0; index < porOrigem.length; index++) {
+      porOrigem[index] = porOrigem[index].copyWith(ordem: index);
+    }
+    if (origem != statusDestino) {
+      for (var index = 0; index < porDestino.length; index++) {
+        porDestino[index] = porDestino[index].copyWith(ordem: index);
+      }
+    }
+
+    final grupos = <backend.DemandaStatus, List<backend.Demanda>>{
+      for (final status in backend.DemandaStatus.values)
+        status: <backend.Demanda>[],
+    };
+    for (final raiz in raizes) {
+      if (raiz.id == id) continue;
+      grupos[raiz.status]!.add(raiz);
+    }
+    grupos[origem]!
+      ..clear()
+      ..addAll(porOrigem);
+    grupos[statusDestino]!
+      ..clear()
+      ..addAll(porDestino);
+
+    final filhas = _demandas.where((demanda) => demanda.demandaPaiId != null);
+    _demandas = [
+      for (final status in backend.DemandaStatus.values) ...grupos[status]!,
+      ...filhas,
+    ];
+    notifyListeners();
+  }
+
   void _inserirDemanda(backend.Demanda criada) {
     final index = _demandas.indexWhere(
       (demanda) => criada.criadoEm.isAfter(demanda.criadoEm),
@@ -491,6 +593,7 @@ class DemandasViewModel extends ChangeNotifier {
     }
     _erro = null;
     _erroTransicaoStatus = null;
+    _erroMovimentacao = null;
     notifyListeners();
   }
 

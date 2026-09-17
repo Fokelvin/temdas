@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../formatters/demanda_identificacao.dart';
+
 import '../../view_model/demandas_view_model.dart';
 
 Future<bool?> mostrarConclusaoEmCascataDialog(
@@ -99,7 +101,7 @@ class _DialogoStatusState extends State<_DialogoStatus> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      widget.demanda.titulo,
+                      formatarIdentificacaoDemanda(widget.demanda),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),

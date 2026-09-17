@@ -4,6 +4,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
 import '../app/nova_aba.dart';
+import 'formatters/demanda_identificacao.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/tempo_comparacao.dart';
@@ -259,7 +260,7 @@ class _Cabecalho extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                demanda.titulo,
+                formatarIdentificacaoDemanda(demanda),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -404,7 +405,7 @@ class _DemandaMae extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.account_tree_outlined),
       title: Text(
-        demandaMae!.titulo,
+        formatarIdentificacaoDemanda(demandaMae!),
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: Text(
@@ -435,7 +436,7 @@ class _DemandasFilhas extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.subdirectory_arrow_right),
             title: Text(
-              demandas[index].titulo,
+              formatarIdentificacaoDemanda(demandas[index]),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: Text(

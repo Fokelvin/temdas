@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import 'formatters/demanda_identificacao.dart';
 import '../theme/app_theme.dart';
 import '../view_model/demandas_view_model.dart';
 import 'demanda_detalhe_page.dart';
@@ -304,11 +305,11 @@ class _DemandasPageState extends State<DemandasPage> {
             ),
             content: Text(
               possuiDescendentes
-                  ? 'A demanda “${demanda.titulo}” possui $descendentes '
+                  ? 'A demanda “${formatarIdentificacaoDemanda(demanda)}” possui $descendentes '
                         '${descendentes == 1 ? 'descendente' : 'descendentes'}. '
                         'A demanda, toda a árvore abaixo dela e todos os registros '
                         'de tempo vinculados serão excluídos permanentemente.'
-                  : 'A demanda “${demanda.titulo}” será excluída permanentemente. '
+                  : 'A demanda “${formatarIdentificacaoDemanda(demanda)}” será excluída permanentemente. '
                         'Essa ação não pode ser desfeita.',
             ),
             actions: [
@@ -377,7 +378,7 @@ class _DemandasPageState extends State<DemandasPage> {
       barrierDismissible: false,
       builder: (_) => LogTimeDialog(
         demandaId: demanda.id,
-        demandaTitulo: demanda.titulo,
+        demandaTitulo: formatarIdentificacaoDemanda(demanda),
         dataInicial: DateTime.now(),
         onSalvar: (dados) async {
           final registrado = await _viewModel.registrarTempo(
@@ -408,6 +409,47 @@ class _DemandasPageState extends State<DemandasPage> {
       return;
     }
     mostrarDetalhesDemandaDialog(context, id);
+  }
+
+  Future<bool> _moverDemanda(
+    backend.Demanda demanda,
+    backend.DemandaStatus statusDestino,
+    int posicaoDestino,
+  ) async {
+    final sucesso = await _viewModel.moverDemanda(
+      demanda: demanda,
+      statusDestino: statusDestino,
+      posicaoDestino: posicaoDestino,
+    );
+    if (!mounted || sucesso) return sucesso;
+
+    final erro = _viewModel.erroMovimentacao;
+    if (erro?.codigo == backend.MovimentacaoDemandaErroCodigo.statusTerminal) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Alteração de status'),
+          content: const Text(
+            'Para concluir, cancelar, reabrir ou reativar uma demanda, '
+            'utilize as ações disponíveis no card da demanda.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Entendi'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _mostrarFeedback(
+        erro?.mensagem ??
+            _viewModel.erro ??
+            'Não foi possível mover a demanda. Tente novamente.',
+        erro: true,
+      );
+    }
+    return false;
   }
 
   void _mostrarFeedback(String mensagem, {required bool erro}) {
@@ -528,6 +570,7 @@ class _DemandasPageState extends State<DemandasPage> {
                   if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
                 },
                 onAlterarStatus: _alterarStatusDemanda,
+                onMover: _moverDemanda,
                 onConcluir: (demanda) => _alterarStatusDemanda(
                   demanda,
                   backend.DemandaStatus.concluida,

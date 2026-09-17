@@ -2,6 +2,7 @@ class: Demanda
 table: demandas
 fields:
   demandaPaiId: int?, relation(parent=demandas, onDelete=Cascade)
+  ordem: int?
   titulo: String
   descricao: String?
   status: DemandaStatus

@@ -3,6 +3,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../theme/app_theme.dart';
 import '../../theme/temdas_semantic_colors.dart';
+import '../formatters/demanda_identificacao.dart';
 import 'densidade_demanda.dart';
 import 'tempo_comparacao.dart';
 
@@ -21,6 +22,7 @@ class DemandaCard extends StatelessWidget {
     this.onLancarTempo,
     this.onMostrarTudo,
     this.expansionController,
+    this.dragHandle,
     this.densidade = DensidadeDemanda.normal,
   });
 
@@ -36,6 +38,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
   final ExpansibleController? expansionController;
+  final Widget? dragHandle;
   final DensidadeDemanda densidade;
 
   @override
@@ -48,6 +51,7 @@ class DemandaCard extends StatelessWidget {
           horizontalTitleGap: densidade.espacamentoChevron,
           child: ExpansionTile(
             controller: expansionController,
+            leading: dragHandle,
             tilePadding: densidade.paddingCabecalho,
             minTileHeight: densidade.alturaMinimaCabecalho,
             title: densidade.isCompacta
@@ -121,7 +125,7 @@ class DemandaCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(demanda.titulo, style: text.titleSmall),
+        Text(formatarIdentificacaoDemanda(demanda), style: text.titleSmall),
         const SizedBox(height: 6),
         Text.rich(
           TextSpan(
@@ -173,7 +177,7 @@ class DemandaCard extends StatelessWidget {
                 builder: (context, constraints) {
                   final painter = TextPainter(
                     text: TextSpan(
-                      text: demanda.titulo,
+                      text: formatarIdentificacaoDemanda(demanda),
                       style: text.titleSmall,
                     ),
                     maxLines: 1,
@@ -183,9 +187,11 @@ class DemandaCard extends StatelessWidget {
                   final truncado = painter.didExceedMaxLines;
                   painter.dispose();
                   return Tooltip(
-                    message: truncado ? demanda.titulo : '',
+                    message: truncado
+                        ? formatarIdentificacaoDemanda(demanda)
+                        : '',
                     child: Text(
-                      demanda.titulo,
+                      formatarIdentificacaoDemanda(demanda),
                       style: text.titleSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

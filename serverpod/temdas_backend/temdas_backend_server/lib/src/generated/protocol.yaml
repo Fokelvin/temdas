@@ -2,6 +2,7 @@ demanda:
   - alterarStatusDemanda:
   - concluirDemandaEmCascata:
   - cancelarDemandaEmCascata:
+  - moverDemanda:
   - criarDemanda:
   - listarDemandas:
   - buscarDemandaPorId:

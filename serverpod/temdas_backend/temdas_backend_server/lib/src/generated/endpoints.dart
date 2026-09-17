@@ -16,14 +16,16 @@ import '../greetings/greeting_endpoint.dart' as _i3;
 import '../registros_tempo/registro_tempo_endpoint.dart' as _i4;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
     as _i5;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i6;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i7;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i8;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i9;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+    as _i10;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -127,12 +129,31 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['motivoCancelamento'],
                   ),
         ),
+        'moverDemanda': _i1.MethodConnector(
+          name: 'moverDemanda',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i6.DemandaMovimentacaoRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['demanda'] as _i2.DemandaEndpoint).moverDemanda(
+                    session,
+                    params['request'],
+                  ),
+        ),
         'criarDemanda': _i1.MethodConnector(
           name: 'criarDemanda',
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i6.DemandaCreateRequest>(),
+              type: _i1.getType<_i7.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -180,7 +201,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i7.DemandaUpdateRequest>(),
+              type: _i1.getType<_i8.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -267,7 +288,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i8.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i9.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },
@@ -287,7 +308,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i9.RegistroTempoUpdateRequest>(),
+              type: _i1.getType<_i10.RegistroTempoUpdateRequest>(),
               nullable: false,
             ),
           },

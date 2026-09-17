@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -6,6 +7,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import '../../theme/app_theme.dart';
 import '../../theme/temdas_semantic_colors.dart';
 import '../../view_model/tempo_executado_total.dart';
+import '../formatters/demanda_identificacao.dart';
 import 'demanda_card.dart';
 import 'densidade_demanda.dart';
 
@@ -22,6 +24,7 @@ class DemandaTree extends StatefulWidget {
     required this.onMostrarTudo,
     required this.onAlterarStatus,
     required this.onConcluir,
+    this.onMover,
     this.demandasEmProcessamento = const {},
     this.densidade = DensidadeDemanda.normal,
   });
@@ -36,6 +39,8 @@ class DemandaTree extends StatefulWidget {
   final ValueChanged<backend.Demanda> onMostrarTudo;
   final void Function(backend.Demanda, backend.DemandaStatus) onAlterarStatus;
   final ValueChanged<backend.Demanda> onConcluir;
+  final Future<bool> Function(backend.Demanda, backend.DemandaStatus, int)?
+  onMover;
   final Set<int> demandasEmProcessamento;
   final DensidadeDemanda densidade;
 
@@ -47,6 +52,9 @@ class _DemandaTreeState extends State<DemandaTree> {
   // O mesmo controller governa os detalhes do card e a visibilidade das filhas.
   final _expansoes = <String, ExpansibleController>{};
   bool _atualizacaoAgendada = false;
+  bool _dragAtivo = false;
+  ({backend.DemandaStatus status, int posicao})? _dropHover;
+  _DemandaMovimentoPendente? _movimentoPendente;
 
   String _chaveExpansao(backend.Demanda demanda) =>
       'demanda-expansao-${demanda.id ?? demanda.titulo}';
@@ -178,25 +186,14 @@ class _DemandaTreeState extends State<DemandaTree> {
                             grupo.value.where((no) => no.nivel == 0).length,
                           ),
                           if (grupo.value.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                'Nenhuma demanda neste status.',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            )
+                            _alvoColunaVazia(grupo.key)
                           else
-                            for (final no in grupo.value)
-                              _construirNo(
-                                no,
-                                temposTotais[no.demanda.id] ??
-                                    no.demanda.tempoExecutadoMinutos,
-                              ),
+                            ..._construirUnidades(
+                              grupo.key,
+                              grupo.value,
+                              temposTotais,
+                              larguraColuna,
+                            ),
                         ],
                       ),
                     ),
@@ -285,7 +282,11 @@ class _DemandaTreeState extends State<DemandaTree> {
     }
   }
 
-  Widget _construirNo(_DemandaNivel no, int tempoExecutadoTotalMinutos) {
+  Widget _construirNo(
+    _DemandaNivel no,
+    int tempoExecutadoTotalMinutos, {
+    Widget? dragHandle,
+  }) {
     final demanda = no.demanda;
     final emProcessamento = widget.demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
@@ -322,6 +323,7 @@ class _DemandaTreeState extends State<DemandaTree> {
             densidade: widget.densidade,
             demanda: demanda,
             tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
+            dragHandle: dragHandle,
             acoesHabilitadas: widget.acoesHabilitadas && !emProcessamento,
             emProcessamento: emProcessamento,
             onAlterarStatus: (status) =>
@@ -338,6 +340,316 @@ class _DemandaTreeState extends State<DemandaTree> {
     );
   }
 
+  List<Widget> _construirUnidades(
+    backend.DemandaStatus status,
+    List<_DemandaNivel> nos,
+    Map<int?, int> temposTotais,
+    double larguraColuna,
+  ) {
+    final widgets = <Widget>[];
+    var indiceRaiz = 0;
+    for (var inicio = 0; inicio < nos.length;) {
+      if (nos[inicio].nivel != 0) {
+        inicio++;
+        continue;
+      }
+      var fim = inicio + 1;
+      while (fim < nos.length && nos[fim].nivel != 0) {
+        fim++;
+      }
+      final unidade = nos.sublist(inicio, fim);
+      widgets.add(_zonaDeDrop(status, indiceRaiz));
+      widgets.add(_unidadeArrastavel(unidade, temposTotais, larguraColuna));
+      indiceRaiz++;
+      inicio = fim;
+    }
+    widgets.add(_zonaDeDrop(status, indiceRaiz));
+    return widgets;
+  }
+
+  Widget _alvoColunaVazia(backend.DemandaStatus status) {
+    const alturaMinima = 128.0;
+    return _zonaDeDrop(
+      status,
+      0,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: alturaMinima),
+        child: Center(
+          child: Text(
+            'Nenhuma demanda neste status.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _unidadeArrastavel(
+    List<_DemandaNivel> unidade,
+    Map<int?, int> temposTotais,
+    double larguraColuna,
+  ) {
+    return _construirConteudo(unidade, temposTotais, larguraColuna);
+  }
+
+  Widget _construirConteudo(
+    List<_DemandaNivel> unidade,
+    Map<int?, int> temposTotais,
+    double larguraColuna,
+  ) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (var index = 0; index < unidade.length; index++)
+        _construirNo(
+          unidade[index],
+          temposTotais[unidade[index].demanda.id] ??
+              unidade[index].demanda.tempoExecutadoMinutos,
+          dragHandle:
+              index == 0 &&
+                  widget.onMover != null &&
+                  unidade.first.demanda.id != null
+              ? _arrastoHandle(
+                  unidade.first.demanda,
+                  unidade.length,
+                  larguraColuna,
+                )
+              : null,
+        ),
+    ],
+  );
+
+  Widget _arrastoHandle(
+    backend.Demanda raiz,
+    int quantidadeNos,
+    double larguraColuna,
+  ) {
+    final podeArrastar =
+        widget.acoesHabilitadas &&
+        _movimentoPendente == null &&
+        !_dragAtivo &&
+        !widget.demandasEmProcessamento.contains(raiz.id);
+    return Draggable<_DemandaDragData>(
+      key: ValueKey('demanda-drag-handle-${raiz.id}'),
+      data: _DemandaDragData(demanda: raiz, status: raiz.status),
+      maxSimultaneousDrags: podeArrastar ? 1 : 0,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      onDragStarted: _iniciarDrag,
+      onDragEnd: (_) => _finalizarDrag(),
+      feedback: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: larguraColuna,
+          child: _arrastoPreview(raiz, quantidadeNos),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: .35, child: _visualHandle()),
+      child: _visualHandle(),
+    );
+  }
+
+  Widget _visualHandle() => Tooltip(
+    message: 'Arrastar demanda',
+    child: Semantics(
+      button: true,
+      label: 'Arrastar demanda',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.grab,
+        child: SizedBox.square(
+          dimension: 40,
+          child: Center(
+            child: Icon(
+              Icons.drag_indicator,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  void _iniciarDrag() {
+    if (mounted) setState(() => _dragAtivo = true);
+  }
+
+  void _finalizarDrag() {
+    if (!mounted) return;
+    setState(() {
+      _dragAtivo = false;
+      _dropHover = null;
+    });
+  }
+
+  Widget _zonaDeDrop(
+    backend.DemandaStatus status,
+    int posicao, {
+    Widget? child,
+  }) {
+    bool movimentoCarregando() =>
+        _movimentoPendente?.statusDestino == status &&
+        _movimentoPendente?.posicaoVisual == posicao;
+    return DragTarget<_DemandaDragData>(
+      key: ValueKey('demanda-drop-${status.name}-$posicao'),
+      onWillAcceptWithDetails: (details) {
+        if (!_podeReceberDrop(details.data)) return false;
+        _atualizarDropHover(status, posicao);
+        return true;
+      },
+      onMove: (details) {
+        if (_podeReceberDrop(details.data)) {
+          _atualizarDropHover(status, posicao);
+        }
+      },
+      onLeave: (_) {
+        if (_dropHover?.status == status) {
+          setState(() => _dropHover = null);
+        }
+      },
+      onAcceptWithDetails: (details) {
+        _aceitarMovimento(details.data, status, posicao);
+      },
+      builder: (context, candidates, rejected) {
+        final ativo =
+            _dropHover?.status == status && _dropHover?.posicao == posicao;
+        final estaCarregando = movimentoCarregando();
+        final altura = child == null
+            ? (_dragAtivo || estaCarregando ? 112.0 : 6.0)
+            : null;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: altura,
+          margin: const EdgeInsets.symmetric(vertical: 1),
+          child: Stack(
+            fit: child == null ? StackFit.expand : StackFit.passthrough,
+            children: [
+              ?child,
+              if (ativo || estaCarregando)
+                _overlayDoAlvo(carregando: estaCarregando),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _podeReceberDrop(_DemandaDragData data) =>
+      data.demanda.id != null &&
+      widget.onMover != null &&
+      _movimentoPendente == null;
+
+  void _atualizarDropHover(backend.DemandaStatus status, int posicao) {
+    if (_dropHover?.status == status && _dropHover?.posicao == posicao) {
+      return;
+    }
+    setState(() => _dropHover = (status: status, posicao: posicao));
+  }
+
+  void _aceitarMovimento(
+    _DemandaDragData data,
+    backend.DemandaStatus statusDestino,
+    int posicaoVisual,
+  ) {
+    setState(() => _dropHover = null);
+    final origem = data.status;
+    final raizesOrigem = widget.demandas
+        .where(
+          (demanda) => demanda.demandaPaiId == null && demanda.status == origem,
+        )
+        .toList();
+    final indiceOrigem = raizesOrigem.indexWhere(
+      (demanda) => demanda.id == data.demanda.id,
+    );
+    final posicaoDestino =
+        origem == statusDestino &&
+            indiceOrigem >= 0 &&
+            indiceOrigem < posicaoVisual
+        ? posicaoVisual - 1
+        : posicaoVisual;
+    final movimento = _DemandaMovimentoPendente(
+      statusDestino: statusDestino,
+      posicaoVisual: posicaoVisual,
+    );
+    setState(() => _movimentoPendente = movimento);
+    unawaited(_aguardarMovimento(data, statusDestino, posicaoDestino));
+  }
+
+  Future<void> _aguardarMovimento(
+    _DemandaDragData data,
+    backend.DemandaStatus statusDestino,
+    int posicaoDestino,
+  ) async {
+    try {
+      await widget.onMover!(data.demanda, statusDestino, posicaoDestino);
+    } finally {
+      if (mounted) setState(() => _movimentoPendente = null);
+    }
+  }
+
+  Widget _overlayDoAlvo({required bool carregando}) {
+    final colors = Theme.of(context).colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      margin: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer.withValues(alpha: .92),
+        border: Border.all(color: colors.primary, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Center(
+        child: carregando
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Movendo demanda...',
+                    style: TextStyle(color: colors.onPrimaryContainer),
+                  ),
+                ],
+              )
+            : Text(
+                'Soltar demanda aqui',
+                style: TextStyle(
+                  color: colors.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _arrastoPreview(backend.Demanda raiz, int quantidadeNos) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          formatarIdentificacaoDemanda(raiz),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        if (quantidadeNos > 1)
+          Text(
+            '${quantidadeNos - 1} ${quantidadeNos == 2 ? 'filha' : 'filhas'}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+      ],
+    ),
+  );
+
   String _statusLabel(backend.DemandaStatus status) => switch (status) {
     backend.DemandaStatus.aberta => 'Abertas',
     backend.DemandaStatus.emAndamento => 'Em andamento',
@@ -352,4 +664,21 @@ class _DemandaNivel {
 
   final backend.Demanda demanda;
   final int nivel;
+}
+
+class _DemandaDragData {
+  const _DemandaDragData({required this.demanda, required this.status});
+
+  final backend.Demanda demanda;
+  final backend.DemandaStatus status;
+}
+
+class _DemandaMovimentoPendente {
+  const _DemandaMovimentoPendente({
+    required this.statusDestino,
+    required this.posicaoVisual,
+  });
+
+  final backend.DemandaStatus statusDestino;
+  final int posicaoVisual;
 }
