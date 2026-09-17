@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/app/app_routes.dart';
@@ -534,6 +535,19 @@ void main() {
         expect(scrollQuadro, findsOneWidget);
         final horizontal = tester.state<ScrollableState>(scrollQuadro);
         expect(horizontal.position.axis, Axis.horizontal);
+        final barra = tester.widget<Scrollbar>(
+          find.byKey(const ValueKey('demandas-quadro-scrollbar')),
+        );
+        final controller = tester
+            .widget<SingleChildScrollView>(quadro)
+            .controller;
+        expect(controller, isNotNull);
+        expect(barra.controller, same(controller));
+        expect(controller!.position, same(horizontal.position));
+        expect(barra.thumbVisibility, largura < 2000);
+        expect(barra.trackVisibility, isFalse);
+        expect(barra.scrollbarOrientation, ScrollbarOrientation.bottom);
+        expect(barra.interactive, isTrue);
         final scrollVertical = find.byWidgetPredicate(
           (widget) =>
               widget is Scrollable &&
@@ -573,6 +587,16 @@ void main() {
             findsOneWidget,
           );
           expect(tester.getSize(coluna).width, greaterThanOrEqualTo(360));
+          if (largura < 2000) {
+            expect(tester.getSize(coluna).width, 360);
+          } else {
+            final limites = tester.getRect(cabecalho);
+            final viewport = tester.getRect(quadro);
+            expect(limites.left, greaterThanOrEqualTo(viewport.left));
+            expect(limites.right, lessThanOrEqualTo(viewport.right));
+            expect(limites.top, greaterThanOrEqualTo(0));
+            expect(limites.bottom, lessThanOrEqualTo(900));
+          }
           expect(tester.getTopLeft(cabecalho).dy, topo);
           expect(tester.getTopLeft(coluna).dx, greaterThan(ultimoX));
           ultimoX = tester.getTopRight(coluna).dx;
@@ -624,6 +648,161 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'barra discreta no fim do conteúdo ganha destaque em hover e arraste',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final viewModel = DemandasViewModel(
+        repository: FakeDemandaRepository(
+          demandas: [for (var id = 1; id <= 12; id++) demandaFixture(id: id)],
+        ),
+      );
+      addTearDown(viewModel.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.linux),
+          home: DemandasPage(viewModel: viewModel),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // A barra continua utilizável depois do tempo de fade padrão, sem hover.
+      await tester.pump(const Duration(seconds: 3));
+
+      final barra = find.byKey(const ValueKey('demandas-quadro-scrollbar'));
+      expect(
+        find.descendant(of: barra, matching: find.byType(Scrollbar)),
+        findsNothing,
+      );
+      final controller = tester.widget<Scrollbar>(barra).controller!;
+      final pagina = tester.state<ScrollableState>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        ),
+      );
+      expect(controller.offset, 0);
+      expect(tester.getBottomLeft(barra).dy, greaterThan(900));
+      pagina.position.jumpTo(pagina.position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      final posicaoVertical = pagina.position.pixels;
+      final pintor = _pintorBarra(tester, barra);
+      expect(pintor.thickness, 4);
+      expect(pintor.color.a, closeTo(0.28, 0.01));
+      expect(pintor.fadeoutOpacityAnimation.value, 1);
+      expect(pintor.trackColor.a, 0);
+      final pontoBarra = tester.getBottomLeft(barra) + const Offset(20, -6);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(pontoBarra);
+      await tester.pumpAndSettle();
+      expect(pintor.thickness, 9);
+      expect(pintor.color.a, closeTo(0.60, 0.01));
+      await mouse.down(pontoBarra);
+      await mouse.moveBy(const Offset(150, 0));
+      await tester.pump();
+      expect(controller.offset, greaterThan(0));
+      expect(pintor.thickness, 9);
+      expect(pintor.color.a, closeTo(0.75, 0.01));
+      await mouse.moveBy(const Offset(900, 0));
+      await mouse.up();
+      await mouse.moveTo(Offset.zero);
+      await mouse.removePointer();
+      await tester.pumpAndSettle();
+      expect(controller.offset, controller.position.maxScrollExtent);
+      expect(pagina.position.pixels, posicaoVertical);
+      expect(pintor.thickness, 4);
+      expect(pintor.color.a, closeTo(0.28, 0.01));
+      expect(pintor.fadeoutOpacityAnimation.value, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'barra segue a coluna mais alta e rola com o conteúdo da página',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final viewModel = DemandasViewModel(
+        repository: FakeDemandaRepository(
+          demandas: [
+            for (var id = 1; id <= 12; id++)
+              demandaFixture(id: id, titulo: 'Demanda $id'),
+            demandaFixture(id: 13, status: backend.DemandaStatus.emAndamento),
+          ],
+        ),
+      );
+      addTearDown(viewModel.dispose);
+      await _abrirPagina(tester, viewModel);
+      final barra = find.byKey(const ValueKey('demandas-quadro-scrollbar'));
+      final colunaAlta = find.byKey(const ValueKey('demanda-coluna-aberta'));
+      final pintor = _pintorBarra(tester, barra);
+      double topoBarra() =>
+          tester.getBottomLeft(barra).dy -
+          pintor.crossAxisMargin -
+          pintor.thickness;
+      void verificarAbaixoDasColunas() {
+        for (final status in backend.DemandaStatus.values) {
+          final coluna = find.byKey(ValueKey('demanda-coluna-${status.name}'));
+          expect(topoBarra(), greaterThan(tester.getBottomLeft(coluna).dy));
+        }
+        // Confere também a região efetivamente pintada/interativa da barra.
+        expect(
+          pintor.hitTestOnlyThumbInteractive(
+            Offset(
+              20,
+              tester.getSize(barra).height - pintor.crossAxisMargin - 2,
+            ),
+            PointerDeviceKind.mouse,
+          ),
+          isTrue,
+        );
+      }
+
+      verificarAbaixoDasColunas();
+      expect(topoBarra(), greaterThan(900));
+      final topoAntes = topoBarra();
+      final alturaAntes = tester.getSize(colunaAlta).height;
+      await tester.tap(find.text('Demanda 1'));
+      await tester.pumpAndSettle();
+      final crescimento = tester.getSize(colunaAlta).height - alturaAntes;
+      expect(crescimento, greaterThan(0));
+      expect(topoBarra() - topoAntes, closeTo(crescimento, 0.01));
+      verificarAbaixoDasColunas();
+
+      final pagina = tester.state<ScrollableState>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        ),
+      );
+      final topoAntesDoScroll = topoBarra();
+      final distanciaDaColuna =
+          topoBarra() - tester.getBottomLeft(colunaAlta).dy;
+      pagina.position.jumpTo(120);
+      await tester.pumpAndSettle();
+      expect(topoBarra(), closeTo(topoAntesDoScroll - 120, 0.01));
+      expect(
+        topoBarra() - tester.getBottomLeft(colunaAlta).dy,
+        closeTo(distanciaDaColuna, 0.01),
+      );
+      expect(topoBarra(), greaterThan(900));
+      verificarAbaixoDasColunas();
+
+      pagina.position.jumpTo(pagina.position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      expect(topoBarra(), lessThan(900));
+      expect(
+        topoBarra() - tester.getBottomLeft(colunaAlta).dy,
+        closeTo(distanciaDaColuna, 0.01),
+      );
+      verificarAbaixoDasColunas();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('quadro vazio mantém as cinco colunas e contagens zeradas', (
     tester,
@@ -911,6 +1090,21 @@ void main() {
     expect(find.text('Detalhe aberto'), findsOneWidget);
   });
 }
+
+ScrollbarPainter _pintorBarra(WidgetTester tester, Finder barra) =>
+    tester
+            .widget<CustomPaint>(
+              find.descendant(
+                of: barra,
+                matching: find.byWidgetPredicate(
+                  (widget) =>
+                      widget is CustomPaint &&
+                      widget.foregroundPainter is ScrollbarPainter,
+                ),
+              ),
+            )
+            .foregroundPainter!
+        as ScrollbarPainter;
 
 Future<void> _configurarTela(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(const Size(1200, 1800));

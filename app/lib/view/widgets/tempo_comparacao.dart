@@ -49,9 +49,8 @@ class TempoComparacao extends StatelessWidget {
                 Text('Executado: ${_formatarDuracao(executado)}'),
                 Text(
                   _saldoLabel(estimado: estimado, executado: executado),
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: excedido ? cor : null,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -61,7 +60,6 @@ class TempoComparacao extends StatelessWidget {
             value: progresso,
             color: cor,
             minHeight: compacto ? 4 : 6,
-            borderRadius: BorderRadius.circular(99),
           ),
         ],
       ),

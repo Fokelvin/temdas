@@ -100,8 +100,16 @@ class _LogTimePageState extends State<LogTimePage> {
       );
     }
     return _viewModel.mode == AgendaMode.dia
-        ? _DayAgenda(viewModel: _viewModel, onExcluir: _confirmarExclusao)
-        : _WeekAgenda(viewModel: _viewModel, onExcluir: _confirmarExclusao);
+        ? _DayAgenda(
+            viewModel: _viewModel,
+            onEditar: _abrirEdicao,
+            onExcluir: _confirmarExclusao,
+          )
+        : _WeekAgenda(
+            viewModel: _viewModel,
+            onEditar: _abrirEdicao,
+            onExcluir: _confirmarExclusao,
+          );
   }
 
   Future<void> _abrirLancamento() async {
@@ -125,25 +133,73 @@ class _LogTimePageState extends State<LogTimePage> {
 
     final dados = await showDialog<LogTimeFormData>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => LogTimeDialog(
+        demandaId: demandaId,
         demandaTitulo: demanda.titulo,
         dataInicial: _viewModel.dataSelecionada,
+        onSalvar: (dados) async {
+          final salvo = await _viewModel.registrarTempo(
+            demandaId: demandaId,
+            data: dados.data,
+            hora: dados.hora,
+            duracaoHoras: dados.duracaoHoras,
+          );
+          return salvo
+              ? null
+              : _viewModel.erro ?? 'Não foi possível lançar o tempo.';
+        },
       ),
     );
     if (dados == null || !mounted) return;
 
-    final salvo = await _viewModel.registrarTempo(
-      demandaId: demandaId,
-      data: dados.data,
-      hora: dados.hora,
-      duracaoHoras: dados.duracaoHoras,
-    );
-    if (!mounted) return;
+    final falhaAoAtualizar = _viewModel.erro != null;
     _mostrarFeedback(
-      salvo
-          ? 'Tempo lançado com sucesso.'
-          : _viewModel.erro ?? 'Não foi possível lançar o tempo.',
-      erro: !salvo,
+      falhaAoAtualizar
+          ? 'Tempo lançado, mas não foi possível atualizar a agenda. '
+                'Tente carregar a agenda novamente.'
+          : 'Tempo lançado com sucesso.',
+      erro: falhaAoAtualizar,
+    );
+  }
+
+  Future<void> _abrirEdicao(backend.RegistroTempo registro) async {
+    final id = registro.id;
+    if (id == null || _viewModel.enviando) return;
+
+    final inicioLocal = registro.inicioEm.toLocal();
+    final demanda = _viewModel.demandaPorId(registro.demandaId);
+    final dados = await showDialog<LogTimeFormData>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => LogTimeDialog.editar(
+        demandaId: registro.demandaId,
+        demandaTitulo: demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+        dataInicial: inicioLocal,
+        horaInicial: TimeOfDay.fromDateTime(inicioLocal),
+        duracaoInicialMinutos: registro.duracaoMinutos,
+        onSalvar: (dados) async {
+          final salvo = await _viewModel.editarRegistroTempo(
+            id: id,
+            data: dados.data,
+            hora: dados.hora,
+            duracaoHoras: dados.duracaoHoras,
+          );
+          return salvo
+              ? null
+              : _viewModel.erroEdicao ??
+                    'Não foi possível editar o lançamento.';
+        },
+      ),
+    );
+    if (dados == null || !mounted) return;
+    final falhaAoAtualizar = _viewModel.erro != null;
+    _mostrarFeedback(
+      falhaAoAtualizar
+          ? 'Lançamento salvo, mas não foi possível atualizar a agenda. '
+                'Tente carregar a agenda novamente.'
+          : 'Lançamento editado com sucesso.',
+      erro: falhaAoAtualizar,
     );
   }
 
@@ -323,14 +379,18 @@ class _Summary extends StatelessWidget {
   );
 }
 
-typedef _ExcluirRegistro =
-    Future<void> Function(backend.RegistroTempo registro);
+typedef _AcaoRegistro = Future<void> Function(backend.RegistroTempo registro);
 
 class _DayAgenda extends StatelessWidget {
-  const _DayAgenda({required this.viewModel, required this.onExcluir});
+  const _DayAgenda({
+    required this.viewModel,
+    required this.onEditar,
+    required this.onExcluir,
+  });
 
   final AgendaViewModel viewModel;
-  final _ExcluirRegistro onExcluir;
+  final _AcaoRegistro onEditar;
+  final _AcaoRegistro onExcluir;
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +403,7 @@ class _DayAgenda extends StatelessWidget {
         itemBuilder: (context, index) => _RegistroTile(
           registro: registros[index],
           demanda: viewModel.demandaPorId(registros[index].demandaId),
+          onEditar: onEditar,
           onExcluir: onExcluir,
         ),
       ),
@@ -351,10 +412,15 @@ class _DayAgenda extends StatelessWidget {
 }
 
 class _WeekAgenda extends StatelessWidget {
-  const _WeekAgenda({required this.viewModel, required this.onExcluir});
+  const _WeekAgenda({
+    required this.viewModel,
+    required this.onEditar,
+    required this.onExcluir,
+  });
 
   final AgendaViewModel viewModel;
-  final _ExcluirRegistro onExcluir;
+  final _AcaoRegistro onEditar;
+  final _AcaoRegistro onExcluir;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -403,6 +469,7 @@ class _WeekAgenda extends StatelessWidget {
                               demanda: viewModel.demandaPorId(
                                 registro.demandaId,
                               ),
+                              onEditar: onEditar,
                               onExcluir: onExcluir,
                             ),
                           ),
@@ -424,56 +491,73 @@ class _WeekRegistroCard extends StatelessWidget {
   const _WeekRegistroCard({
     required this.registro,
     required this.demanda,
+    required this.onEditar,
     required this.onExcluir,
   });
 
   final backend.RegistroTempo registro;
   final backend.Demanda? demanda;
-  final _ExcluirRegistro onExcluir;
+  final _AcaoRegistro onEditar;
+  final _AcaoRegistro onExcluir;
 
   @override
   Widget build(BuildContext context) {
     final inicio = registro.inicioEm.toLocal();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.fromLTRB(8, 8, 2, 8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: Theme.of(
           context,
         ).colorScheme.primaryContainer.withValues(alpha: .35),
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${twoDigits(inicio.hour)}:${twoDigits(inicio.minute)} · '
-                  '${formatDuration(Duration(minutes: registro.duracaoMinutos))}',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  demanda?.titulo ?? 'Demanda #${registro.demandaId}',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
+        child: Tooltip(
+          message: 'Editar lançamento',
+          child: InkWell(
+            key: ValueKey('editar-registro-${registro.id}'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: registro.id == null
+                ? null
+                : () => unawaited(onEditar(registro)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 2, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${twoDigits(inicio.hour)}:${twoDigits(inicio.minute)} · '
+                          '${formatDuration(Duration(minutes: registro.duracaoMinutos))}',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (registro.id != null)
+                    IconButton(
+                      constraints: const BoxConstraints.tightFor(
+                        width: 32,
+                        height: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Excluir lançamento',
+                      onPressed: () => unawaited(onExcluir(registro)),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                    ),
+                ],
+              ),
             ),
           ),
-          if (registro.id != null)
-            IconButton(
-              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-              padding: EdgeInsets.zero,
-              tooltip: 'Excluir lançamento',
-              onPressed: () => unawaited(onExcluir(registro)),
-              icon: const Icon(Icons.delete_outline, size: 18),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -483,57 +567,68 @@ class _RegistroTile extends StatelessWidget {
   const _RegistroTile({
     required this.registro,
     required this.demanda,
+    required this.onEditar,
     required this.onExcluir,
   });
 
   final backend.RegistroTempo registro;
   final backend.Demanda? demanda;
-  final _ExcluirRegistro onExcluir;
+  final _AcaoRegistro onEditar;
+  final _AcaoRegistro onExcluir;
 
   @override
   Widget build(BuildContext context) {
     final inicio = registro.inicioEm.toLocal();
-    return Row(
-      children: [
-        SizedBox(
-          width: 70,
-          child: Text(
-            '${twoDigits(inicio.hour)}:${twoDigits(inicio.minute)}',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-        Container(
-          width: 4,
-          height: 46,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                demanda?.titulo ?? 'Demanda #${registro.demandaId}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+    return Tooltip(
+      message: 'Editar lançamento',
+      child: InkWell(
+        key: ValueKey('editar-registro-${registro.id}'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: registro.id == null ? null : () => unawaited(onEditar(registro)),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 70,
+              child: Text(
+                '${twoDigits(inicio.hour)}:${twoDigits(inicio.minute)}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              Text(
-                'Tempo lançado: '
-                '${formatDuration(Duration(minutes: registro.duracaoMinutos))}',
+            ),
+            Container(
+              width: 4,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(4),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    demanda?.titulo ?? 'Demanda #${registro.demandaId}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    'Tempo lançado: '
+                    '${formatDuration(Duration(minutes: registro.duracaoMinutos))}',
+                  ),
+                ],
+              ),
+            ),
+            if (registro.id != null) const Icon(Icons.edit_outlined, size: 18),
+            if (registro.id != null)
+              IconButton(
+                key: ValueKey('excluir-registro-${registro.id}'),
+                tooltip: 'Excluir lançamento',
+                onPressed: () => unawaited(onExcluir(registro)),
+                icon: const Icon(Icons.delete_outline),
+              ),
+          ],
         ),
-        if (registro.id != null)
-          IconButton(
-            key: ValueKey('excluir-registro-${registro.id}'),
-            tooltip: 'Excluir lançamento',
-            onPressed: () => unawaited(onExcluir(registro)),
-            icon: const Icon(Icons.delete_outline),
-          ),
-      ],
+      ),
     );
   }
 }

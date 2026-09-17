@@ -11,10 +11,19 @@ abstract final class AppRoutes {
   static const sprint = '/sprint';
   static const logTime = '/log-time';
 
+  static String detalheDaDemanda(int demandaId) => Uri(
+    path: demandaDetalhe,
+    queryParameters: {'id': demandaId.toString()},
+  ).toString();
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final page = switch (settings.name) {
-      demandaDetalhe => switch (settings.arguments) {
-        final int demandaId => DemandaDetalhePage(demandaId: demandaId),
+    final uri = Uri.tryParse(settings.name ?? Navigator.defaultRouteName);
+    final demandaId = settings.arguments is int
+        ? settings.arguments as int
+        : int.tryParse(uri?.queryParameters['id'] ?? '');
+    final page = switch (uri?.path) {
+      demandaDetalhe => switch (demandaId) {
+        final int id when id > 0 => DemandaDetalhePage(demandaId: id),
         _ => const _ArgumentoDetalheInvalidoPage(),
       },
       sprint => const SprintPage(),

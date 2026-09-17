@@ -12,6 +12,7 @@ greeting:
   - hello:
 registroTempo:
   - registrarTempo:
+  - editarRegistroTempo:
   - listarRegistrosTempoPorPeriodo:
   - listarRegistrosTempoDaDemanda:
   - excluirRegistroTempo:

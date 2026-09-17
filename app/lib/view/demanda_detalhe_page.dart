@@ -1,12 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import '../app/nova_aba.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/tempo_comparacao.dart';
 
-class DemandaDetalhePage extends StatefulWidget {
+class DemandaDetalhePage extends StatelessWidget {
   const DemandaDetalhePage({
     super.key,
     required this.demandaId,
@@ -17,10 +19,102 @@ class DemandaDetalhePage extends StatefulWidget {
   final DemandaDetalheViewModel? viewModel;
 
   @override
-  State<DemandaDetalhePage> createState() => _DemandaDetalhePageState();
+  Widget build(BuildContext context) => PageScaffold(
+    title: 'Detalhes da demanda',
+    route: AppRoutes.demandaDetalhe,
+    body: _DemandaDetalheConteudo(
+      demandaId: demandaId,
+      viewModel: viewModel,
+      onVoltar: () {
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          navigator.pushReplacementNamed(AppRoutes.demandas);
+        }
+      },
+      onAbrirDemanda: (id) {
+        if (id == null) return;
+        Navigator.pushNamed(context, AppRoutes.demandaDetalhe, arguments: id);
+      },
+    ),
+  );
 }
 
-class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
+Future<void> mostrarDetalhesDemandaDialog(
+  BuildContext context,
+  int demandaId,
+) => showDialog<void>(
+  context: context,
+  builder: (dialogContext) => Dialog(
+    child: SizedBox(
+      width: 1040,
+      height: MediaQuery.sizeOf(dialogContext).height * .85,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+            child: Row(
+              children: [
+                const Expanded(child: Text('Detalhes da demanda')),
+                IconButton(
+                  tooltip: 'Fechar detalhes',
+                  onPressed: () => Navigator.pop(dialogContext),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          if (kIsWeb)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const ValueKey('abrir-demanda-nova-aba'),
+                  onPressed: () =>
+                      abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Abrir em nova aba'),
+                ),
+              ),
+            ),
+          Expanded(
+            child: _DemandaDetalheConteudo(
+              demandaId: demandaId,
+              onVoltar: () => Navigator.pop(dialogContext),
+              onAbrirDemanda: (id) {
+                if (id == null) return;
+                mostrarDetalhesDemandaDialog(dialogContext, id);
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+
+// A página e o popup compartilham carregamento e apresentação dos detalhes.
+class _DemandaDetalheConteudo extends StatefulWidget {
+  const _DemandaDetalheConteudo({
+    required this.demandaId,
+    required this.onVoltar,
+    required this.onAbrirDemanda,
+    this.viewModel,
+  });
+
+  final int demandaId;
+  final VoidCallback onVoltar;
+  final ValueChanged<int?> onAbrirDemanda;
+  final DemandaDetalheViewModel? viewModel;
+
+  @override
+  State<_DemandaDetalheConteudo> createState() =>
+      _DemandaDetalheConteudoState();
+}
+
+class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
   late final DemandaDetalheViewModel _viewModel;
   late final bool _possuiViewModel;
 
@@ -33,7 +127,7 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
   }
 
   @override
-  void didUpdateWidget(covariant DemandaDetalhePage oldWidget) {
+  void didUpdateWidget(covariant _DemandaDetalheConteudo oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.demandaId != oldWidget.demandaId) {
       _viewModel.carregar(widget.demandaId);
@@ -46,28 +140,10 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
     super.dispose();
   }
 
-  void _voltar() {
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
-    } else {
-      navigator.pushReplacementNamed(AppRoutes.demandas);
-    }
-  }
-
-  void _abrirDemanda(int? id) {
-    if (id == null) return;
-    Navigator.pushNamed(context, AppRoutes.demandaDetalhe, arguments: id);
-  }
-
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _viewModel,
-    builder: (context, _) => PageScaffold(
-      title: 'Detalhes da demanda',
-      route: AppRoutes.demandaDetalhe,
-      body: _conteudo(),
-    ),
+    builder: (context, _) => _conteudo(),
   );
 
   Widget _conteudo() {
@@ -95,9 +171,9 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
         titulo: 'Demanda não encontrada',
         mensagem: 'A demanda #${widget.demandaId} não foi encontrada.',
         acao: OutlinedButton.icon(
-          onPressed: _voltar,
+          onPressed: widget.onVoltar,
           icon: const Icon(Icons.arrow_back),
-          label: const Text('Voltar para demandas'),
+          label: const Text('Voltar'),
         ),
       );
     }
@@ -112,7 +188,7 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: _voltar,
+                  onPressed: widget.onVoltar,
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Voltar'),
                 ),
@@ -141,7 +217,7 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
                 child: _DemandaMae(
                   demanda: demanda,
                   demandaMae: _viewModel.demandaMae,
-                  onAbrir: _abrirDemanda,
+                  onAbrir: widget.onAbrirDemanda,
                 ),
               ),
               const SizedBox(height: 16),
@@ -149,7 +225,7 @@ class _DemandaDetalhePageState extends State<DemandaDetalhePage> {
                 titulo: 'Demandas filhas (${_viewModel.filhas.length})',
                 child: _DemandasFilhas(
                   demandas: _viewModel.filhas,
-                  onAbrir: _abrirDemanda,
+                  onAbrir: widget.onAbrirDemanda,
                 ),
               ),
               const SizedBox(height: 16),

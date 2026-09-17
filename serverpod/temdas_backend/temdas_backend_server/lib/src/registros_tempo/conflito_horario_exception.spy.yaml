@@ -1,0 +1,5 @@
+exception: ConflitoHorarioException
+fields:
+  mensagem: String
+  demandaConflitanteId: int
+  registroConflitanteId: int

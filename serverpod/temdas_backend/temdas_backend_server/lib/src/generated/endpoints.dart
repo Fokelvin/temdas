@@ -10,7 +10,6 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/demanda_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
@@ -23,6 +22,8 @@ import 'package:temdas_backend_server/src/generated/demandas/demanda_update_requ
     as _i7;
 import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i8;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+    as _i9;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -277,6 +278,26 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async =>
                   (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
                       .registrarTempo(
+                        session,
+                        params['request'],
+                      ),
+        ),
+        'editarRegistroTempo': _i1.MethodConnector(
+          name: 'editarRegistroTempo',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i9.RegistroTempoUpdateRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                      .editarRegistroTempo(
                         session,
                         params['request'],
                       ),

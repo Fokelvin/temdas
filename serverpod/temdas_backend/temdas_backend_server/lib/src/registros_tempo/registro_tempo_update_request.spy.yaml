@@ -1,0 +1,5 @@
+class: RegistroTempoUpdateRequest
+fields:
+  id: int
+  inicioEm: DateTime
+  duracaoMinutos: int

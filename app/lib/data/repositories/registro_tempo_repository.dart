@@ -22,6 +22,20 @@ class RegistroTempoRepository {
     return _client.registroTempo.registrarTempo(request);
   }
 
+  Future<backend.RegistroTempo> editarRegistroTempo({
+    required int id,
+    required DateTime inicioEm,
+    required int duracaoMinutos,
+  }) {
+    final request = backend.RegistroTempoUpdateRequest(
+      id: id,
+      inicioEm: inicioEm,
+      duracaoMinutos: duracaoMinutos,
+    );
+
+    return _client.registroTempo.editarRegistroTempo(request);
+  }
+
   Future<List<backend.RegistroTempo>> listarPorPeriodo({
     required DateTime inicio,
     required DateTime fim,

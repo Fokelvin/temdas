@@ -52,6 +52,8 @@ class FakeDemandaRepository implements DemandaRepository {
   int chamadasCriar = 0;
   int chamadasListar = 0;
   int chamadasBuscar = 0;
+  final idsBuscados = <int>[];
+  Completer<backend.Demanda?>? respostaBuscarPendente;
   int chamadasAtualizar = 0;
   int chamadasAlterarStatus = 0;
   int chamadasConcluirEmCascata = 0;
@@ -133,6 +135,8 @@ class FakeDemandaRepository implements DemandaRepository {
   @override
   Future<backend.Demanda?> buscarDemandaPorId(int id) async {
     chamadasBuscar++;
+    idsBuscados.add(id);
+    if (respostaBuscarPendente case final resposta?) return resposta.future;
     for (final demanda in _demandas) {
       if (demanda.id == id) return demanda;
     }
@@ -291,6 +295,16 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
   int? ultimaDemandaId;
   DateTime? ultimoInicioEm;
   int? ultimaDuracaoMinutos;
+  Completer<backend.RegistroTempo>? respostaRegistrarPendente;
+
+  @override
+  Future<backend.RegistroTempo> editarRegistroTempo({
+    required int id,
+    required DateTime inicioEm,
+    required int duracaoMinutos,
+  }) async {
+    throw UnsupportedError('Edição não configurada neste fake.');
+  }
 
   @override
   Future<backend.RegistroTempo> registrarTempo({
@@ -302,6 +316,7 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
     ultimaDemandaId = demandaId;
     ultimoInicioEm = inicioEm;
     ultimaDuracaoMinutos = duracaoMinutos;
+    if (respostaRegistrarPendente case final resposta?) return resposta.future;
 
     final maiorId = _registros.fold<int>(
       0,

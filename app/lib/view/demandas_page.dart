@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import '../theme/app_theme.dart';
 import '../view_model/demandas_view_model.dart';
+import 'demanda_detalhe_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/demanda_dialog.dart';
 import 'widgets/demanda_status_dialog.dart';
 import 'widgets/demanda_tree.dart';
+import 'widgets/densidade_demanda.dart';
 import 'widgets/log_time_dialog.dart';
 
 class DemandasPage extends StatefulWidget {
@@ -23,10 +26,12 @@ class _DemandasPageState extends State<DemandasPage> {
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _tempoController = TextEditingController(text: '1');
+  final _quadroHorizontalController = ScrollController();
   late final DemandasViewModel _viewModel;
   late final bool _possuiViewModel;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
+  DensidadeDemanda _densidade = DensidadeDemanda.normal;
   final Set<int> _demandasEmStatus = {};
 
   @override
@@ -42,6 +47,7 @@ class _DemandasPageState extends State<DemandasPage> {
     _tituloController.dispose();
     _descricaoController.dispose();
     _tempoController.dispose();
+    _quadroHorizontalController.dispose();
     if (_possuiViewModel) {
       _viewModel.dispose();
     }
@@ -368,41 +374,30 @@ class _DemandasPageState extends State<DemandasPage> {
 
     final dados = await showDialog<LogTimeFormData>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => LogTimeDialog(
+        demandaId: demanda.id,
         demandaTitulo: demanda.titulo,
         dataInicial: DateTime.now(),
+        onSalvar: (dados) async {
+          final registrado = await _viewModel.registrarTempo(
+            demanda: demanda,
+            inicioEm: dados.inicioEm,
+            duracaoMinutos: dados.duracaoMinutos,
+          );
+          return registrado
+              ? null
+              : _viewModel.erroDaDemanda(demanda.id) ??
+                    'Não foi possível registrar o tempo.';
+        },
       ),
     );
     if (dados == null || !mounted) return;
 
-    final duracaoMinutos = (dados.duracaoHoras * 60).round();
-    if (duracaoMinutos <= 0) {
-      _mostrarFeedback(
-        'Informe uma duração de pelo menos um minuto.',
-        erro: true,
-      );
-      return;
-    }
-
-    final inicioLocal = DateTime(
-      dados.data.year,
-      dados.data.month,
-      dados.data.day,
-      dados.hora.hour,
-      dados.hora.minute,
-    );
-    final registrado = await _viewModel.registrarTempo(
-      demanda: demanda,
-      inicioEm: inicioLocal.toUtc(),
-      duracaoMinutos: duracaoMinutos,
-    );
-
-    if (!mounted) return;
+    final erro = _viewModel.erroDaDemanda(demanda.id);
     _mostrarFeedback(
-      registrado
-          ? 'Tempo registrado com sucesso.'
-          : _viewModel.erro ?? 'Não foi possível registrar o tempo.',
-      erro: !registrado,
+      erro ?? 'Tempo registrado com sucesso.',
+      erro: erro != null,
     );
   }
 
@@ -412,7 +407,7 @@ class _DemandasPageState extends State<DemandasPage> {
       _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
       return;
     }
-    Navigator.pushNamed(context, AppRoutes.demandaDetalhe, arguments: id);
+    mostrarDetalhesDemandaDialog(context, id);
   }
 
   void _mostrarFeedback(String mensagem, {required bool erro}) {
@@ -435,7 +430,7 @@ class _DemandasPageState extends State<DemandasPage> {
         route: AppRoutes.demandas,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: TemdasTokens.contentGap),
             child: FilledButton.icon(
               key: const ValueKey('abrir-criar-demanda'),
               onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
@@ -448,7 +443,7 @@ class _DemandasPageState extends State<DemandasPage> {
         ],
         body: ListView(
           key: const ValueKey('demandas-pagina-scroll'),
-          padding: const EdgeInsets.all(24),
+          padding: _densidade.paddingPagina,
           children: [
             if (_viewModel.erro != null) ...[
               const SizedBox(height: 16),
@@ -457,22 +452,49 @@ class _DemandasPageState extends State<DemandasPage> {
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     _viewModel.erro!,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     'Demandas salvas',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(
+                      TemdasTokens.controlRadius,
+                    ),
+                  ),
+                  child: ToggleButtons(
+                    isSelected: [
+                      for (final densidade in DensidadeDemanda.values)
+                        densidade == _densidade,
+                    ],
+                    onPressed: (index) => setState(
+                      () => _densidade = DensidadeDemanda.values[index],
+                    ),
+                    children: const [
+                      Tooltip(
+                        message: 'Visualização normal',
+                        child: Icon(Icons.density_medium, size: 20),
+                      ),
+                      Tooltip(
+                        message: 'Visualização compacta',
+                        child: Icon(Icons.density_small, size: 20),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'Recarregar demandas',
                   onPressed:
@@ -485,7 +507,7 @@ class _DemandasPageState extends State<DemandasPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: _densidade.espacamentoEntreSecoes),
             if (_viewModel.carregando)
               const Center(
                 child: Padding(
@@ -497,6 +519,8 @@ class _DemandasPageState extends State<DemandasPage> {
               DemandaTree(
                 // Preserva o quadro quando o aviso de erro muda os índices da lista.
                 key: const ValueKey('demandas-arvore'),
+                horizontalController: _quadroHorizontalController,
+                densidade: _densidade,
                 demandas: _viewModel.demandas,
                 acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
                 demandasEmProcessamento: {
@@ -570,7 +594,9 @@ class _DemandasPageState extends State<DemandasPage> {
             const SizedBox(height: 16),
             Text(
               _viewModel.erro!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ],
         ],

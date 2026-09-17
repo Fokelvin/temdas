@@ -8,9 +8,9 @@
 // ignore_for_file: type_literal_in_constant_pattern
 // ignore_for_file: use_super_parameters
 // ignore_for_file: invalid_use_of_internal_member
-// ignore_for_file: no_leading_underscores_for_library_prefixes
 // ignore_for_file: no_leading_underscores_for_local_identifiers
 
+// ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_test/serverpod_test.dart' as _i1;
 import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
@@ -28,6 +28,8 @@ import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tem
     as _i9;
 import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i10;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+    as _i11;
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:temdas_backend_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -537,6 +539,37 @@ class _RegistroTempoEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'registroTempo',
           methodName: 'registrarTempo',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i9.RegistroTempo>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i9.RegistroTempo> editarRegistroTempo(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i11.RegistroTempoUpdateRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'registroTempo',
+            method: 'editarRegistroTempo',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'registroTempo',
+          methodName: 'editarRegistroTempo',
           parameters: _i1.testObjectToJson({'request': request}),
           serializationManager: _serializationManager,
         );

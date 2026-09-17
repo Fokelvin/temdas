@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
+import '../../theme/app_theme.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key, required this.currentRoute});
@@ -56,7 +57,7 @@ class _BrandLogo extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
         child: Image.asset(
           'assets/images/temdas_logo.png',
           width: 42,
@@ -99,7 +100,7 @@ class PageScaffold extends StatelessWidget {
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      title: Text(title),
       actions: actions,
     ),
     body: SafeArea(child: body),

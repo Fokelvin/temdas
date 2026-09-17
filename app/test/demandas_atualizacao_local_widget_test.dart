@@ -39,6 +39,9 @@ void main() {
 
         final scrollVertical = _scroll(tester, Axis.vertical);
         final scrollHorizontal = _scroll(tester, Axis.horizontal);
+        final barra = find.byKey(const ValueKey('demandas-quadro-scrollbar'));
+        final controller = tester.widget<Scrollbar>(barra).controller!;
+        expect(controller.position, same(scrollHorizontal.position));
         scrollVertical.position.jumpTo(120);
         scrollHorizontal.position.jumpTo(180);
         await tester.pumpAndSettle();
@@ -101,6 +104,8 @@ void main() {
         expect(_scroll(tester, Axis.horizontal), same(scrollHorizontal));
         expect(scrollVertical.position.pixels, 120);
         expect(scrollHorizontal.position.pixels, 180);
+        expect(tester.widget<Scrollbar>(barra).controller, same(controller));
+        expect(controller.offset, 180);
 
         // Uma segunda ação real da página pode prosseguir sem esperar A.
         final respostaB = Completer<backend.Demanda>();
@@ -157,6 +162,8 @@ void main() {
         expect(_scroll(tester, Axis.horizontal), same(scrollHorizontal));
         expect(scrollVertical.position.pixels, 120);
         expect(scrollHorizontal.position.pixels, 180);
+        expect(tester.widget<Scrollbar>(barra).controller, same(controller));
+        expect(controller.offset, 180);
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(tester.takeException(), isNull);
       },
