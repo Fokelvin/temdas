@@ -1,0 +1,5 @@
+class: DemandaMovimentacaoRequest
+fields:
+  demandaId: int
+  statusDestino: DemandaStatus
+  posicaoDestino: int

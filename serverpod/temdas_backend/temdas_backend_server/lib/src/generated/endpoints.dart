@@ -14,16 +14,21 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/demanda_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
 import '../registros_tempo/registro_tempo_endpoint.dart' as _i4;
+import '../relatorios/relatorio_endpoint.dart' as _i5;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
-    as _i5;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i6;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i7;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i8;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i9;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+    as _i10;
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+    as _i11;
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+    as _i12;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -47,6 +52,12 @@ class Endpoints extends _i1.EndpointDispatch {
           'registroTempo',
           null,
         ),
+      'relatorio': _i5.RelatorioEndpoint()
+        ..initialize(
+          server,
+          'relatorio',
+          null,
+        ),
     };
     connectors['demanda'] = _i1.EndpointConnector(
       name: 'demanda',
@@ -62,7 +73,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'status': _i1.ParameterDescription(
               name: 'status',
-              type: _i1.getType<_i5.DemandaStatus>(),
+              type: _i1.getType<_i6.DemandaStatus>(),
               nullable: false,
             ),
             'motivoCancelamento': _i1.ParameterDescription(
@@ -127,12 +138,31 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['motivoCancelamento'],
                   ),
         ),
+        'moverDemanda': _i1.MethodConnector(
+          name: 'moverDemanda',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i7.DemandaMovimentacaoRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['demanda'] as _i2.DemandaEndpoint).moverDemanda(
+                    session,
+                    params['request'],
+                  ),
+        ),
         'criarDemanda': _i1.MethodConnector(
           name: 'criarDemanda',
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i6.DemandaCreateRequest>(),
+              type: _i1.getType<_i8.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -180,7 +210,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i7.DemandaUpdateRequest>(),
+              type: _i1.getType<_i9.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -267,7 +297,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i8.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i10.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },
@@ -287,7 +317,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i9.RegistroTempoUpdateRequest>(),
+              type: _i1.getType<_i11.RegistroTempoUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -367,6 +397,31 @@ class Endpoints extends _i1.EndpointDispatch {
                         session,
                         params['id'],
                       ),
+        ),
+      },
+    );
+    connectors['relatorio'] = _i1.EndpointConnector(
+      name: 'relatorio',
+      endpoint: endpoints['relatorio']!,
+      methodConnectors: {
+        'gerarRelatorioDemandas': _i1.MethodConnector(
+          name: 'gerarRelatorioDemandas',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i12.RelatorioDemandaRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['relatorio'] as _i5.RelatorioEndpoint)
+                  .gerarRelatorioDemandas(
+                    session,
+                    params['request'],
+                  ),
         ),
       },
     );

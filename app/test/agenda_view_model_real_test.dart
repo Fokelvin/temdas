@@ -18,7 +18,7 @@ void main() {
       );
       addTearDown(viewModel.dispose);
 
-      await viewModel.carregarAgenda();
+      await viewModel.setMode(AgendaMode.dia);
 
       final periodo = registroRepository.periodosConsultados.single;
       expect(periodo.inicio, DateTime(2026, 9, 9).toUtc());
@@ -36,7 +36,7 @@ void main() {
       );
       addTearDown(viewModel.dispose);
 
-      await viewModel.setMode(AgendaMode.semana);
+      await viewModel.carregarAgenda();
 
       final periodo = registroRepository.periodosConsultados.single;
       expect(periodo.inicio, DateTime(2026, 9, 7).toUtc());
@@ -85,9 +85,6 @@ void main() {
       final registroRepository = FakeRegistroTempoRepository();
       final respostaDiaAtual = Completer<List<backend.RegistroTempo>>();
       final respostaDiaSeguinte = Completer<List<backend.RegistroTempo>>();
-      registroRepository.respostasPendentes
-        ..add(respostaDiaAtual)
-        ..add(respostaDiaSeguinte);
       final viewModel = AgendaViewModel(
         demandaRepository: FakeAgendaDemandaRepository(
           demandas: [demandaAgendaFixture()],
@@ -96,6 +93,13 @@ void main() {
         hoje: DateTime(2026, 9, 9),
       );
       addTearDown(viewModel.dispose);
+
+      // O modo padrão da agenda é semanal; este cenário valida a navegação
+      // entre dias explicitamente.
+      await viewModel.setMode(AgendaMode.dia);
+      registroRepository.respostasPendentes
+        ..add(respostaDiaAtual)
+        ..add(respostaDiaSeguinte);
 
       final carregamentoDiaAtual = viewModel.carregarAgenda();
       final carregamentoDiaSeguinte = viewModel.proximoPeriodo();

@@ -95,13 +95,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Demanda detalhada'), findsOneWidget);
+    expect(find.text('2 - Demanda detalhada'), findsOneWidget);
     expect(find.text('Estimado: 1 h'), findsOneWidget);
     expect(find.text('Executado: 1 h 30 min'), findsOneWidget);
     expect(find.text('Excedido em 30 min'), findsOneWidget);
-    expect(find.text('Demanda mãe'), findsNWidgets(2));
+    expect(find.text('Demanda mãe'), findsOneWidget);
     expect(find.text('Demandas filhas (1)'), findsOneWidget);
-    expect(find.text('Demanda filha'), findsOneWidget);
+    expect(find.text('3 - Demanda filha'), findsOneWidget);
     expect(find.text('Histórico de tempo (1)'), findsOneWidget);
   });
 }

@@ -1,0 +1,12 @@
+class: RelatorioDemandaItem
+fields:
+  demandaId: int
+  titulo: String
+  demandaMaeId: int?
+  nivelHierarquico: int
+  status: DemandaStatus
+  prioridade: Prioridade
+  tempoEstimadoMinutos: int
+  tempoRealizadoProprioMinutos: int
+  tempoRealizadoTotalArvoreMinutos: int
+  apenasContexto: bool

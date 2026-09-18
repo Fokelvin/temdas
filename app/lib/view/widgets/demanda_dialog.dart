@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../formatters/demanda_identificacao.dart';
+
 class DemandaEdicaoFormData {
   const DemandaEdicaoFormData({
     required this.titulo,
@@ -78,7 +80,7 @@ class _CriarDemandaFilhaDialogState extends State<CriarDemandaFilhaDialog> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Demanda mãe: ${widget.demandaMae.titulo}',
+                    'Demanda mãe: ${formatarIdentificacaoDemanda(widget.demandaMae)}',
                     key: const ValueKey('demanda-mae-fixa'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,

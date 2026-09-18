@@ -361,8 +361,13 @@ Future<_ViewModelObservada> _abrir(
   addTearDown(vm.dispose);
   await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('Alvo'));
-  await tester.tap(find.text('Alvo'));
+  if (find.textContaining('Alvo').evaluate().isEmpty &&
+      find.textContaining('Mãe').evaluate().isNotEmpty) {
+    await tester.tap(find.textContaining('Mãe'));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(find.textContaining('Alvo'));
+  await tester.tap(find.textContaining('Alvo'));
   await tester.pumpAndSettle();
   return vm;
 }

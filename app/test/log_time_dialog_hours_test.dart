@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/widgets/log_time_dialog.dart';
 
 void main() {
-  testWidgets('aceita vírgula e retorna duração em horas', (tester) async {
+  testWidgets('aceita intervalo e retorna duração em horas', (tester) async {
     LogTimeFormData? resultado;
 
     await tester.pumpWidget(
@@ -29,10 +29,7 @@ void main() {
 
     await tester.tap(find.text('Abrir'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('log-time-duracao')),
-      '1,25',
-    );
+    await _preencherIntervalo(tester, horaInicial: '09', horaFinal: '10:15');
     await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
     await tester.pumpAndSettle();
 
@@ -41,7 +38,7 @@ void main() {
     expect(resultado!.duracaoHoras, 1.25);
   });
 
-  testWidgets('recusa duração que não resulta em minutos inteiros', (
+  testWidgets('recusa intervalo que não termina depois do início', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -65,17 +62,41 @@ void main() {
 
     await tester.tap(find.text('Abrir'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('log-time-duracao')),
-      '0.01',
-    );
+    await _preencherIntervalo(tester, horaInicial: '10', horaFinal: '10:00');
     await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
     await tester.pump();
 
     expect(
-      find.text('Use uma duração positiva que resulte em minutos inteiros.'),
+      find.text(
+        'A hora final deve ser posterior à hora inicial na mesma data.',
+      ),
       findsOneWidget,
     );
     expect(find.byType(LogTimeDialog), findsOneWidget);
   });
+}
+
+Future<void> _preencherIntervalo(
+  WidgetTester tester, {
+  required String horaInicial,
+  required String horaFinal,
+}) async {
+  final inicio = horaInicial.split(':');
+  final fim = horaFinal.split(':');
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-hora')),
+    inicio.first,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-minuto')),
+    inicio.length > 1 ? inicio[1] : '00',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-fim-hora')),
+    fim.first,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-fim-minuto')),
+    fim.length > 1 ? fim[1] : '00',
+  );
 }

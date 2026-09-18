@@ -34,8 +34,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Implementar agenda real'), findsOneWidget);
-    expect(find.text('Tempo lançado: 30min'), findsOneWidget);
+    expect(find.text('1 - Implementar agenda real'), findsOneWidget);
+    expect(find.text('Tempo executado'), findsOneWidget);
     expect(find.text('30min'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('abrir-lancamento-global')));
@@ -44,10 +44,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirmar-demanda-log-time')));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const ValueKey('log-time-duracao')),
-      '1.25',
-    );
+    await _preencherIntervalo(tester);
     await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
     await tester.pumpAndSettle();
 
@@ -55,4 +52,20 @@ void main() {
     expect(find.text('Tempo lançado com sucesso.'), findsOneWidget);
     expect(find.text('1h45'), findsOneWidget);
   });
+}
+
+Future<void> _preencherIntervalo(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-hora')),
+    '09',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-minuto')),
+    '00',
+  );
+  await tester.enterText(find.byKey(const ValueKey('log-time-fim-hora')), '10');
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-fim-minuto')),
+    '15',
+  );
 }

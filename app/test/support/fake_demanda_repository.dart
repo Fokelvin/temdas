@@ -44,6 +44,18 @@ class AtualizacaoDemandaCapturada {
   final String? observacoes;
 }
 
+class MovimentacaoDemandaCapturada {
+  const MovimentacaoDemandaCapturada({
+    required this.demandaId,
+    required this.statusDestino,
+    required this.posicaoDestino,
+  });
+
+  final int demandaId;
+  final backend.DemandaStatus statusDestino;
+  final int posicaoDestino;
+}
+
 class FakeDemandaRepository implements DemandaRepository {
   FakeDemandaRepository({List<backend.Demanda>? demandas})
     : _demandas = List.of(demandas ?? const []);
@@ -56,12 +68,14 @@ class FakeDemandaRepository implements DemandaRepository {
   Completer<backend.Demanda?>? respostaBuscarPendente;
   int chamadasAtualizar = 0;
   int chamadasAlterarStatus = 0;
+  int chamadasMover = 0;
   int chamadasConcluirEmCascata = 0;
   int chamadasCancelarEmCascata = 0;
   int chamadasExcluir = 0;
   int chamadasExcluirArvore = 0;
   CriacaoDemandaCapturada? ultimaCriacao;
   AtualizacaoDemandaCapturada? ultimaAtualizacao;
+  MovimentacaoDemandaCapturada? ultimaMovimentacao;
   ({int id, backend.DemandaStatus status, String? motivoCancelamento})?
   ultimaAlteracaoStatus;
   int? ultimoIdConclusaoEmCascata;
@@ -74,6 +88,7 @@ class FakeDemandaRepository implements DemandaRepository {
   Completer<backend.Demanda>? respostaCriarPendente;
   Completer<backend.Demanda>? respostaAtualizarPendente;
   Completer<backend.Demanda>? respostaAlterarStatusPendente;
+  Completer<backend.Demanda>? respostaMoverPendente;
   Completer<backend.Demanda>? respostaConcluirEmCascataPendente;
   Completer<backend.Demanda>? respostaCancelarEmCascataPendente;
   Completer<bool>? respostaExcluirPendente;
@@ -204,6 +219,28 @@ class FakeDemandaRepository implements DemandaRepository {
       motivoCancelamento: motivoCancelamento,
     );
     return _responderTransicao(respostaAlterarStatusPendente);
+  }
+
+  @override
+  Future<backend.Demanda> moverDemanda({
+    required int demandaId,
+    required backend.DemandaStatus statusDestino,
+    required int posicaoDestino,
+  }) async {
+    chamadasMover++;
+    ultimaMovimentacao = MovimentacaoDemandaCapturada(
+      demandaId: demandaId,
+      statusDestino: statusDestino,
+      posicaoDestino: posicaoDestino,
+    );
+    final resposta = respostaMoverPendente;
+    if (resposta == null) {
+      throw StateError('Configure a resposta de movimentação no fake.');
+    }
+    final atualizada = await resposta.future;
+    final index = _demandas.indexWhere((item) => item.id == atualizada.id);
+    if (index != -1) _demandas[index] = atualizada;
+    return atualizada;
   }
 
   @override

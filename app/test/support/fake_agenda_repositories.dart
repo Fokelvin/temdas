@@ -24,6 +24,18 @@ class RegistroCriadoCapturado {
   final int duracaoMinutos;
 }
 
+class RegistroEditadoCapturado {
+  const RegistroEditadoCapturado({
+    required this.id,
+    required this.inicioEm,
+    required this.duracaoMinutos,
+  });
+
+  final int id;
+  final DateTime inicioEm;
+  final int duracaoMinutos;
+}
+
 class FakeAgendaDemandaRepository extends DemandaRepository {
   FakeAgendaDemandaRepository({List<backend.Demanda>? demandas})
     : _demandas = List.of(demandas ?? const []),
@@ -51,9 +63,12 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
       Queue();
   final List<PeriodoConsultado> periodosConsultados = [];
   final List<RegistroCriadoCapturado> registrosCriados = [];
+  final List<RegistroEditadoCapturado> registrosEditados = [];
   final List<int> idsExcluidos = [];
   Object? erroAoListar;
   Object? erroAoRegistrar;
+  Object? erroAoEditar;
+  Completer<backend.RegistroTempo>? respostaEditarPendente;
   bool resultadoExclusao = true;
   int _proximoId = 100;
 
@@ -108,6 +123,33 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
   @override
   Future<List<backend.RegistroTempo>> listarDaDemanda(int demandaId) async =>
       _registros.where((registro) => registro.demandaId == demandaId).toList();
+
+  @override
+  Future<backend.RegistroTempo> editarRegistroTempo({
+    required int id,
+    required DateTime inicioEm,
+    required int duracaoMinutos,
+  }) async {
+    registrosEditados.add(
+      RegistroEditadoCapturado(
+        id: id,
+        inicioEm: inicioEm,
+        duracaoMinutos: duracaoMinutos,
+      ),
+    );
+    if (erroAoEditar case final erro?) throw erro;
+
+    final resposta = respostaEditarPendente;
+    final atualizada = resposta == null
+        ? _registros
+              .firstWhere((registro) => registro.id == id)
+              .copyWith(inicioEm: inicioEm, duracaoMinutos: duracaoMinutos)
+        : await resposta.future;
+    final index = _registros.indexWhere((registro) => registro.id == id);
+    if (index == -1) throw StateError('Registro não encontrado.');
+    _registros[index] = atualizada;
+    return atualizada;
+  }
 
   @override
   Future<bool> excluirRegistroTempo(int id) async {

@@ -2,6 +2,7 @@ demanda:
   - alterarStatusDemanda:
   - concluirDemandaEmCascata:
   - cancelarDemandaEmCascata:
+  - moverDemanda:
   - criarDemanda:
   - listarDemandas:
   - buscarDemandaPorId:
@@ -16,3 +17,5 @@ registroTempo:
   - listarRegistrosTempoPorPeriodo:
   - listarRegistrosTempoDaDemanda:
   - excluirRegistroTempo:
+relatorio:
+  - gerarRelatorioDemandas:

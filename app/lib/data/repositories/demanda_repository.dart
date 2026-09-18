@@ -66,6 +66,18 @@ class DemandaRepository {
     motivoCancelamento: motivoCancelamento,
   );
 
+  Future<backend.Demanda> moverDemanda({
+    required int demandaId,
+    required backend.DemandaStatus statusDestino,
+    required int posicaoDestino,
+  }) => _client.demanda.moverDemanda(
+    backend.DemandaMovimentacaoRequest(
+      demandaId: demandaId,
+      statusDestino: statusDestino,
+      posicaoDestino: posicaoDestino,
+    ),
+  );
+
   Future<backend.Demanda> concluirDemanda(int id) =>
       alterarStatusDemanda(id: id, status: backend.DemandaStatus.concluida);
 

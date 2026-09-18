@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:temdas/app/app_routes.dart';
+import 'package:temdas/theme/app_theme.dart';
 import 'package:temdas/view/demandas_page.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
@@ -61,7 +61,7 @@ void main() {
         expect(repository.chamadasCriar, 1);
         expect(repository.ultimaCriacao?.tempoEstimadoMinutos, 90);
         expect(viewModel.demandas, [original]);
-        expect(find.text('Demanda inicial'), findsOneWidget);
+        expect(find.text('1 - Demanda inicial'), findsOneWidget);
         expect(
           tester
               .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close))
@@ -105,7 +105,7 @@ void main() {
         } else {
           expect(find.byType(AlertDialog), findsNothing);
           expect(viewModel.demandas, hasLength(2));
-          expect(find.text('Nova demanda'), findsOneWidget);
+          expect(find.text('2 - Nova demanda'), findsOneWidget);
           expect(find.text('Demanda criada com sucesso.'), findsOneWidget);
         }
       },
@@ -252,7 +252,7 @@ void main() {
       repository.ultimaAtualizacao?.status,
       backend.DemandaStatus.concluida,
     );
-    expect(find.text('Demanda editada pela tela'), findsOneWidget);
+    expect(find.text('1 - Demanda editada pela tela'), findsOneWidget);
     expect(find.text('Demanda atualizada com sucesso.'), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('demanda-tree-node-1-0'))).dy,
@@ -288,7 +288,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Criar demanda filha'), findsOneWidget);
-    expect(find.text('Demanda mãe: Demanda mãe'), findsOneWidget);
+    expect(find.text('Demanda mãe: 1 - Demanda mãe'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('criar-filha-titulo')),
       'Primeira filha',
@@ -314,7 +314,7 @@ void main() {
     expect(repository.chamadasListar, 1);
     expect(find.byKey(const ValueKey('demanda-tree-node-2-1')), findsOneWidget);
     expect(repository.ultimaCriacao?.tempoEstimadoMinutos, 30);
-    expect(find.text('Primeira filha'), findsOneWidget);
+    expect(find.text('2 - Primeira filha'), findsOneWidget);
     expect(find.text('Demanda filha criada com sucesso.'), findsOneWidget);
   });
 
@@ -378,7 +378,7 @@ void main() {
     await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
     expect(repository.chamadasExcluirArvore, 0);
-    expect(find.text('Mãe'), findsOneWidget);
+    expect(find.text('1 - Mãe'), findsOneWidget);
 
     await _abrirMenuAcoes(tester, 1);
     await tester.tap(find.byKey(const ValueKey('excluir-demanda-1')));
@@ -433,6 +433,9 @@ void main() {
       final viewModel = DemandasViewModel(repository: repository);
       addTearDown(viewModel.dispose);
       await _abrirPagina(tester, viewModel);
+      await _expandirDemanda(tester, 'Mãe concluída');
+      await _expandirDemanda(tester, 'Filha pausada');
+      await _expandirDemanda(tester, 'Neta aberta');
 
       final grupos = {
         backend.DemandaStatus.aberta: (raizes: 2, ids: [3, 5]),
@@ -485,8 +488,6 @@ void main() {
         findsOneWidget,
       );
       expect(viewModel.demandas, demandas);
-      await _expandirDemanda(tester, 'Filha pausada');
-      await _expandirDemanda(tester, 'Neta aberta');
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('demanda-card-2')),
@@ -662,7 +663,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(platform: TargetPlatform.linux),
+          theme: AppTheme.light.copyWith(platform: TargetPlatform.linux),
           home: DemandasPage(viewModel: viewModel),
         ),
       );
@@ -765,7 +766,7 @@ void main() {
       expect(topoBarra(), greaterThan(900));
       final topoAntes = topoBarra();
       final alturaAntes = tester.getSize(colunaAlta).height;
-      await tester.tap(find.text('Demanda 1'));
+      await tester.tap(find.text('1 - Demanda 1'));
       await tester.pumpAndSettle();
       final crescimento = tester.getSize(colunaAlta).height - alturaAntes;
       expect(crescimento, greaterThan(0));
@@ -850,14 +851,18 @@ void main() {
     addTearDown(viewModel.dispose);
     await _abrirPagina(tester, viewModel);
 
-    for (final titulo in ['Mãe', 'Filha']) {
-      final id = titulo == 'Mãe' ? 1 : 2;
-      expect(find.text('ID: $id'), findsNothing);
-      await _expandirDemanda(tester, titulo);
-      expect(find.text('ID: $id'), findsOneWidget);
-      await _expandirDemanda(tester, titulo);
-      expect(find.text('ID: $id'), findsNothing);
-    }
+    expect(find.text('ID: 1'), findsNothing);
+    await _expandirDemanda(tester, 'Mãe');
+    expect(find.text('ID: 1'), findsOneWidget);
+    await _expandirDemanda(tester, 'Mãe');
+    expect(find.text('ID: 1'), findsNothing);
+
+    await _expandirDemanda(tester, 'Mãe');
+    expect(find.text('ID: 2'), findsNothing);
+    await _expandirDemanda(tester, 'Filha');
+    expect(find.text('ID: 2'), findsOneWidget);
+    await _expandirDemanda(tester, 'Filha');
+    expect(find.text('ID: 2'), findsNothing);
     final mae = find.byKey(const ValueKey('demanda-card-1'));
     final filha = find.byKey(const ValueKey('demanda-card-2'));
     final coluna = find.byKey(const ValueKey('demanda-coluna-aberta'));
@@ -1001,14 +1006,35 @@ void main() {
 
     await _abrirPagina(tester, viewModel);
 
+    await _expandirDemanda(tester, 'Raiz');
+    await _expandirDemanda(tester, 'Filha');
+
     expect(find.byKey(const ValueKey('demanda-tree-node-1-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('demanda-tree-node-2-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('demanda-tree-node-3-2')), findsOneWidget);
 
     await _expandirDemanda(tester, 'Neta');
-    expect(find.text('Estimado: 1 h'), findsOneWidget);
-    expect(find.text('Executado: 1 h 30 min'), findsOneWidget);
-    expect(find.text('Excedido em 30 min'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-3')),
+        matching: find.text('Estimado: 1 h'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-3')),
+        matching: find.text('Executado: 1 h 30 min'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-3')),
+        matching: find.text('Excedido em 30 min'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('lança duração em horas e atualiza o total da demanda', (
@@ -1040,10 +1066,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.enterText(
-      find.byKey(const ValueKey('log-time-duracao')),
-      '1,25',
-    );
+    await _preencherIntervaloLogTime(tester);
     await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
     await tester.pumpAndSettle();
 
@@ -1062,22 +1085,8 @@ void main() {
     );
     final viewModel = DemandasViewModel(repository: repository);
     addTearDown(viewModel.dispose);
-    Object? argumentosRecebidos;
-
     await tester.pumpWidget(
-      MaterialApp(
-        home: DemandasPage(viewModel: viewModel),
-        onGenerateRoute: (settings) {
-          if (settings.name == AppRoutes.demandaDetalhe) {
-            argumentosRecebidos = settings.arguments;
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const Scaffold(body: Text('Detalhe aberto')),
-            );
-          }
-          return null;
-        },
-      ),
+      MaterialApp(home: DemandasPage(viewModel: viewModel)),
     );
     await tester.pumpAndSettle();
     await _expandirDemanda(tester, 'Demanda inicial');
@@ -1086,8 +1095,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('mostrar-tudo-42')));
     await tester.pumpAndSettle();
 
-    expect(argumentosRecebidos, 42);
-    expect(find.text('Detalhe aberto'), findsOneWidget);
+    expect(find.text('Detalhes da demanda'), findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
   });
 }
 
@@ -1179,9 +1188,25 @@ Future<void> _abrirPagina(
 }
 
 Future<void> _expandirDemanda(WidgetTester tester, String titulo) async {
-  await tester.ensureVisible(find.text(titulo));
-  await tester.tap(find.text(titulo));
+  await tester.ensureVisible(find.textContaining(titulo));
+  await tester.tap(find.textContaining(titulo));
   await tester.pumpAndSettle();
+}
+
+Future<void> _preencherIntervaloLogTime(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-hora')),
+    '09',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-minuto')),
+    '00',
+  );
+  await tester.enterText(find.byKey(const ValueKey('log-time-fim-hora')), '10');
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-fim-minuto')),
+    '15',
+  );
 }
 
 Future<void> _abrirMenuAcoes(WidgetTester tester, int id) async {

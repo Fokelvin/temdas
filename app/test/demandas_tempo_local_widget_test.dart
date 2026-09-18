@@ -49,9 +49,13 @@ void main() {
         addTearDown(vm.dispose);
         await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
         await tester.pumpAndSettle();
-        for (final titulo in ['Independente', 'Mãe', 'Filha', 'Neta']) {
-          await tester.ensureVisible(find.text(titulo));
-          await tester.tap(find.text(titulo));
+        for (final demanda in [
+          demandas[3],
+          demandas[0],
+          demandas[1],
+          demandas[2],
+        ]) {
+          await _expandirDemanda(tester, demanda.id!);
           await tester.pumpAndSettle();
         }
 
@@ -115,10 +119,7 @@ void main() {
         repository.respostaBuscarPendente = respostaBusca;
         tester.widget<DemandaCard>(_card(idAlvo)).onLancarTempo!();
         await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const ValueKey('log-time-duracao')),
-          '1,5',
-        );
+        await _preencherIntervalo(tester);
         await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
@@ -130,7 +131,9 @@ void main() {
           expect(card.emProcessamento, id == idAlvo);
           expect(card.acoesHabilitadas, id != idAlvo);
         }
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        // O refresh da demanda também exibe o indicador global; o card mantém
+        // seu indicador local para bloquear somente as ações daquela demanda.
+        expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
         expect(
           find.descendant(
             of: _card(idAlvo),
@@ -196,13 +199,46 @@ void main() {
   }
 }
 
+Future<void> _preencherIntervalo(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-hora')),
+    '09',
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-inicio-minuto')),
+    '00',
+  );
+  await tester.enterText(find.byKey(const ValueKey('log-time-fim-hora')), '10');
+  await tester.enterText(
+    find.byKey(const ValueKey('log-time-fim-minuto')),
+    '30',
+  );
+}
+
 Finder _card(int id) => find.byKey(PageStorageKey('demanda-expansao-$id'));
+
+Future<void> _expandirDemanda(WidgetTester tester, int id) async {
+  final card = _card(id);
+  final tile = find.descendant(of: card, matching: find.byType(ExpansionTile));
+  await tester.ensureVisible(tile);
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
+}
 
 ScrollableState _scroll(WidgetTester tester, Axis axis) =>
     tester.state<ScrollableState>(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Scrollable &&
-            axisDirectionToAxis(widget.axisDirection) == axis,
-      ),
+      find
+          .descendant(
+            of: find.byKey(
+              axis == Axis.vertical
+                  ? const ValueKey('demandas-pagina-scroll')
+                  : const ValueKey('demandas-quadro-status'),
+            ),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  axisDirectionToAxis(widget.axisDirection) == axis,
+            ),
+          )
+          .first,
     );

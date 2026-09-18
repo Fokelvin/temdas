@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../view/demanda_detalhe_page.dart';
 import '../view/demandas_page.dart';
 import '../view/log_time_page.dart';
+import '../view/relatorios_page.dart';
 import '../view/sprint_page.dart';
 
 abstract final class AppRoutes {
@@ -10,6 +11,7 @@ abstract final class AppRoutes {
   static const demandaDetalhe = '/demandas/detalhe';
   static const sprint = '/sprint';
   static const logTime = '/log-time';
+  static const relatorios = '/relatorios';
 
   static String detalheDaDemanda(int demandaId) => Uri(
     path: demandaDetalhe,
@@ -28,6 +30,7 @@ abstract final class AppRoutes {
       },
       sprint => const SprintPage(),
       logTime => const LogTimePage(),
+      relatorios => const RelatoriosPage(),
       _ => const DemandasPage(),
     };
     return MaterialPageRoute(builder: (_) => page, settings: settings);

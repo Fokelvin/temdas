@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:temdas/view/formatters/demanda_identificacao.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view/widgets/tempo_comparacao.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -48,7 +49,10 @@ void main() {
 
         final card = find.byKey(const ValueKey('demanda-card-2'));
         void verificarRecolhido() {
-          expect(find.text(demanda.titulo), findsOneWidget);
+          expect(
+            find.text(formatarIdentificacaoDemanda(demanda)),
+            findsOneWidget,
+          );
           expect(
             find.text('Média · Est. 10 h · Real. ${filha ? '1,5' : '0'} h'),
             findsOneWidget,
@@ -75,7 +79,7 @@ void main() {
         verificarRecolhido();
         final alturaRecolhida = tester.getSize(card).height;
         expect(alturaRecolhida, lessThan(120));
-        await _tocar(tester, find.text(demanda.titulo));
+        await _tocar(tester, find.text(formatarIdentificacaoDemanda(demanda)));
         expect(tester.getSize(card).height, greaterThan(alturaRecolhida));
         expect(find.byKey(const ValueKey('status-demanda-2')), findsOneWidget);
         expect(
@@ -142,7 +146,7 @@ void main() {
           'mostrar',
           'excluir',
         ]);
-        await _tocar(tester, find.text(demanda.titulo));
+        await _tocar(tester, find.text(formatarIdentificacaoDemanda(demanda)));
         verificarRecolhido();
         expect(tester.getSize(card).height, alturaRecolhida);
         expect(tester.takeException(), isNull);

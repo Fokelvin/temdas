@@ -3,6 +3,7 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../theme/app_theme.dart';
 import '../../theme/temdas_semantic_colors.dart';
+import '../formatters/demanda_identificacao.dart';
 import 'densidade_demanda.dart';
 import 'tempo_comparacao.dart';
 
@@ -15,12 +16,15 @@ class DemandaCard extends StatelessWidget {
     required this.onExcluir,
     required this.onAlterarStatus,
     required this.onConcluir,
+    this.onReabrir,
     this.acoesHabilitadas = true,
     this.emProcessamento = false,
     this.onCriarFilha,
     this.onLancarTempo,
     this.onMostrarTudo,
     this.expansionController,
+    this.dragHandle,
+    this.destacado = false,
     this.densidade = DensidadeDemanda.normal,
   });
 
@@ -30,24 +34,36 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback onExcluir;
   final ValueChanged<backend.DemandaStatus> onAlterarStatus;
   final VoidCallback onConcluir;
+  final VoidCallback? onReabrir;
   final bool acoesHabilitadas;
   final bool emProcessamento;
   final VoidCallback? onCriarFilha;
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
   final ExpansibleController? expansionController;
+  final Widget? dragHandle;
+  final bool destacado;
   final DensidadeDemanda densidade;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SelectionArea(
       child: Card(
         key: ValueKey('demanda-card-${demanda.id}'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: destacado ? colors.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
         child: ListTileTheme.merge(
           minVerticalPadding: densidade.paddingVerticalCabecalho,
           horizontalTitleGap: densidade.espacamentoChevron,
           child: ExpansionTile(
             controller: expansionController,
+            leading: dragHandle,
             tilePadding: densidade.paddingCabecalho,
             minTileHeight: densidade.alturaMinimaCabecalho,
             title: densidade.isCompacta
@@ -121,7 +137,7 @@ class DemandaCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(demanda.titulo, style: text.titleSmall),
+        Text(formatarIdentificacaoDemanda(demanda), style: text.titleSmall),
         const SizedBox(height: 6),
         Text.rich(
           TextSpan(
@@ -173,7 +189,7 @@ class DemandaCard extends StatelessWidget {
                 builder: (context, constraints) {
                   final painter = TextPainter(
                     text: TextSpan(
-                      text: demanda.titulo,
+                      text: formatarIdentificacaoDemanda(demanda),
                       style: text.titleSmall,
                     ),
                     maxLines: 1,
@@ -183,9 +199,11 @@ class DemandaCard extends StatelessWidget {
                   final truncado = painter.didExceedMaxLines;
                   painter.dispose();
                   return Tooltip(
-                    message: truncado ? demanda.titulo : '',
+                    message: truncado
+                        ? formatarIdentificacaoDemanda(demanda)
+                        : '',
                     child: Text(
-                      demanda.titulo,
+                      formatarIdentificacaoDemanda(demanda),
                       style: text.titleSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -327,6 +345,8 @@ class DemandaCard extends StatelessWidget {
             onMostrarTudo?.call();
           case _AcaoDemanda.excluir:
             onExcluir();
+          case _AcaoDemanda.reabrir:
+            onReabrir?.call();
         }
       },
       itemBuilder: (_) => [
@@ -349,6 +369,18 @@ class DemandaCard extends StatelessWidget {
               title: Text('Mostrar tudo'),
             ),
           ),
+        if (onReabrir != null && _statusTerminal)
+          PopupMenuItem(
+            key: ValueKey(
+              '${_acaoTerminalLabel.toLowerCase()}-demanda-${demanda.id}',
+            ),
+            value: _AcaoDemanda.reabrir,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(_iconeAcaoTerminal),
+              title: Text(_acaoTerminalLabel),
+            ),
+          ),
         const PopupMenuDivider(),
         PopupMenuItem(
           key: ValueKey('excluir-demanda-${demanda.id}'),
@@ -367,6 +399,20 @@ class DemandaCard extends StatelessWidget {
       ],
     );
   }
+
+  bool get _statusTerminal =>
+      demanda.status == backend.DemandaStatus.concluida ||
+      demanda.status == backend.DemandaStatus.cancelada;
+
+  String get _acaoTerminalLabel =>
+      demanda.status == backend.DemandaStatus.concluida
+      ? 'Reabrir'
+      : 'Reativar';
+
+  IconData get _iconeAcaoTerminal =>
+      demanda.status == backend.DemandaStatus.concluida
+      ? Icons.lock_open_outlined
+      : Icons.play_arrow_outlined;
 
   String _formatarHoras(int minutos) {
     final horas = minutos / 60;
@@ -396,7 +442,7 @@ class DemandaCard extends StatelessWidget {
   }
 }
 
-enum _AcaoDemanda { editar, mostrarTudo, excluir }
+enum _AcaoDemanda { editar, mostrarTudo, reabrir, excluir }
 
 class _Campo extends StatelessWidget {
   const _Campo({

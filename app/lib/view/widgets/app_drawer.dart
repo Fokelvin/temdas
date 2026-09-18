@@ -15,6 +15,7 @@ class AppDrawer extends StatelessWidget {
         AppRoutes.demandas,
         AppRoutes.sprint,
         AppRoutes.logTime,
+        AppRoutes.relatorios,
       ][index];
       Navigator.pop(context);
       if (route != currentRoute) Navigator.pushReplacementNamed(context, route);
@@ -39,12 +40,18 @@ class AppDrawer extends StatelessWidget {
         selectedIcon: Icon(Icons.calendar_month),
         label: Text('Log time'),
       ),
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.assessment_outlined),
+        selectedIcon: Icon(Icons.assessment),
+        label: Text('Relatórios'),
+      ),
     ],
   );
 
   int _indexFor(String route) => switch (route) {
     AppRoutes.sprint => 1,
     AppRoutes.logTime => 2,
+    AppRoutes.relatorios => 3,
     AppRoutes.demandas || AppRoutes.demandaDetalhe => 0,
     _ => 0,
   };

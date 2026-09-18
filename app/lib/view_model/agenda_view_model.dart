@@ -28,7 +28,7 @@ class AgendaViewModel extends ChangeNotifier {
   final DateTime Function() _relogio;
 
   DateTime _dataSelecionada;
-  AgendaMode _mode = AgendaMode.dia;
+  AgendaMode _mode = AgendaMode.semana;
   bool _carregando = false;
   bool _enviando = false;
   bool _disposed = false;

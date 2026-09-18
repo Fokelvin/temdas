@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/demandas_page.dart';
+import 'package:temdas/view/formatters/demanda_identificacao.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view/widgets/demanda_tree.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
@@ -31,9 +32,10 @@ void main() {
         addTearDown(vm.dispose);
         await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
         await tester.pumpAndSettle();
-        for (final titulo in ['Mãe', 'Filha', 'Independente']) {
-          await tester.ensureVisible(find.text(titulo));
-          await tester.tap(find.text(titulo));
+        for (final demanda in [mae, filha, independente]) {
+          final identificacao = formatarIdentificacaoDemanda(demanda);
+          await tester.ensureVisible(find.text(identificacao));
+          await tester.tap(find.text(identificacao));
           await tester.pumpAndSettle();
         }
 
@@ -181,7 +183,7 @@ void main() {
       addTearDown(vm.dispose);
       await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Alvo'));
+      await tester.tap(find.text(formatarIdentificacaoDemanda(alvo)));
       await tester.pumpAndSettle();
       final quadro = tester.element(find.byType(DemandaTree));
       final horizontal = _scroll(tester, Axis.horizontal);
@@ -236,7 +238,7 @@ void main() {
       addTearDown(vm.dispose);
       await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Alvo'));
+      await tester.tap(find.text(formatarIdentificacaoDemanda(alvo)));
       await tester.pumpAndSettle();
       final quadro = tester.element(find.byType(DemandaTree));
 
@@ -261,7 +263,7 @@ void main() {
       expect(repository.chamadasListar, 1);
       expect(vm.demandas.last, same(outra));
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
-      expect(find.text('Editada'), findsOneWidget);
+      expect(find.text('1 - Editada'), findsOneWidget);
       expect(
         find.descendant(of: _card(1), matching: find.text('ID: 1')),
         findsOneWidget,
@@ -274,9 +276,18 @@ Finder _card(int id) => find.byKey(PageStorageKey('demanda-expansao-$id'));
 
 ScrollableState _scroll(WidgetTester tester, Axis axis) =>
     tester.state<ScrollableState>(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Scrollable &&
-            axisDirectionToAxis(widget.axisDirection) == axis,
-      ),
+      find
+          .descendant(
+            of: find.byKey(
+              axis == Axis.vertical
+                  ? const ValueKey('demandas-pagina-scroll')
+                  : const ValueKey('demandas-quadro-status'),
+            ),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  axisDirectionToAxis(widget.axisDirection) == axis,
+            ),
+          )
+          .first,
     );

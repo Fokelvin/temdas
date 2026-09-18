@@ -1,0 +1,6 @@
+enum: MovimentacaoDemandaErroCodigo
+serialized: byName
+values:
+  - demandaNaoEncontrada
+  - demandaFilha
+  - statusTerminal
