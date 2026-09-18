@@ -24,8 +24,13 @@ class DemandaTree extends StatefulWidget {
     required this.onMostrarTudo,
     required this.onAlterarStatus,
     required this.onConcluir,
+    this.onReabrir,
     this.onMover,
     this.demandasEmProcessamento = const {},
+    this.autoExpandIds = const {},
+    this.focoDemandaId,
+    this.focoVersao = 0,
+    this.dragHabilitado = true,
     this.densidade = DensidadeDemanda.normal,
   });
 
@@ -39,9 +44,14 @@ class DemandaTree extends StatefulWidget {
   final ValueChanged<backend.Demanda> onMostrarTudo;
   final void Function(backend.Demanda, backend.DemandaStatus) onAlterarStatus;
   final ValueChanged<backend.Demanda> onConcluir;
+  final ValueChanged<backend.Demanda>? onReabrir;
   final Future<bool> Function(backend.Demanda, backend.DemandaStatus, int)?
   onMover;
   final Set<int> demandasEmProcessamento;
+  final Set<int> autoExpandIds;
+  final int? focoDemandaId;
+  final int focoVersao;
+  final bool dragHabilitado;
   final DensidadeDemanda densidade;
 
   @override
@@ -51,6 +61,9 @@ class DemandaTree extends StatefulWidget {
 class _DemandaTreeState extends State<DemandaTree> {
   // O mesmo controller governa os detalhes do card e a visibilidade das filhas.
   final _expansoes = <String, ExpansibleController>{};
+  final _chavesNos = <String, GlobalKey>{};
+  Timer? _destaqueTimer;
+  int? _demandaDestacadaId;
   bool _atualizacaoAgendada = false;
   bool _dragAtivo = false;
   ({backend.DemandaStatus status, int posicao})? _dropHover;
@@ -65,6 +78,74 @@ class _DemandaTreeState extends State<DemandaTree> {
         () => ExpansibleController()..addListener(_atualizarVisibilidade),
       );
 
+  GlobalKey _chaveDoNo(backend.Demanda demanda) {
+    final chave = demanda.id?.toString() ?? demanda.titulo;
+    return _chavesNos.putIfAbsent(
+      chave,
+      () => GlobalKey(debugLabel: 'demanda-foco-$chave'),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _agendarFoco());
+  }
+
+  @override
+  void didUpdateWidget(covariant DemandaTree oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focoVersao != widget.focoVersao ||
+        oldWidget.focoDemandaId != widget.focoDemandaId) {
+      _agendarFoco();
+    }
+  }
+
+  void _agendarFoco() {
+    _destaqueTimer?.cancel();
+    _destaqueTimer = null;
+    _demandaDestacadaId = null;
+    final demandaId = widget.focoDemandaId;
+    final versao = widget.focoVersao;
+    if (demandaId == null) {
+      if (mounted) setState(() {});
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted ||
+          widget.focoDemandaId != demandaId ||
+          widget.focoVersao != versao) {
+        return;
+      }
+      final alvo = _chaveDoNoPorId(demandaId)?.currentContext;
+      if (alvo == null) return;
+      await Scrollable.ensureVisible(
+        alvo,
+        alignment: .45,
+        duration: Duration.zero,
+      );
+      if (!mounted ||
+          widget.focoDemandaId != demandaId ||
+          widget.focoVersao != versao) {
+        return;
+      }
+      setState(() => _demandaDestacadaId = demandaId);
+      _destaqueTimer = Timer(const Duration(milliseconds: 1800), () {
+        if (mounted && _demandaDestacadaId == demandaId) {
+          setState(() => _demandaDestacadaId = null);
+        }
+      });
+    });
+  }
+
+  GlobalKey? _chaveDoNoPorId(int id) {
+    for (final entry in _chavesNos.entries) {
+      if (entry.key == id.toString()) return entry.value;
+    }
+    return null;
+  }
+
   void _atualizarVisibilidade() {
     if (_atualizacaoAgendada) return;
     _atualizacaoAgendada = true;
@@ -78,6 +159,7 @@ class _DemandaTreeState extends State<DemandaTree> {
 
   @override
   void dispose() {
+    _destaqueTimer?.cancel();
     for (final controller in _expansoes.values) {
       controller.dispose();
     }
@@ -262,7 +344,10 @@ class _DemandaTreeState extends State<DemandaTree> {
     }
 
     if (visivel) nos.add(_DemandaNivel(demanda: demanda, nivel: nivel));
-    final filhasVisiveis = visivel && _expansaoDe(demanda).isExpanded;
+    final filhasVisiveis =
+        visivel &&
+        (_expansaoDe(demanda).isExpanded ||
+            (id != null && widget.autoExpandIds.contains(id)));
     final filhas = id == null
         ? const <backend.Demanda>[]
         : porPai[id] ?? const [];
@@ -301,39 +386,46 @@ class _DemandaTreeState extends State<DemandaTree> {
         left: recuo,
         bottom: widget.densidade.espacamentoEntreCards,
       ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: nivel == 0
-              ? null
-              : Border(
-                  left: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: TemdasTokens.borderWidth,
+      child: KeyedSubtree(
+        key: _chaveDoNo(demanda),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: nivel == 0
+                ? null
+                : Border(
+                    left: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: TemdasTokens.borderWidth,
+                    ),
                   ),
-                ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: nivel == 0 ? 0 : widget.densidade.espacoAposLinhaArvore,
           ),
-          child: DemandaCard(
-            // A expansão acompanha a demanda quando ela muda de coluna.
-            key: PageStorageKey(_chaveExpansao(demanda)),
-            expansionController: _expansaoDe(demanda),
-            densidade: widget.densidade,
-            demanda: demanda,
-            tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
-            dragHandle: dragHandle,
-            acoesHabilitadas: widget.acoesHabilitadas && !emProcessamento,
-            emProcessamento: emProcessamento,
-            onAlterarStatus: (status) =>
-                widget.onAlterarStatus(demanda, status),
-            onConcluir: () => widget.onConcluir(demanda),
-            onEditar: () => widget.onEditar(demanda),
-            onExcluir: () => widget.onExcluir(demanda),
-            onCriarFilha: () => widget.onCriarFilha(demanda),
-            onLancarTempo: () => widget.onLancarTempo(demanda),
-            onMostrarTudo: () => widget.onMostrarTudo(demanda),
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: nivel == 0 ? 0 : widget.densidade.espacoAposLinhaArvore,
+            ),
+            child: DemandaCard(
+              // A expansão acompanha a demanda quando ela muda de coluna.
+              key: PageStorageKey(_chaveExpansao(demanda)),
+              expansionController: _expansaoDe(demanda),
+              densidade: widget.densidade,
+              demanda: demanda,
+              tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
+              dragHandle: dragHandle,
+              destacado: _demandaDestacadaId == demanda.id,
+              acoesHabilitadas: widget.acoesHabilitadas && !emProcessamento,
+              emProcessamento: emProcessamento,
+              onAlterarStatus: (status) =>
+                  widget.onAlterarStatus(demanda, status),
+              onConcluir: () => widget.onConcluir(demanda),
+              onReabrir: widget.onReabrir == null
+                  ? null
+                  : () => widget.onReabrir!(demanda),
+              onEditar: () => widget.onEditar(demanda),
+              onExcluir: () => widget.onExcluir(demanda),
+              onCriarFilha: () => widget.onCriarFilha(demanda),
+              onLancarTempo: () => widget.onLancarTempo(demanda),
+              onMostrarTudo: () => widget.onMostrarTudo(demanda),
+            ),
           ),
         ),
       ),
@@ -411,6 +503,7 @@ class _DemandaTreeState extends State<DemandaTree> {
           dragHandle:
               index == 0 &&
                   widget.onMover != null &&
+                  widget.dragHabilitado &&
                   unidade.first.demanda.id != null
               ? _arrastoHandle(
                   unidade.first.demanda,
@@ -429,6 +522,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   ) {
     final podeArrastar =
         widget.acoesHabilitadas &&
+        widget.dragHabilitado &&
         _movimentoPendente == null &&
         !_dragAtivo &&
         !widget.demandasEmProcessamento.contains(raiz.id);

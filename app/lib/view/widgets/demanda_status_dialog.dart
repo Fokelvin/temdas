@@ -33,6 +33,109 @@ Future<bool?> mostrarCancelamentoDemandaDialog(
   ),
 );
 
+Future<bool?> mostrarReaberturaDemandaDialog(
+  BuildContext context, {
+  required backend.Demanda demanda,
+  required DemandasViewModel viewModel,
+}) => showDialog<bool>(
+  context: context,
+  barrierDismissible: false,
+  builder: (_) => _DialogoReabertura(demanda: demanda, viewModel: viewModel),
+);
+
+class _DialogoReabertura extends StatefulWidget {
+  const _DialogoReabertura({required this.demanda, required this.viewModel});
+
+  final backend.Demanda demanda;
+  final DemandasViewModel viewModel;
+
+  @override
+  State<_DialogoReabertura> createState() => _DialogoReaberturaState();
+}
+
+class _DialogoReaberturaState extends State<_DialogoReabertura> {
+  String? _erro;
+
+  bool get _concluida =>
+      widget.demanda.status == backend.DemandaStatus.concluida;
+  String get _acao => _concluida ? 'Reabrir' : 'Reativar';
+
+  Future<void> _confirmar(BuildContext context) async {
+    final id = widget.demanda.id;
+    if (id == null || widget.viewModel.demandaEmProcessamento(id)) return;
+
+    setState(() => _erro = null);
+    final sucesso = await widget.viewModel.alterarStatusDemanda(
+      demanda: widget.demanda,
+      status: backend.DemandaStatus.aberta,
+    );
+    if (!context.mounted) return;
+    if (sucesso) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _erro =
+            widget.viewModel.erroDaDemanda(id) ??
+            'Não foi possível alterar o status da demanda.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.viewModel,
+    builder: (context, _) {
+      final enviando = widget.viewModel.demandaEmProcessamento(
+        widget.demanda.id,
+      );
+      return PopScope(
+        canPop: !enviando,
+        child: AlertDialog(
+          title: Text('$_acao demanda?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('A demanda voltará para o status Aberta.'),
+              if (_erro != null) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _erro!,
+                    key: const ValueKey('erro-dialogo-reabertura'),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('cancelar-dialogo-reabertura'),
+              onPressed: enviando ? null : () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              key: ValueKey('${_acao.toLowerCase()}-demanda-confirmar'),
+              onPressed: enviando ? null : () => _confirmar(context),
+              icon: enviando
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+              label: Text(enviando ? 'Salvando...' : _acao),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class _DialogoStatus extends StatefulWidget {
   const _DialogoStatus({
     required this.demanda,

@@ -1,0 +1,7 @@
+class: RelatorioDemandasResponse
+fields:
+  inicioEm: DateTime
+  fimExclusivo: DateTime
+  tempoRealizadoTotalMinutos: int
+  quantidadeDemandasComTempo: int
+  itens: List<RelatorioDemandaItem>

@@ -32,6 +32,10 @@ import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tem
     as _i11;
 import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
     as _i12;
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demandas_response.dart'
+    as _i13;
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+    as _i14;
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:temdas_backend_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -151,6 +155,8 @@ class TestEndpoints {
   late final _GreetingEndpoint greeting;
 
   late final _RegistroTempoEndpoint registroTempo;
+
+  late final _RelatorioEndpoint relatorio;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -169,6 +175,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     registroTempo = _RegistroTempoEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    relatorio = _RelatorioEndpoint(
       endpoints,
       serializationManager,
     );
@@ -709,6 +719,48 @@ class _RegistroTempoEndpoint {
                   _localCallContext.arguments,
                 )
                 as _i3.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _RelatorioEndpoint {
+  _RelatorioEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i13.RelatorioDemandasResponse> gerarRelatorioDemandas(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i14.RelatorioDemandaRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'relatorio',
+            method: 'gerarRelatorioDemandas',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'relatorio',
+          methodName: 'gerarRelatorioDemandas',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i13.RelatorioDemandasResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

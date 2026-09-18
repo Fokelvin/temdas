@@ -1,0 +1,6 @@
+class: RelatorioDemandaRequest
+fields:
+  inicioEm: DateTime
+  fimExclusivo: DateTime
+  status: DemandaStatus?
+  prioridade: Prioridade?

@@ -30,7 +30,11 @@ import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_temp
     as _i10;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_update_request.dart'
     as _i11;
-import 'protocol.dart' as _i12;
+import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demandas_response.dart'
+    as _i12;
+import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demanda_request.dart'
+    as _i13;
+import 'protocol.dart' as _i14;
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -191,6 +195,22 @@ class EndpointRegistroTempo extends _i1.EndpointRef {
       );
 }
 
+/// {@category Endpoint}
+class EndpointRelatorio extends _i1.EndpointRef {
+  EndpointRelatorio(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'relatorio';
+
+  _i2.Future<_i12.RelatorioDemandasResponse> gerarRelatorioDemandas(
+    _i13.RelatorioDemandaRequest request,
+  ) => caller.callServerEndpoint<_i12.RelatorioDemandasResponse>(
+    'relatorio',
+    'gerarRelatorioDemandas',
+    {'request': request},
+  );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -211,7 +231,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i12.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -223,6 +243,7 @@ class Client extends _i1.ServerpodClientShared {
     demanda = EndpointDemanda(this);
     greeting = EndpointGreeting(this);
     registroTempo = EndpointRegistroTempo(this);
+    relatorio = EndpointRelatorio(this);
   }
 
   late final EndpointDemanda demanda;
@@ -231,11 +252,14 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointRegistroTempo registroTempo;
 
+  late final EndpointRelatorio relatorio;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'demanda': demanda,
     'greeting': greeting,
     'registroTempo': registroTempo,
+    'relatorio': relatorio,
   };
 
   @override

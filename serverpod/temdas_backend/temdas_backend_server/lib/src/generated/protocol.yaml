@@ -17,3 +17,5 @@ registroTempo:
   - listarRegistrosTempoPorPeriodo:
   - listarRegistrosTempoDaDemanda:
   - excluirRegistroTempo:
+relatorio:
+  - gerarRelatorioDemandas:

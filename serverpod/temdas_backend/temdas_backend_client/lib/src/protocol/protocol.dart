@@ -26,10 +26,13 @@ import 'registros_tempo/conflito_horario_exception.dart' as _i13;
 import 'registros_tempo/registro_tempo.dart' as _i14;
 import 'registros_tempo/registro_tempo_create_request.dart' as _i15;
 import 'registros_tempo/registro_tempo_update_request.dart' as _i16;
+import 'relatorios/relatorio_demanda_item.dart' as _i17;
+import 'relatorios/relatorio_demanda_request.dart' as _i18;
+import 'relatorios/relatorio_demandas_response.dart' as _i19;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i17;
+    as _i20;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
-    as _i18;
+    as _i21;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_movimentacao_request.dart';
@@ -45,6 +48,9 @@ export 'registros_tempo/conflito_horario_exception.dart';
 export 'registros_tempo/registro_tempo.dart';
 export 'registros_tempo/registro_tempo_create_request.dart';
 export 'registros_tempo/registro_tempo_update_request.dart';
+export 'relatorios/relatorio_demanda_item.dart';
+export 'relatorios/relatorio_demanda_request.dart';
+export 'relatorios/relatorio_demandas_response.dart';
 export 'client.dart';
 
 class Protocol extends _i1.SerializationManager {
@@ -126,6 +132,15 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i16.RegistroTempoUpdateRequest) {
       return _i16.RegistroTempoUpdateRequest.fromJson(data) as T;
     }
+    if (t == _i17.RelatorioDemandaItem) {
+      return _i17.RelatorioDemandaItem.fromJson(data) as T;
+    }
+    if (t == _i18.RelatorioDemandaRequest) {
+      return _i18.RelatorioDemandaRequest.fromJson(data) as T;
+    }
+    if (t == _i19.RelatorioDemandasResponse) {
+      return _i19.RelatorioDemandasResponse.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
     }
@@ -197,13 +212,33 @@ class Protocol extends _i1.SerializationManager {
               : null)
           as T;
     }
-    if (t == List<_i17.Demanda>) {
-      return (data as List).map((e) => deserialize<_i17.Demanda>(e)).toList()
+    if (t == _i1.getType<_i17.RelatorioDemandaItem?>()) {
+      return (data != null ? _i17.RelatorioDemandaItem.fromJson(data) : null)
           as T;
     }
-    if (t == List<_i18.RegistroTempo>) {
+    if (t == _i1.getType<_i18.RelatorioDemandaRequest?>()) {
+      return (data != null ? _i18.RelatorioDemandaRequest.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i19.RelatorioDemandasResponse?>()) {
+      return (data != null
+              ? _i19.RelatorioDemandasResponse.fromJson(data)
+              : null)
+          as T;
+    }
+    if (t == List<_i17.RelatorioDemandaItem>) {
       return (data as List)
-              .map((e) => deserialize<_i18.RegistroTempo>(e))
+              .map((e) => deserialize<_i17.RelatorioDemandaItem>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i20.Demanda>) {
+      return (data as List).map((e) => deserialize<_i20.Demanda>(e)).toList()
+          as T;
+    }
+    if (t == List<_i21.RegistroTempo>) {
+      return (data as List)
+              .map((e) => deserialize<_i21.RegistroTempo>(e))
               .toList()
           as T;
     }
@@ -227,6 +262,9 @@ class Protocol extends _i1.SerializationManager {
       _i14.RegistroTempo => 'RegistroTempo',
       _i15.RegistroTempoCreateRequest => 'RegistroTempoCreateRequest',
       _i16.RegistroTempoUpdateRequest => 'RegistroTempoUpdateRequest',
+      _i17.RelatorioDemandaItem => 'RelatorioDemandaItem',
+      _i18.RelatorioDemandaRequest => 'RelatorioDemandaRequest',
+      _i19.RelatorioDemandasResponse => 'RelatorioDemandasResponse',
       _ => null,
     };
   }
@@ -274,6 +312,12 @@ class Protocol extends _i1.SerializationManager {
         return 'RegistroTempoCreateRequest';
       case _i16.RegistroTempoUpdateRequest():
         return 'RegistroTempoUpdateRequest';
+      case _i17.RelatorioDemandaItem():
+        return 'RelatorioDemandaItem';
+      case _i18.RelatorioDemandaRequest():
+        return 'RelatorioDemandaRequest';
+      case _i19.RelatorioDemandasResponse():
+        return 'RelatorioDemandasResponse';
     }
     return null;
   }
@@ -328,6 +372,15 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName == 'RegistroTempoUpdateRequest') {
       return deserialize<_i16.RegistroTempoUpdateRequest>(data['data']);
+    }
+    if (dataClassName == 'RelatorioDemandaItem') {
+      return deserialize<_i17.RelatorioDemandaItem>(data['data']);
+    }
+    if (dataClassName == 'RelatorioDemandaRequest') {
+      return deserialize<_i18.RelatorioDemandaRequest>(data['data']);
+    }
+    if (dataClassName == 'RelatorioDemandasResponse') {
+      return deserialize<_i19.RelatorioDemandasResponse>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

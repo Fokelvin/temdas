@@ -27,12 +27,15 @@ class _DemandasPageState extends State<DemandasPage> {
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _tempoController = TextEditingController(text: '1');
+  final _buscaController = TextEditingController();
   final _quadroHorizontalController = ScrollController();
   late final DemandasViewModel _viewModel;
   late final bool _possuiViewModel;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
+  backend.Prioridade? _filtroPrioridade;
   DensidadeDemanda _densidade = DensidadeDemanda.normal;
+  int _filtroVersao = 0;
   final Set<int> _demandasEmStatus = {};
 
   @override
@@ -48,11 +51,97 @@ class _DemandasPageState extends State<DemandasPage> {
     _tituloController.dispose();
     _descricaoController.dispose();
     _tempoController.dispose();
+    _buscaController.dispose();
     _quadroHorizontalController.dispose();
     if (_possuiViewModel) {
       _viewModel.dispose();
     }
     super.dispose();
+  }
+
+  bool get _filtrosAtivos =>
+      _buscaController.text.trim().isNotEmpty || _filtroPrioridade != null;
+
+  void _alterarBusca(String valor) {
+    setState(() => _filtroVersao++);
+  }
+
+  void _alterarPrioridadeFiltro(backend.Prioridade? valor) {
+    setState(() {
+      _filtroPrioridade = valor;
+      _filtroVersao++;
+    });
+  }
+
+  void _limparFiltros() {
+    _buscaController.clear();
+    setState(() {
+      _filtroPrioridade = null;
+      _filtroVersao++;
+    });
+  }
+
+  _ResultadoBusca _resultadoBusca() {
+    final busca = _buscaController.text.trim().toLowerCase();
+    final idBuscado = int.tryParse(busca);
+    final demandasComPrioridade = _viewModel.demandas.where(
+      (demanda) =>
+          _filtroPrioridade == null || demanda.prioridade == _filtroPrioridade,
+    );
+    final candidatas = demandasComPrioridade.toList();
+    List<backend.Demanda> correspondentes;
+    if (busca.isEmpty) {
+      correspondentes = candidatas;
+    } else if (idBuscado != null &&
+        candidatas.any((demanda) => demanda.id == idBuscado)) {
+      correspondentes = candidatas
+          .where((demanda) => demanda.id == idBuscado)
+          .toList();
+    } else {
+      correspondentes = candidatas
+          .where((demanda) => demanda.titulo.toLowerCase().contains(busca))
+          .toList();
+    }
+
+    if (!_filtrosAtivos) {
+      return _ResultadoBusca(
+        demandas: _viewModel.demandas,
+        autoExpandIds: const {},
+        focoDemandaId: null,
+      );
+    }
+
+    final porId = <int, backend.Demanda>{
+      for (final demanda in _viewModel.demandas)
+        if (demanda.id != null) demanda.id!: demanda,
+    };
+    final idsVisiveis = <int>{};
+    final idsExpandir = <int>{};
+    for (final correspondente in correspondentes) {
+      var atual = correspondente;
+      while (true) {
+        final id = atual.id;
+        if (id != null) idsVisiveis.add(id);
+        final paiId = atual.demandaPaiId;
+        if (paiId == null) break;
+        idsVisiveis.add(paiId);
+        idsExpandir.add(paiId);
+        final pai = porId[paiId];
+        if (pai == null) break;
+        atual = pai;
+      }
+    }
+
+    final demandasVisiveis = _viewModel.demandas
+        .where((demanda) => idsVisiveis.contains(demanda.id))
+        .toList();
+    return _ResultadoBusca(
+      demandas: demandasVisiveis,
+      autoExpandIds: idsExpandir,
+      focoDemandaId: correspondentes.length == 1
+          ? correspondentes.single.id
+          : null,
+    );
   }
 
   Future<void> _abrirFormulario() async {
@@ -243,6 +332,37 @@ class _DemandasPageState extends State<DemandasPage> {
               'Status atualizado com sucesso.',
             );
           }
+      }
+    } finally {
+      if (mounted) setState(() => _demandasEmStatus.remove(id));
+    }
+  }
+
+  Future<void> _reabrirDemanda(backend.Demanda demanda) async {
+    final id = demanda.id;
+    if (id == null ||
+        _demandasEmStatus.contains(id) ||
+        _viewModel.demandaEmProcessamento(id) ||
+        _viewModel.envioGlobalEmAndamento ||
+        _viewModel.carregando) {
+      return;
+    }
+
+    setState(() => _demandasEmStatus.add(id));
+    try {
+      final reaberta = await mostrarReaberturaDemandaDialog(
+        context,
+        demanda: demanda,
+        viewModel: _viewModel,
+      );
+      if (mounted && reaberta == true) {
+        _mostrarResultadoStatus(
+          demanda,
+          true,
+          demanda.status == backend.DemandaStatus.concluida
+              ? 'Demanda reaberta com sucesso.'
+              : 'Demanda reativada com sucesso.',
+        );
       }
     } finally {
       if (mounted) setState(() => _demandasEmStatus.remove(id));
@@ -467,123 +587,199 @@ class _DemandasPageState extends State<DemandasPage> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: _viewModel,
-      builder: (context, _) => PageScaffold(
-        title: 'Demandas',
-        route: AppRoutes.demandas,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: TemdasTokens.contentGap),
-            child: FilledButton.icon(
-              key: const ValueKey('abrir-criar-demanda'),
-              onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
-                  ? null
-                  : _abrirFormulario,
-              icon: const Icon(Icons.add),
-              label: const Text('Criar demanda'),
-            ),
-          ),
-        ],
-        body: ListView(
-          key: const ValueKey('demandas-pagina-scroll'),
-          padding: _densidade.paddingPagina,
-          children: [
-            if (_viewModel.erro != null) ...[
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    _viewModel.erro!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
+      builder: (context, _) {
+        final resultadoBusca = _resultadoBusca();
+        return PageScaffold(
+          title: 'Demandas',
+          route: AppRoutes.demandas,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: TemdasTokens.contentGap),
+              child: FilledButton.icon(
+                key: const ValueKey('abrir-criar-demanda'),
+                onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
+                    ? null
+                    : _abrirFormulario,
+                icon: const Icon(Icons.add),
+                label: const Text('Criar demanda'),
               ),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Demandas salvas',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(
-                      TemdasTokens.controlRadius,
+            ),
+          ],
+          body: ListView(
+            key: const ValueKey('demandas-pagina-scroll'),
+            padding: _densidade.paddingPagina,
+            children: [
+              if (_viewModel.erro != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      _viewModel.erro!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ),
-                  child: ToggleButtons(
-                    isSelected: [
-                      for (final densidade in DensidadeDemanda.values)
-                        densidade == _densidade,
-                    ],
-                    onPressed: (index) => setState(
-                      () => _densidade = DensidadeDemanda.values[index],
-                    ),
-                    children: const [
-                      Tooltip(
-                        message: 'Visualização normal',
-                        child: Icon(Icons.density_medium, size: 20),
-                      ),
-                      Tooltip(
-                        message: 'Visualização compacta',
-                        child: Icon(Icons.density_small, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Recarregar demandas',
-                  onPressed:
-                      _viewModel.carregando ||
-                          _viewModel.enviando ||
-                          _demandasEmStatus.isNotEmpty
-                      ? null
-                      : _viewModel.carregarDemandas,
-                  icon: const Icon(Icons.refresh),
                 ),
               ],
-            ),
-            SizedBox(height: _densidade.espacamentoEntreSecoes),
-            if (_viewModel.carregando)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else
-              DemandaTree(
-                // Preserva o quadro quando o aviso de erro muda os índices da lista.
-                key: const ValueKey('demandas-arvore'),
-                horizontalController: _quadroHorizontalController,
-                densidade: _densidade,
-                demandas: _viewModel.demandas,
-                acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
-                demandasEmProcessamento: {
-                  ..._viewModel.demandasEmProcessamento,
-                  if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
-                },
-                onAlterarStatus: _alterarStatusDemanda,
-                onMover: _moverDemanda,
-                onConcluir: (demanda) => _alterarStatusDemanda(
-                  demanda,
-                  backend.DemandaStatus.concluida,
-                ),
-                onEditar: _editarDemanda,
-                onExcluir: _excluirDemanda,
-                onCriarFilha: _criarDemandaFilha,
-                onLancarTempo: _lancarTempo,
-                onMostrarTudo: _mostrarTudo,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Demandas salvas',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(
+                        TemdasTokens.controlRadius,
+                      ),
+                    ),
+                    child: ToggleButtons(
+                      isSelected: [
+                        for (final densidade in DensidadeDemanda.values)
+                          densidade == _densidade,
+                      ],
+                      onPressed: (index) => setState(
+                        () => _densidade = DensidadeDemanda.values[index],
+                      ),
+                      children: const [
+                        Tooltip(
+                          message: 'Visualização normal',
+                          child: Icon(Icons.density_medium, size: 20),
+                        ),
+                        Tooltip(
+                          message: 'Visualização compacta',
+                          child: Icon(Icons.density_small, size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Recarregar demandas',
+                    onPressed:
+                        _viewModel.carregando ||
+                            _viewModel.enviando ||
+                            _demandasEmStatus.isNotEmpty
+                        ? null
+                        : _viewModel.carregarDemandas,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
               ),
-          ],
-        ),
-      ),
+              SizedBox(height: _densidade.espacamentoEntreSecoes),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final larguraBusca = constraints.maxWidth < 500
+                      ? constraints.maxWidth
+                      : 420.0;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: larguraBusca,
+                        child: TextField(
+                          key: const ValueKey('buscar-demandas'),
+                          controller: _buscaController,
+                          onChanged: _alterarBusca,
+                          decoration: InputDecoration(
+                            labelText: 'Buscar por ID ou título...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _buscaController.text.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Limpar busca',
+                                    onPressed: () {
+                                      _buscaController.clear();
+                                      _alterarBusca('');
+                                    },
+                                    icon: const Icon(Icons.clear),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 190,
+                        child: DropdownButtonFormField<backend.Prioridade?>(
+                          key: const ValueKey('filtro-prioridade'),
+                          initialValue: _filtroPrioridade,
+                          decoration: const InputDecoration(
+                            labelText: 'Prioridade',
+                          ),
+                          items: [
+                            const DropdownMenuItem<backend.Prioridade?>(
+                              value: null,
+                              child: Text('Todas'),
+                            ),
+                            ...backend.Prioridade.values.map(
+                              (prioridade) =>
+                                  DropdownMenuItem<backend.Prioridade?>(
+                                    value: prioridade,
+                                    child: Text(_prioridadeLabel(prioridade)),
+                                  ),
+                            ),
+                          ],
+                          onChanged: _alterarPrioridadeFiltro,
+                        ),
+                      ),
+                      if (_filtrosAtivos)
+                        IconButton(
+                          key: const ValueKey('limpar-filtros-demandas'),
+                          tooltip: 'Limpar filtros',
+                          onPressed: _limparFiltros,
+                          icon: const Icon(Icons.filter_alt_off),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              SizedBox(height: _densidade.espacamentoEntreSecoes),
+              if (_viewModel.carregando)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                DemandaTree(
+                  // Preserva o quadro quando o aviso de erro muda os índices da lista.
+                  key: const ValueKey('demandas-arvore'),
+                  horizontalController: _quadroHorizontalController,
+                  densidade: _densidade,
+                  demandas: resultadoBusca.demandas,
+                  autoExpandIds: resultadoBusca.autoExpandIds,
+                  focoDemandaId: resultadoBusca.focoDemandaId,
+                  focoVersao: _filtroVersao,
+                  dragHabilitado: !_filtrosAtivos,
+                  acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
+                  demandasEmProcessamento: {
+                    ..._viewModel.demandasEmProcessamento,
+                    if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
+                  },
+                  onAlterarStatus: _alterarStatusDemanda,
+                  onMover: _moverDemanda,
+                  onConcluir: (demanda) => _alterarStatusDemanda(
+                    demanda,
+                    backend.DemandaStatus.concluida,
+                  ),
+                  onReabrir: _reabrirDemanda,
+                  onEditar: _editarDemanda,
+                  onExcluir: _excluirDemanda,
+                  onCriarFilha: _criarDemandaFilha,
+                  onLancarTempo: _lancarTempo,
+                  onMostrarTudo: _mostrarTudo,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -668,4 +864,16 @@ String _prioridadeLabel(backend.Prioridade prioridade) {
     backend.Prioridade.alta => 'Alta',
     backend.Prioridade.urgente => 'Urgente',
   };
+}
+
+class _ResultadoBusca {
+  const _ResultadoBusca({
+    required this.demandas,
+    required this.autoExpandIds,
+    required this.focoDemandaId,
+  });
+
+  final List<backend.Demanda> demandas;
+  final Set<int> autoExpandIds;
+  final int? focoDemandaId;
 }

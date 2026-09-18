@@ -96,7 +96,31 @@ class _LogTimePageState extends State<LogTimePage> {
       viewModel: _viewModel,
       onEditar: _abrirEdicao,
       onExcluir: _confirmarExclusao,
+      onMover: _moverRegistro,
     );
+  }
+
+  Future<bool> _moverRegistro(
+    backend.RegistroTempo registro,
+    DateTime data,
+    TimeOfDay hora,
+  ) async {
+    final id = registro.id;
+    if (id == null) return false;
+
+    final movido = await _viewModel.editarRegistroTempo(
+      id: id,
+      data: data,
+      hora: hora,
+      duracaoHoras: registro.duracaoMinutos / Duration.minutesPerHour,
+    );
+    if (!mounted || movido) return movido;
+
+    _mostrarFeedback(
+      _viewModel.erroEdicao ?? 'Não foi possível mover o lançamento.',
+      erro: true,
+    );
+    return false;
   }
 
   Future<void> _abrirLancamento() async {
