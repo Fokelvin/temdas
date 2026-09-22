@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/prioridade.dart' as _i2;
 
@@ -20,7 +21,6 @@ abstract class DemandaCreateRequest
     required this.titulo,
     this.descricao,
     this.prioridade,
-    this.sprint,
     required this.tempoEstimadoMinutos,
     this.observacoes,
   });
@@ -30,7 +30,6 @@ abstract class DemandaCreateRequest
     required String titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) = _DemandaCreateRequestImpl;
@@ -47,7 +46,6 @@ abstract class DemandaCreateRequest
           : _i2.Prioridade.fromJson(
               (jsonSerialization['prioridade'] as String),
             ),
-      sprint: jsonSerialization['sprint'] as String?,
       tempoEstimadoMinutos: jsonSerialization['tempoEstimadoMinutos'] as int,
       observacoes: jsonSerialization['observacoes'] as String?,
     );
@@ -61,8 +59,6 @@ abstract class DemandaCreateRequest
 
   _i2.Prioridade? prioridade;
 
-  String? sprint;
-
   int tempoEstimadoMinutos;
 
   String? observacoes;
@@ -75,7 +71,6 @@ abstract class DemandaCreateRequest
     String? titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
-    String? sprint,
     int? tempoEstimadoMinutos,
     String? observacoes,
   });
@@ -87,7 +82,6 @@ abstract class DemandaCreateRequest
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       if (prioridade != null) 'prioridade': prioridade?.toJson(),
-      if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
       if (observacoes != null) 'observacoes': observacoes,
     };
@@ -101,7 +95,6 @@ abstract class DemandaCreateRequest
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
       if (prioridade != null) 'prioridade': prioridade?.toJson(),
-      if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
       if (observacoes != null) 'observacoes': observacoes,
     };
@@ -121,7 +114,6 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
     required String titulo,
     String? descricao,
     _i2.Prioridade? prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) : super._(
@@ -129,7 +121,6 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
          titulo: titulo,
          descricao: descricao,
          prioridade: prioridade,
-         sprint: sprint,
          tempoEstimadoMinutos: tempoEstimadoMinutos,
          observacoes: observacoes,
        );
@@ -143,7 +134,6 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
     String? titulo,
     Object? descricao = _Undefined,
     Object? prioridade = _Undefined,
-    Object? sprint = _Undefined,
     int? tempoEstimadoMinutos,
     Object? observacoes = _Undefined,
   }) {
@@ -152,7 +142,6 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
       titulo: titulo ?? this.titulo,
       descricao: descricao is String? ? descricao : this.descricao,
       prioridade: prioridade is _i2.Prioridade? ? prioridade : this.prioridade,
-      sprint: sprint is String? ? sprint : this.sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos ?? this.tempoEstimadoMinutos,
       observacoes: observacoes is String? ? observacoes : this.observacoes,
     );

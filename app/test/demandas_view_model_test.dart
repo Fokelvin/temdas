@@ -110,7 +110,6 @@ void main() {
         expect(repository.chamadasAtualizar, 1);
         expect(repository.chamadasListar, 1);
         expect(repository.ultimaAtualizacao?.tempoEstimadoMinutos, 90);
-        expect(repository.ultimaAtualizacao?.sprint, original.sprint);
         expect(repository.ultimaAtualizacao?.observacoes, original.observacoes);
         expect(viewModel.demandas.map((item) => item.id), [1, 2]);
         expect(viewModel.demandas.last, same(mae));
@@ -424,6 +423,26 @@ void main() {
       expect(viewModel.demandas, [irma, mae]);
       expect(viewModel.filhasDe(mae), [irma]);
     });
+
+    test(
+      'mostra erro tipado ao bloquear exclusão por histórico de Sprint',
+      () async {
+        final demanda = demandaFixture(id: 8, titulo: 'Com histórico');
+        final repository = FakeDemandaRepository(demandas: [demanda])
+          ..erroAoExcluir = backend.SprintException(
+            codigo: backend.SprintErroCodigo.historicoSprintConcluida,
+          );
+        final viewModel = DemandasViewModel(repository: repository);
+        addTearDown(viewModel.dispose);
+
+        await viewModel.carregarDemandas();
+        expect(await viewModel.excluirDemanda(demanda), isFalse);
+        expect(
+          viewModel.erro,
+          'Esta Demanda não pode ser excluída porque possui histórico em uma Sprint concluída.',
+        );
+      },
+    );
 
     test(
       'exclui mãe e todos os descendentes pelo endpoint de árvore',

@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import '../demandas/demanda_status.dart' as _i2;
 import '../demandas/prioridade.dart' as _i3;
@@ -22,7 +23,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
     required this.status,
     this.motivoCancelamento,
     required this.prioridade,
-    this.sprint,
     required this.tempoEstimadoMinutos,
     this.observacoes,
   });
@@ -34,7 +34,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
     required _i2.DemandaStatus status,
     String? motivoCancelamento,
     required _i3.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) = _DemandaUpdateRequestImpl;
@@ -53,7 +52,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
       prioridade: _i3.Prioridade.fromJson(
         (jsonSerialization['prioridade'] as String),
       ),
-      sprint: jsonSerialization['sprint'] as String?,
       tempoEstimadoMinutos: jsonSerialization['tempoEstimadoMinutos'] as int,
       observacoes: jsonSerialization['observacoes'] as String?,
     );
@@ -71,8 +69,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
 
   _i3.Prioridade prioridade;
 
-  String? sprint;
-
   int tempoEstimadoMinutos;
 
   String? observacoes;
@@ -87,7 +83,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
     _i2.DemandaStatus? status,
     String? motivoCancelamento,
     _i3.Prioridade? prioridade,
-    String? sprint,
     int? tempoEstimadoMinutos,
     String? observacoes,
   });
@@ -101,7 +96,6 @@ abstract class DemandaUpdateRequest implements _i1.SerializableModel {
       'status': status.toJson(),
       if (motivoCancelamento != null) 'motivoCancelamento': motivoCancelamento,
       'prioridade': prioridade.toJson(),
-      if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
       if (observacoes != null) 'observacoes': observacoes,
     };
@@ -123,7 +117,6 @@ class _DemandaUpdateRequestImpl extends DemandaUpdateRequest {
     required _i2.DemandaStatus status,
     String? motivoCancelamento,
     required _i3.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) : super._(
@@ -133,7 +126,6 @@ class _DemandaUpdateRequestImpl extends DemandaUpdateRequest {
          status: status,
          motivoCancelamento: motivoCancelamento,
          prioridade: prioridade,
-         sprint: sprint,
          tempoEstimadoMinutos: tempoEstimadoMinutos,
          observacoes: observacoes,
        );
@@ -149,7 +141,6 @@ class _DemandaUpdateRequestImpl extends DemandaUpdateRequest {
     _i2.DemandaStatus? status,
     Object? motivoCancelamento = _Undefined,
     _i3.Prioridade? prioridade,
-    Object? sprint = _Undefined,
     int? tempoEstimadoMinutos,
     Object? observacoes = _Undefined,
   }) {
@@ -162,7 +153,6 @@ class _DemandaUpdateRequestImpl extends DemandaUpdateRequest {
           ? motivoCancelamento
           : this.motivoCancelamento,
       prioridade: prioridade ?? this.prioridade,
-      sprint: sprint is String? ? sprint : this.sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos ?? this.tempoEstimadoMinutos,
       observacoes: observacoes is String? ? observacoes : this.observacoes,
     );

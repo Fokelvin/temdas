@@ -1,0 +1,18 @@
+enum: SprintErroCodigo
+serialized: byName
+values:
+  - nomeObrigatorio
+  - nomeDuplicado
+  - periodoInvalido
+  - periodoSobreposto
+  - sprintNaoEncontrada
+  - sprintAtivaExistente
+  - inicioAntesDataInicio
+  - tempoPrevistoInvalido
+  - transicaoStatusInvalida
+  - demandaOutraSprintAberta
+  - vinculoStatusProibido
+  - demandaFilhaSemMae
+  - demandaFilhaComMaeVinculada
+  - demandaNaoEncontrada
+  - historicoSprintConcluida

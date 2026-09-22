@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'demandas/demanda.dart' as _i2;
 import 'demandas/demanda_create_request.dart' as _i3;
@@ -29,10 +30,22 @@ import 'registros_tempo/registro_tempo_update_request.dart' as _i16;
 import 'relatorios/relatorio_demanda_item.dart' as _i17;
 import 'relatorios/relatorio_demanda_request.dart' as _i18;
 import 'relatorios/relatorio_demandas_response.dart' as _i19;
+import 'sprints/sprint.dart' as _i20;
+import 'sprints/sprint_conclusao_response.dart' as _i21;
+import 'sprints/sprint_create_request.dart' as _i22;
+import 'sprints/sprint_demanda.dart' as _i23;
+import 'sprints/sprint_erro_codigo.dart' as _i24;
+import 'sprints/sprint_exception.dart' as _i25;
+import 'sprints/sprint_indicadores.dart' as _i26;
+import 'sprints/sprint_status.dart' as _i27;
+import 'sprints/sprint_update_request.dart' as _i28;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i20;
+    as _i29;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
-    as _i21;
+    as _i30;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i31;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
+    as _i32;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_movimentacao_request.dart';
@@ -51,6 +64,15 @@ export 'registros_tempo/registro_tempo_update_request.dart';
 export 'relatorios/relatorio_demanda_item.dart';
 export 'relatorios/relatorio_demanda_request.dart';
 export 'relatorios/relatorio_demandas_response.dart';
+export 'sprints/sprint.dart';
+export 'sprints/sprint_conclusao_response.dart';
+export 'sprints/sprint_create_request.dart';
+export 'sprints/sprint_demanda.dart';
+export 'sprints/sprint_erro_codigo.dart';
+export 'sprints/sprint_exception.dart';
+export 'sprints/sprint_indicadores.dart';
+export 'sprints/sprint_status.dart';
+export 'sprints/sprint_update_request.dart';
 export 'client.dart';
 
 class Protocol extends _i1.SerializationManager {
@@ -141,6 +163,33 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i19.RelatorioDemandasResponse) {
       return _i19.RelatorioDemandasResponse.fromJson(data) as T;
     }
+    if (t == _i20.Sprint) {
+      return _i20.Sprint.fromJson(data) as T;
+    }
+    if (t == _i21.SprintConclusaoResponse) {
+      return _i21.SprintConclusaoResponse.fromJson(data) as T;
+    }
+    if (t == _i22.SprintCreateRequest) {
+      return _i22.SprintCreateRequest.fromJson(data) as T;
+    }
+    if (t == _i23.SprintDemanda) {
+      return _i23.SprintDemanda.fromJson(data) as T;
+    }
+    if (t == _i24.SprintErroCodigo) {
+      return _i24.SprintErroCodigo.fromJson(data) as T;
+    }
+    if (t == _i25.SprintException) {
+      return _i25.SprintException.fromJson(data) as T;
+    }
+    if (t == _i26.SprintIndicadores) {
+      return _i26.SprintIndicadores.fromJson(data) as T;
+    }
+    if (t == _i27.SprintStatus) {
+      return _i27.SprintStatus.fromJson(data) as T;
+    }
+    if (t == _i28.SprintUpdateRequest) {
+      return _i28.SprintUpdateRequest.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
     }
@@ -226,21 +275,64 @@ class Protocol extends _i1.SerializationManager {
               : null)
           as T;
     }
+    if (t == _i1.getType<_i20.Sprint?>()) {
+      return (data != null ? _i20.Sprint.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i21.SprintConclusaoResponse?>()) {
+      return (data != null ? _i21.SprintConclusaoResponse.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i22.SprintCreateRequest?>()) {
+      return (data != null ? _i22.SprintCreateRequest.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i23.SprintDemanda?>()) {
+      return (data != null ? _i23.SprintDemanda.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i24.SprintErroCodigo?>()) {
+      return (data != null ? _i24.SprintErroCodigo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i25.SprintException?>()) {
+      return (data != null ? _i25.SprintException.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i26.SprintIndicadores?>()) {
+      return (data != null ? _i26.SprintIndicadores.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i27.SprintStatus?>()) {
+      return (data != null ? _i27.SprintStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i28.SprintUpdateRequest?>()) {
+      return (data != null ? _i28.SprintUpdateRequest.fromJson(data) : null)
+          as T;
+    }
     if (t == List<_i17.RelatorioDemandaItem>) {
       return (data as List)
               .map((e) => deserialize<_i17.RelatorioDemandaItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i20.Demanda>) {
-      return (data as List).map((e) => deserialize<_i20.Demanda>(e)).toList()
+    if (t == List<_i29.Demanda>) {
+      return (data as List).map((e) => deserialize<_i29.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i21.RegistroTempo>) {
+    if (t == List<_i30.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i21.RegistroTempo>(e))
+              .map((e) => deserialize<_i30.RegistroTempo>(e))
               .toList()
           as T;
+    }
+    if (t == List<_i31.Sprint>) {
+      return (data as List).map((e) => deserialize<_i31.Sprint>(e)).toList()
+          as T;
+    }
+    if (t == List<_i32.SprintDemanda>) {
+      return (data as List)
+              .map((e) => deserialize<_i32.SprintDemanda>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     return super.deserialize<T>(data, t);
   }
@@ -265,6 +357,15 @@ class Protocol extends _i1.SerializationManager {
       _i17.RelatorioDemandaItem => 'RelatorioDemandaItem',
       _i18.RelatorioDemandaRequest => 'RelatorioDemandaRequest',
       _i19.RelatorioDemandasResponse => 'RelatorioDemandasResponse',
+      _i20.Sprint => 'Sprint',
+      _i21.SprintConclusaoResponse => 'SprintConclusaoResponse',
+      _i22.SprintCreateRequest => 'SprintCreateRequest',
+      _i23.SprintDemanda => 'SprintDemanda',
+      _i24.SprintErroCodigo => 'SprintErroCodigo',
+      _i25.SprintException => 'SprintException',
+      _i26.SprintIndicadores => 'SprintIndicadores',
+      _i27.SprintStatus => 'SprintStatus',
+      _i28.SprintUpdateRequest => 'SprintUpdateRequest',
       _ => null,
     };
   }
@@ -318,6 +419,24 @@ class Protocol extends _i1.SerializationManager {
         return 'RelatorioDemandaRequest';
       case _i19.RelatorioDemandasResponse():
         return 'RelatorioDemandasResponse';
+      case _i20.Sprint():
+        return 'Sprint';
+      case _i21.SprintConclusaoResponse():
+        return 'SprintConclusaoResponse';
+      case _i22.SprintCreateRequest():
+        return 'SprintCreateRequest';
+      case _i23.SprintDemanda():
+        return 'SprintDemanda';
+      case _i24.SprintErroCodigo():
+        return 'SprintErroCodigo';
+      case _i25.SprintException():
+        return 'SprintException';
+      case _i26.SprintIndicadores():
+        return 'SprintIndicadores';
+      case _i27.SprintStatus():
+        return 'SprintStatus';
+      case _i28.SprintUpdateRequest():
+        return 'SprintUpdateRequest';
     }
     return null;
   }
@@ -381,6 +500,33 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName == 'RelatorioDemandasResponse') {
       return deserialize<_i19.RelatorioDemandasResponse>(data['data']);
+    }
+    if (dataClassName == 'Sprint') {
+      return deserialize<_i20.Sprint>(data['data']);
+    }
+    if (dataClassName == 'SprintConclusaoResponse') {
+      return deserialize<_i21.SprintConclusaoResponse>(data['data']);
+    }
+    if (dataClassName == 'SprintCreateRequest') {
+      return deserialize<_i22.SprintCreateRequest>(data['data']);
+    }
+    if (dataClassName == 'SprintDemanda') {
+      return deserialize<_i23.SprintDemanda>(data['data']);
+    }
+    if (dataClassName == 'SprintErroCodigo') {
+      return deserialize<_i24.SprintErroCodigo>(data['data']);
+    }
+    if (dataClassName == 'SprintException') {
+      return deserialize<_i25.SprintException>(data['data']);
+    }
+    if (dataClassName == 'SprintIndicadores') {
+      return deserialize<_i26.SprintIndicadores>(data['data']);
+    }
+    if (dataClassName == 'SprintStatus') {
+      return deserialize<_i27.SprintStatus>(data['data']);
+    }
+    if (dataClassName == 'SprintUpdateRequest') {
+      return deserialize<_i28.SprintUpdateRequest>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

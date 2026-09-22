@@ -1,0 +1,13 @@
+class: Sprint
+table: sprints
+fields:
+  nome: String
+  nomeNormalizado: String?, scope=serverOnly
+  dataInicio: DateTime
+  dataFim: DateTime
+  tempoPrevistoMinutos: int?
+  status: SprintStatus
+indexes:
+  sprints_nome_normalizado_idx:
+    fields: nomeNormalizado
+    unique: true

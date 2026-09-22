@@ -107,11 +107,6 @@ class DemandaCard extends StatelessWidget {
                 valor: demanda.descricao ?? 'Não informada',
                 densidade: densidade,
               ),
-              _Campo(
-                titulo: 'Sprint',
-                valor: demanda.sprint ?? 'Não informada',
-                densidade: densidade,
-              ),
               SizedBox(height: densidade.espacamentoEntreSecoes),
               TempoComparacao(
                 estimadoMinutos: demanda.tempoEstimadoMinutos,

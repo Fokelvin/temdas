@@ -178,7 +178,6 @@ class DemandasViewModel extends ChangeNotifier {
         status: status,
         motivoCancelamento: motivoCancelamento,
         prioridade: prioridade,
-        sprint: demanda.sprint,
         tempoEstimadoMinutos: tempoEstimadoMinutos,
         observacoes: demanda.observacoes,
       );
@@ -434,7 +433,12 @@ class DemandasViewModel extends ChangeNotifier {
     } catch (error, stackTrace) {
       if (!_descartado) {
         _registrarFalha('excluir a demanda $id', error, stackTrace);
-        _erro = 'Não foi possível excluir a demanda. Tente novamente.';
+        _erro =
+            error is backend.SprintException &&
+                error.codigo ==
+                    backend.SprintErroCodigo.historicoSprintConcluida
+            ? 'Esta Demanda não pode ser excluída porque possui histórico em uma Sprint concluída.'
+            : 'Não foi possível excluir a demanda. Tente novamente.';
       }
       return false;
     } finally {

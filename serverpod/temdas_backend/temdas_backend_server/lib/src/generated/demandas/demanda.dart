@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/demanda_status.dart' as _i2;
 import '../demandas/prioridade.dart' as _i3;
@@ -25,7 +26,6 @@ abstract class Demanda
     required this.status,
     this.motivoCancelamento,
     required this.prioridade,
-    this.sprint,
     required this.tempoEstimadoMinutos,
     required this.tempoExecutadoMinutos,
     this.observacoes,
@@ -43,7 +43,6 @@ abstract class Demanda
     required _i2.DemandaStatus status,
     String? motivoCancelamento,
     required _i3.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     required int tempoExecutadoMinutos,
     String? observacoes,
@@ -66,7 +65,6 @@ abstract class Demanda
       prioridade: _i3.Prioridade.fromJson(
         (jsonSerialization['prioridade'] as String),
       ),
-      sprint: jsonSerialization['sprint'] as String?,
       tempoEstimadoMinutos: jsonSerialization['tempoEstimadoMinutos'] as int,
       tempoExecutadoMinutos: jsonSerialization['tempoExecutadoMinutos'] as int,
       observacoes: jsonSerialization['observacoes'] as String?,
@@ -105,8 +103,6 @@ abstract class Demanda
 
   _i3.Prioridade prioridade;
 
-  String? sprint;
-
   int tempoEstimadoMinutos;
 
   int tempoExecutadoMinutos;
@@ -134,7 +130,6 @@ abstract class Demanda
     _i2.DemandaStatus? status,
     String? motivoCancelamento,
     _i3.Prioridade? prioridade,
-    String? sprint,
     int? tempoEstimadoMinutos,
     int? tempoExecutadoMinutos,
     String? observacoes,
@@ -154,7 +149,6 @@ abstract class Demanda
       'status': status.toJson(),
       if (motivoCancelamento != null) 'motivoCancelamento': motivoCancelamento,
       'prioridade': prioridade.toJson(),
-      if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
       'tempoExecutadoMinutos': tempoExecutadoMinutos,
       if (observacoes != null) 'observacoes': observacoes,
@@ -176,7 +170,6 @@ abstract class Demanda
       'status': status.toJson(),
       if (motivoCancelamento != null) 'motivoCancelamento': motivoCancelamento,
       'prioridade': prioridade.toJson(),
-      if (sprint != null) 'sprint': sprint,
       'tempoEstimadoMinutos': tempoEstimadoMinutos,
       'tempoExecutadoMinutos': tempoExecutadoMinutos,
       if (observacoes != null) 'observacoes': observacoes,
@@ -228,7 +221,6 @@ class _DemandaImpl extends Demanda {
     required _i2.DemandaStatus status,
     String? motivoCancelamento,
     required _i3.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     required int tempoExecutadoMinutos,
     String? observacoes,
@@ -244,7 +236,6 @@ class _DemandaImpl extends Demanda {
          status: status,
          motivoCancelamento: motivoCancelamento,
          prioridade: prioridade,
-         sprint: sprint,
          tempoEstimadoMinutos: tempoEstimadoMinutos,
          tempoExecutadoMinutos: tempoExecutadoMinutos,
          observacoes: observacoes,
@@ -266,7 +257,6 @@ class _DemandaImpl extends Demanda {
     _i2.DemandaStatus? status,
     Object? motivoCancelamento = _Undefined,
     _i3.Prioridade? prioridade,
-    Object? sprint = _Undefined,
     int? tempoEstimadoMinutos,
     int? tempoExecutadoMinutos,
     Object? observacoes = _Undefined,
@@ -285,7 +275,6 @@ class _DemandaImpl extends Demanda {
           ? motivoCancelamento
           : this.motivoCancelamento,
       prioridade: prioridade ?? this.prioridade,
-      sprint: sprint is String? ? sprint : this.sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos ?? this.tempoEstimadoMinutos,
       tempoExecutadoMinutos:
           tempoExecutadoMinutos ?? this.tempoExecutadoMinutos,
@@ -337,11 +326,6 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
     _i3.Prioridade value,
   ) => _i1.ColumnValue(
     table.prioridade,
-    value,
-  );
-
-  _i1.ColumnValue<String, String> sprint(String? value) => _i1.ColumnValue(
-    table.sprint,
     value,
   );
 
@@ -412,10 +396,6 @@ class DemandaTable extends _i1.Table<int?> {
       this,
       _i1.EnumSerialization.byName,
     );
-    sprint = _i1.ColumnString(
-      'sprint',
-      this,
-    );
     tempoEstimadoMinutos = _i1.ColumnInt(
       'tempoEstimadoMinutos',
       this,
@@ -458,8 +438,6 @@ class DemandaTable extends _i1.Table<int?> {
 
   late final _i1.ColumnEnum<_i3.Prioridade> prioridade;
 
-  late final _i1.ColumnString sprint;
-
   late final _i1.ColumnInt tempoEstimadoMinutos;
 
   late final _i1.ColumnInt tempoExecutadoMinutos;
@@ -482,7 +460,6 @@ class DemandaTable extends _i1.Table<int?> {
     status,
     motivoCancelamento,
     prioridade,
-    sprint,
     tempoEstimadoMinutos,
     tempoExecutadoMinutos,
     observacoes,

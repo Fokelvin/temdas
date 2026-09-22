@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
@@ -34,7 +35,18 @@ import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demandas
     as _i12;
 import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demanda_request.dart'
     as _i13;
-import 'protocol.dart' as _i14;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i14;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
+    as _i15;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_create_request.dart'
+    as _i16;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_update_request.dart'
+    as _i17;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_response.dart'
+    as _i18;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
+    as _i19;
+import 'protocol.dart' as _i20;
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -211,6 +223,137 @@ class EndpointRelatorio extends _i1.EndpointRef {
   );
 }
 
+/// {@category Endpoint}
+class EndpointSprint extends _i1.EndpointRef {
+  EndpointSprint(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'sprint';
+
+  _i2.Future<List<_i14.Sprint>> listarSprints() =>
+      caller.callServerEndpoint<List<_i14.Sprint>>(
+        'sprint',
+        'listarSprints',
+        {},
+      );
+
+  _i2.Future<_i14.Sprint> buscarSprintPorId(int id) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'buscarSprintPorId',
+        {'id': id},
+      );
+
+  _i2.Future<List<_i15.SprintDemanda>> listarDemandasDaSprint(int sprintId) =>
+      caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+        'sprint',
+        'listarDemandasDaSprint',
+        {'sprintId': sprintId},
+      );
+
+  _i2.Future<_i14.Sprint> criarSprint(_i16.SprintCreateRequest request) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'criarSprint',
+        {'request': request},
+      );
+
+  _i2.Future<_i14.Sprint> atualizarSprint(_i17.SprintUpdateRequest request) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'atualizarSprint',
+        {'request': request},
+      );
+
+  _i2.Future<_i14.Sprint> ativarSprint(int id) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'ativarSprint',
+        {'id': id},
+      );
+
+  _i2.Future<_i14.Sprint> cancelarSprint(int id) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'cancelarSprint',
+        {'id': id},
+      );
+
+  _i2.Future<_i18.SprintConclusaoResponse> concluirSprint(int id) =>
+      caller.callServerEndpoint<_i18.SprintConclusaoResponse>(
+        'sprint',
+        'concluirSprint',
+        {'id': id},
+      );
+
+  _i2.Future<_i18.SprintConclusaoResponse> obterResumoConclusaoSprint(int id) =>
+      caller.callServerEndpoint<_i18.SprintConclusaoResponse>(
+        'sprint',
+        'obterResumoConclusaoSprint',
+        {'id': id},
+      );
+
+  _i2.Future<_i19.SprintIndicadores> calcularIndicadoresSprint(int id) =>
+      caller.callServerEndpoint<_i19.SprintIndicadores>(
+        'sprint',
+        'calcularIndicadoresSprint',
+        {'id': id},
+      );
+
+  _i2.Future<bool> excluirSprint(int id) => caller.callServerEndpoint<bool>(
+    'sprint',
+    'excluirSprint',
+    {'id': id},
+  );
+
+  _i2.Future<_i14.Sprint> reabrirSprint(int id) =>
+      caller.callServerEndpoint<_i14.Sprint>(
+        'sprint',
+        'reabrirSprint',
+        {'id': id},
+      );
+
+  _i2.Future<List<_i15.SprintDemanda>> vincularDemanda(
+    int sprintId,
+    int demandaId,
+  ) => caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+    'sprint',
+    'vincularDemanda',
+    {
+      'sprintId': sprintId,
+      'demandaId': demandaId,
+    },
+  );
+
+  /// Vincula várias Demandas como uma única operação atômica.
+  ///
+  /// A propagação da árvore, os locks e as validações continuam
+  /// concentrados no serviço. Qualquer falha aborta a transação inteira.
+  _i2.Future<List<_i15.SprintDemanda>> vincularDemandas(
+    int sprintId,
+    List<int> demandaIds,
+  ) => caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+    'sprint',
+    'vincularDemandas',
+    {
+      'sprintId': sprintId,
+      'demandaIds': demandaIds,
+    },
+  );
+
+  _i2.Future<bool> desvincularDemanda(
+    int sprintId,
+    int demandaId,
+  ) => caller.callServerEndpoint<bool>(
+    'sprint',
+    'desvincularDemanda',
+    {
+      'sprintId': sprintId,
+      'demandaId': demandaId,
+    },
+  );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -231,7 +374,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i14.Protocol(),
+         _i20.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -244,6 +387,7 @@ class Client extends _i1.ServerpodClientShared {
     greeting = EndpointGreeting(this);
     registroTempo = EndpointRegistroTempo(this);
     relatorio = EndpointRelatorio(this);
+    sprint = EndpointSprint(this);
   }
 
   late final EndpointDemanda demanda;
@@ -254,12 +398,15 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointRelatorio relatorio;
 
+  late final EndpointSprint sprint;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'demanda': demanda,
     'greeting': greeting,
     'registroTempo': registroTempo,
     'relatorio': relatorio,
+    'sprint': sprint,
   };
 
   @override

@@ -10,25 +10,31 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../demandas/demanda_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
 import '../registros_tempo/registro_tempo_endpoint.dart' as _i4;
 import '../relatorios/relatorio_endpoint.dart' as _i5;
+import '../sprints/sprint_endpoint.dart' as _i6;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
-    as _i6;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i7;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i8;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i9;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i10;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i11;
-import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
     as _i12;
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+    as _i13;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
+    as _i14;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+    as _i15;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -58,6 +64,12 @@ class Endpoints extends _i1.EndpointDispatch {
           'relatorio',
           null,
         ),
+      'sprint': _i6.SprintEndpoint()
+        ..initialize(
+          server,
+          'sprint',
+          null,
+        ),
     };
     connectors['demanda'] = _i1.EndpointConnector(
       name: 'demanda',
@@ -73,7 +85,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'status': _i1.ParameterDescription(
               name: 'status',
-              type: _i1.getType<_i6.DemandaStatus>(),
+              type: _i1.getType<_i7.DemandaStatus>(),
               nullable: false,
             ),
             'motivoCancelamento': _i1.ParameterDescription(
@@ -143,7 +155,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i7.DemandaMovimentacaoRequest>(),
+              type: _i1.getType<_i8.DemandaMovimentacaoRequest>(),
               nullable: false,
             ),
           },
@@ -162,7 +174,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i8.DemandaCreateRequest>(),
+              type: _i1.getType<_i9.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -210,7 +222,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i9.DemandaUpdateRequest>(),
+              type: _i1.getType<_i10.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -297,7 +309,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i10.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i11.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },
@@ -317,7 +329,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i11.RegistroTempoUpdateRequest>(),
+              type: _i1.getType<_i12.RegistroTempoUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -409,7 +421,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i12.RelatorioDemandaRequest>(),
+              type: _i1.getType<_i13.RelatorioDemandaRequest>(),
               nullable: false,
             ),
           },
@@ -421,6 +433,306 @@ class Endpoints extends _i1.EndpointDispatch {
                   .gerarRelatorioDemandas(
                     session,
                     params['request'],
+                  ),
+        ),
+      },
+    );
+    connectors['sprint'] = _i1.EndpointConnector(
+      name: 'sprint',
+      endpoint: endpoints['sprint']!,
+      methodConnectors: {
+        'listarSprints': _i1.MethodConnector(
+          name: 'listarSprints',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+                  .listarSprints(session),
+        ),
+        'buscarSprintPorId': _i1.MethodConnector(
+          name: 'buscarSprintPorId',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).buscarSprintPorId(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'listarDemandasDaSprint': _i1.MethodConnector(
+          name: 'listarDemandasDaSprint',
+          params: {
+            'sprintId': _i1.ParameterDescription(
+              name: 'sprintId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+                  .listarDemandasDaSprint(
+                    session,
+                    params['sprintId'],
+                  ),
+        ),
+        'criarSprint': _i1.MethodConnector(
+          name: 'criarSprint',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i14.SprintCreateRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).criarSprint(
+                    session,
+                    params['request'],
+                  ),
+        ),
+        'atualizarSprint': _i1.MethodConnector(
+          name: 'atualizarSprint',
+          params: {
+            'request': _i1.ParameterDescription(
+              name: 'request',
+              type: _i1.getType<_i15.SprintUpdateRequest>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).atualizarSprint(
+                    session,
+                    params['request'],
+                  ),
+        ),
+        'ativarSprint': _i1.MethodConnector(
+          name: 'ativarSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).ativarSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'cancelarSprint': _i1.MethodConnector(
+          name: 'cancelarSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).cancelarSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'concluirSprint': _i1.MethodConnector(
+          name: 'concluirSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).concluirSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'obterResumoConclusaoSprint': _i1.MethodConnector(
+          name: 'obterResumoConclusaoSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+                  .obterResumoConclusaoSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'calcularIndicadoresSprint': _i1.MethodConnector(
+          name: 'calcularIndicadoresSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+                  .calcularIndicadoresSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'excluirSprint': _i1.MethodConnector(
+          name: 'excluirSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).excluirSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'reabrirSprint': _i1.MethodConnector(
+          name: 'reabrirSprint',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).reabrirSprint(
+                    session,
+                    params['id'],
+                  ),
+        ),
+        'vincularDemanda': _i1.MethodConnector(
+          name: 'vincularDemanda',
+          params: {
+            'sprintId': _i1.ParameterDescription(
+              name: 'sprintId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'demandaId': _i1.ParameterDescription(
+              name: 'demandaId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).vincularDemanda(
+                    session,
+                    params['sprintId'],
+                    params['demandaId'],
+                  ),
+        ),
+        'vincularDemandas': _i1.MethodConnector(
+          name: 'vincularDemandas',
+          params: {
+            'sprintId': _i1.ParameterDescription(
+              name: 'sprintId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'demandaIds': _i1.ParameterDescription(
+              name: 'demandaIds',
+              type: _i1.getType<List<int>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['sprint'] as _i6.SprintEndpoint).vincularDemandas(
+                    session,
+                    params['sprintId'],
+                    params['demandaIds'],
+                  ),
+        ),
+        'desvincularDemanda': _i1.MethodConnector(
+          name: 'desvincularDemanda',
+          params: {
+            'sprintId': _i1.ParameterDescription(
+              name: 'sprintId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'demandaId': _i1.ParameterDescription(
+              name: 'demandaId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+                  .desvincularDemanda(
+                    session,
+                    params['sprintId'],
+                    params['demandaId'],
                   ),
         ),
       },

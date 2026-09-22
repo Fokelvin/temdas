@@ -44,10 +44,12 @@ class DemandaDetalhePage extends StatelessWidget {
 
 Future<void> mostrarDetalhesDemandaDialog(
   BuildContext context,
-  int demandaId,
-) => showDialog<void>(
+  int demandaId, {
+  DemandaDetalheViewModel? viewModel,
+}) => showDialog<void>(
   context: context,
   builder: (dialogContext) => Dialog(
+    key: const ValueKey('demanda-detalhe-dialog'),
     child: SizedBox(
       width: 1040,
       height: MediaQuery.sizeOf(dialogContext).height * .85,
@@ -83,6 +85,7 @@ Future<void> mostrarDetalhesDemandaDialog(
           Expanded(
             child: _DemandaDetalheConteudo(
               demandaId: demandaId,
+              viewModel: viewModel,
               onVoltar: () => Navigator.pop(dialogContext),
               onAbrirDemanda: (id) {
                 if (id == null) return;
@@ -318,10 +321,6 @@ class _Informacoes extends StatelessWidget {
       (label: 'ID', valor: '#${demanda.id ?? '—'}'),
       (label: 'Status', valor: _statusLabel(demanda.status)),
       (label: 'Prioridade', valor: _prioridadeLabel(demanda.prioridade)),
-      (
-        label: 'Sprint',
-        valor: _textoOuFallback(demanda.sprint, 'Não informada'),
-      ),
       (
         label: 'Tempo estimado',
         valor: _formatarDuracao(demanda.tempoEstimadoMinutos),

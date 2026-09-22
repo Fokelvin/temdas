@@ -1,0 +1,8 @@
+enum: SprintStatus
+serialized: byName
+default: planejada
+values:
+  - planejada
+  - ativa
+  - concluida
+  - cancelada

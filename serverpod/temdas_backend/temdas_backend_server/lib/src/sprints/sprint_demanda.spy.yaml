@@ -1,0 +1,9 @@
+class: SprintDemanda
+table: sprints_demandas
+fields:
+  sprintId: int, relation(parent=sprints, onDelete=Cascade)
+  demandaId: int, relation(parent=demandas, onDelete=Cascade)
+indexes:
+  sprints_demandas_sprint_demanda_idx:
+    fields: sprintId, demandaId
+    unique: true

@@ -1,12 +1,14 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../sprints/sprint_demanda_service.dart';
 import 'demanda_status_service.dart';
 import 'demanda_ordem_service.dart';
 
 class DemandaEndpoint extends Endpoint {
   final _statusService = DemandaStatusService();
   final _ordemService = DemandaOrdemService();
+  final _sprintDemandaService = SprintDemandaService();
 
   Future<Demanda> alterarStatusDemanda(
     Session session,
@@ -56,6 +58,7 @@ class DemandaEndpoint extends Endpoint {
 
     final demandaCriada = await session.db.transaction((transaction) async {
       if (request.demandaPaiId case final demandaPaiId?) {
+        await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
         final demandaPai = await Demanda.db.findById(
           session,
           demandaPaiId,
@@ -80,7 +83,6 @@ class DemandaEndpoint extends Endpoint {
         descricao: _normalizarTextoOpcional(request.descricao),
         status: DemandaStatus.aberta,
         prioridade: request.prioridade ?? Prioridade.media,
-        sprint: _normalizarTextoOpcional(request.sprint),
         tempoEstimadoMinutos: request.tempoEstimadoMinutos,
         tempoExecutadoMinutos: 0,
         observacoes: _normalizarTextoOpcional(request.observacoes),
@@ -89,11 +91,20 @@ class DemandaEndpoint extends Endpoint {
         concluidoEm: null,
       );
 
-      return Demanda.db.insertRow(
+      final demandaCriada = await Demanda.db.insertRow(
         session,
         demanda,
         transaction: transaction,
       );
+      if (request.demandaPaiId case final demandaPaiId?) {
+        await _sprintDemandaService.herdarVinculoAbertoDaDemandaPai(
+          session,
+          demandaPaiId: demandaPaiId,
+          demandaFilhaId: demandaCriada.id!,
+          transaction: transaction,
+        );
+      }
+      return demandaCriada;
     });
 
     session.log(
@@ -196,7 +207,6 @@ class DemandaEndpoint extends Endpoint {
           t.titulo(titulo),
           t.descricao(_normalizarTextoOpcional(request.descricao)),
           t.prioridade(request.prioridade),
-          t.sprint(_normalizarTextoOpcional(request.sprint)),
           t.tempoEstimadoMinutos(request.tempoEstimadoMinutos),
           t.observacoes(_normalizarTextoOpcional(request.observacoes)),
           t.atualizadoEm(DateTime.now().toUtc()),
@@ -220,29 +230,24 @@ class DemandaEndpoint extends Endpoint {
     int id,
   ) async {
     final excluida = await session.db.transaction((transaction) async {
-      final demanda = await Demanda.db.findById(
+      await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
+      final arvore = await _sprintDemandaService.carregarArvoreBloqueadaOuNula(
         session,
         id,
-        transaction: transaction,
-        lockMode: LockMode.forUpdate,
+        transaction,
       );
-
-      if (demanda == null) {
-        return false;
-      }
-
-      final filha = await Demanda.db.findFirstRow(
-        session,
-        where: (t) => t.demandaPaiId.equals(id),
-        transaction: transaction,
-      );
-
-      if (filha != null) {
+      if (arvore == null) return false;
+      if (arvore.length > 1) {
         throw Exception(
           'A demanda possui descendentes. Confirme a exclusão da árvore inteira.',
         );
       }
-
+      final demanda = arvore.single;
+      await _sprintDemandaService.validarSemHistoricoConcluido(
+        session,
+        demandaIds: [demanda.id!],
+        transaction: transaction,
+      );
       await Demanda.db.deleteRow(
         session,
         demanda,
@@ -262,20 +267,21 @@ class DemandaEndpoint extends Endpoint {
     int id,
   ) async {
     final excluida = await session.db.transaction((transaction) async {
-      final demandaRaiz = await Demanda.db.findById(
+      await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
+      final arvore = await _sprintDemandaService.carregarArvoreBloqueadaOuNula(
         session,
         id,
-        transaction: transaction,
-        lockMode: LockMode.forUpdate,
+        transaction,
       );
-
-      if (demandaRaiz == null) {
-        return false;
-      }
-
+      if (arvore == null) return false;
+      await _sprintDemandaService.validarSemHistoricoConcluido(
+        session,
+        demandaIds: arvore.map((demanda) => demanda.id!),
+        transaction: transaction,
+      );
       await Demanda.db.deleteRow(
         session,
-        demandaRaiz,
+        arvore.first,
         transaction: transaction,
       );
       return true;

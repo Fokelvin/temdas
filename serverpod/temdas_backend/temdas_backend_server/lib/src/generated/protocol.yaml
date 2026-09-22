@@ -19,3 +19,19 @@ registroTempo:
   - excluirRegistroTempo:
 relatorio:
   - gerarRelatorioDemandas:
+sprint:
+  - listarSprints:
+  - buscarSprintPorId:
+  - listarDemandasDaSprint:
+  - criarSprint:
+  - atualizarSprint:
+  - ativarSprint:
+  - cancelarSprint:
+  - concluirSprint:
+  - obterResumoConclusaoSprint:
+  - calcularIndicadoresSprint:
+  - excluirSprint:
+  - reabrirSprint:
+  - vincularDemanda:
+  - vincularDemandas:
+  - desvincularDemanda:

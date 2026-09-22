@@ -14,7 +14,6 @@ class DemandaRepository {
     int? demandaPaiId,
     String? descricao,
     backend.Prioridade? prioridade,
-    String? sprint,
     String? observacoes,
   }) {
     final request = backend.DemandaCreateRequest(
@@ -22,7 +21,6 @@ class DemandaRepository {
       titulo: titulo,
       descricao: descricao,
       prioridade: prioridade,
-      sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       observacoes: observacoes,
     );
@@ -37,7 +35,6 @@ class DemandaRepository {
     required backend.DemandaStatus status,
     String? motivoCancelamento,
     required backend.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) {
@@ -48,7 +45,6 @@ class DemandaRepository {
       status: status,
       motivoCancelamento: motivoCancelamento,
       prioridade: prioridade,
-      sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       observacoes: observacoes,
     );

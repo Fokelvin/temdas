@@ -144,7 +144,6 @@ void main() {
               status: DemandaStatus.concluida,
               motivoCancelamento: null,
               prioridade: Prioridade.alta,
-              sprint: filha.sprint,
               tempoEstimadoMinutos: filha.tempoEstimadoMinutos,
               observacoes: filha.observacoes,
             ),

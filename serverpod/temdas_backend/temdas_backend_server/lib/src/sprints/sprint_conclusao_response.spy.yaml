@@ -1,0 +1,5 @@
+class: SprintConclusaoResponse
+fields:
+  sprint: Sprint
+  quantidadeDemandasNaoConcluidas: int
+  indicadores: SprintIndicadores

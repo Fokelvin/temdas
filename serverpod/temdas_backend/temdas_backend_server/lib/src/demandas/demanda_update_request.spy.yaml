@@ -6,6 +6,5 @@ fields:
   status: DemandaStatus
   motivoCancelamento: String?
   prioridade: Prioridade
-  sprint: String?
   tempoEstimadoMinutos: int
   observacoes: String?

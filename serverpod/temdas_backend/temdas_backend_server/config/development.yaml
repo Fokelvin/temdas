@@ -29,11 +29,11 @@ webServer:
 
 # This is the database setup for your server.
 database:
-  host: aws-0-ca-central-1.pooler.supabase.com
-  port: 5432
-  name: postgres
-  user: postgres.ddzwawlamjnzwjjxuava
-  requireSsl: true
+  host: localhost
+  port: 8090
+  name: temdas_backend
+  user: postgres
+  requireSsl: false
   maxConnectionCount: 10
 
 # This is the setup for Redis.

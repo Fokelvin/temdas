@@ -56,7 +56,6 @@ Future<void> main() async {
         descricao: concluida.descricao,
         status: backend.DemandaStatus.aberta,
         prioridade: concluida.prioridade,
-        sprint: concluida.sprint,
         tempoEstimadoMinutos: concluida.tempoEstimadoMinutos,
         observacoes: concluida.observacoes,
       ),

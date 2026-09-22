@@ -28,7 +28,6 @@ class AtualizacaoDemandaCapturada {
     required this.status,
     this.motivoCancelamento,
     required this.prioridade,
-    required this.sprint,
     required this.tempoEstimadoMinutos,
     required this.observacoes,
   });
@@ -39,7 +38,6 @@ class AtualizacaoDemandaCapturada {
   final backend.DemandaStatus status;
   final String? motivoCancelamento;
   final backend.Prioridade prioridade;
-  final String? sprint;
   final int tempoEstimadoMinutos;
   final String? observacoes;
 }
@@ -85,6 +83,8 @@ class FakeDemandaRepository implements DemandaRepository {
   bool resultadoExclusao = true;
   bool resultadoExclusaoArvore = true;
   Object? erroAoListar;
+  Object? erroAoExcluir;
+  Object? erroAoExcluirArvore;
   Completer<backend.Demanda>? respostaCriarPendente;
   Completer<backend.Demanda>? respostaAtualizarPendente;
   Completer<backend.Demanda>? respostaAlterarStatusPendente;
@@ -102,7 +102,6 @@ class FakeDemandaRepository implements DemandaRepository {
     int? demandaPaiId,
     String? descricao,
     backend.Prioridade? prioridade,
-    String? sprint,
     String? observacoes,
   }) async {
     chamadasCriar++;
@@ -126,7 +125,6 @@ class FakeDemandaRepository implements DemandaRepository {
       descricao: descricao,
       status: backend.DemandaStatus.aberta,
       prioridade: prioridade ?? backend.Prioridade.media,
-      sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       tempoExecutadoMinutos: 0,
       observacoes: observacoes,
@@ -166,7 +164,6 @@ class FakeDemandaRepository implements DemandaRepository {
     required backend.DemandaStatus status,
     String? motivoCancelamento,
     required backend.Prioridade prioridade,
-    String? sprint,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) async {
@@ -178,7 +175,6 @@ class FakeDemandaRepository implements DemandaRepository {
       status: status,
       motivoCancelamento: motivoCancelamento,
       prioridade: prioridade,
-      sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       observacoes: observacoes,
     );
@@ -194,7 +190,6 @@ class FakeDemandaRepository implements DemandaRepository {
       status: status,
       motivoCancelamento: motivoCancelamento ?? atual.motivoCancelamento,
       prioridade: prioridade,
-      sprint: sprint,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
       observacoes: observacoes,
       atualizadoEm: DateTime.utc(2026, 9, 9, 13),
@@ -278,6 +273,7 @@ class FakeDemandaRepository implements DemandaRepository {
   Future<bool> excluirDemanda(int id) async {
     chamadasExcluir++;
     ultimoIdExcluido = id;
+    if (erroAoExcluir case final erro?) throw erro;
     if (respostaExcluirPendente case final resposta?) return resposta.future;
     if (!resultadoExclusao) return false;
 
@@ -290,6 +286,7 @@ class FakeDemandaRepository implements DemandaRepository {
   Future<bool> excluirArvoreDemanda(int id) async {
     chamadasExcluirArvore++;
     ultimoIdArvoreExcluida = id;
+    if (erroAoExcluirArvore case final erro?) throw erro;
     if (respostaExcluirArvorePendente case final resposta?) {
       return resposta.future;
     }
@@ -425,7 +422,6 @@ backend.Demanda demandaFixture({
   String? descricao = 'Descrição inicial',
   backend.DemandaStatus status = backend.DemandaStatus.aberta,
   backend.Prioridade prioridade = backend.Prioridade.media,
-  String? sprint = 'Sprint preservada',
   int tempoEstimadoMinutos = 60,
   int tempoExecutadoMinutos = 30,
   String? observacoes = 'Observação preservada',
@@ -437,7 +433,6 @@ backend.Demanda demandaFixture({
     descricao: descricao,
     status: status,
     prioridade: prioridade,
-    sprint: sprint,
     tempoEstimadoMinutos: tempoEstimadoMinutos,
     tempoExecutadoMinutos: tempoExecutadoMinutos,
     observacoes: observacoes,

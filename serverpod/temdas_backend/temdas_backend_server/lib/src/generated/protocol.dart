@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import 'package:serverpod/protocol.dart' as _i2;
 import 'demandas/demanda.dart' as _i3;
@@ -30,10 +31,23 @@ import 'registros_tempo/registro_tempo_update_request.dart' as _i17;
 import 'relatorios/relatorio_demanda_item.dart' as _i18;
 import 'relatorios/relatorio_demanda_request.dart' as _i19;
 import 'relatorios/relatorio_demandas_response.dart' as _i20;
+import 'sprints/sprint.dart' as _i21;
+import 'sprints/sprint_conclusao_response.dart' as _i22;
+import 'sprints/sprint_create_request.dart' as _i23;
+import 'sprints/sprint_demanda.dart' as _i24;
+import 'sprints/sprint_erro_codigo.dart' as _i25;
+import 'sprints/sprint_exception.dart' as _i26;
+import 'sprints/sprint_indicadores.dart' as _i27;
+import 'sprints/sprint_status.dart' as _i28;
+import 'sprints/sprint_update_request.dart' as _i29;
 import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
-    as _i21;
+    as _i30;
 import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
-    as _i22;
+    as _i31;
+import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
+    as _i32;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
+    as _i33;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_movimentacao_request.dart';
@@ -52,6 +66,15 @@ export 'registros_tempo/registro_tempo_update_request.dart';
 export 'relatorios/relatorio_demanda_item.dart';
 export 'relatorios/relatorio_demanda_request.dart';
 export 'relatorios/relatorio_demandas_response.dart';
+export 'sprints/sprint.dart';
+export 'sprints/sprint_conclusao_response.dart';
+export 'sprints/sprint_create_request.dart';
+export 'sprints/sprint_demanda.dart';
+export 'sprints/sprint_erro_codigo.dart';
+export 'sprints/sprint_exception.dart';
+export 'sprints/sprint_indicadores.dart';
+export 'sprints/sprint_status.dart';
+export 'sprints/sprint_update_request.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -115,12 +138,6 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.text,
           isNullable: false,
           dartType: 'protocol:Prioridade',
-        ),
-        _i2.ColumnDefinition(
-          name: 'sprint',
-          columnType: _i2.ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
         ),
         _i2.ColumnDefinition(
           name: 'tempoEstimadoMinutos',
@@ -298,6 +315,169 @@ class Protocol extends _i1.SerializationManagerServer {
       ],
       managed: true,
     ),
+    _i2.TableDefinition(
+      name: 'sprints',
+      dartName: 'Sprint',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'sprints_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'nome',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'nomeNormalizado',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'dataInicio',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'dataFim',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'tempoPrevistoMinutos',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'status',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:SprintStatus',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'sprints_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'sprints_nome_normalizado_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'nomeNormalizado',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'sprints_demandas',
+      dartName: 'SprintDemanda',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'sprints_demandas_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'sprintId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'demandaId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'sprints_demandas_fk_0',
+          columns: ['sprintId'],
+          referenceTable: 'sprints',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'sprints_demandas_fk_1',
+          columns: ['demandaId'],
+          referenceTable: 'demandas',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'sprints_demandas_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'sprints_demandas_sprint_demanda_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'sprintId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'demandaId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
     ..._i2.Protocol.targetTableDefinitions,
   ];
 
@@ -381,6 +561,33 @@ class Protocol extends _i1.SerializationManagerServer {
     }
     if (t == _i20.RelatorioDemandasResponse) {
       return _i20.RelatorioDemandasResponse.fromJson(data) as T;
+    }
+    if (t == _i21.Sprint) {
+      return _i21.Sprint.fromJson(data) as T;
+    }
+    if (t == _i22.SprintConclusaoResponse) {
+      return _i22.SprintConclusaoResponse.fromJson(data) as T;
+    }
+    if (t == _i23.SprintCreateRequest) {
+      return _i23.SprintCreateRequest.fromJson(data) as T;
+    }
+    if (t == _i24.SprintDemanda) {
+      return _i24.SprintDemanda.fromJson(data) as T;
+    }
+    if (t == _i25.SprintErroCodigo) {
+      return _i25.SprintErroCodigo.fromJson(data) as T;
+    }
+    if (t == _i26.SprintException) {
+      return _i26.SprintException.fromJson(data) as T;
+    }
+    if (t == _i27.SprintIndicadores) {
+      return _i27.SprintIndicadores.fromJson(data) as T;
+    }
+    if (t == _i28.SprintStatus) {
+      return _i28.SprintStatus.fromJson(data) as T;
+    }
+    if (t == _i29.SprintUpdateRequest) {
+      return _i29.SprintUpdateRequest.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.Demanda?>()) {
       return (data != null ? _i3.Demanda.fromJson(data) : null) as T;
@@ -467,21 +674,64 @@ class Protocol extends _i1.SerializationManagerServer {
               : null)
           as T;
     }
+    if (t == _i1.getType<_i21.Sprint?>()) {
+      return (data != null ? _i21.Sprint.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i22.SprintConclusaoResponse?>()) {
+      return (data != null ? _i22.SprintConclusaoResponse.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i23.SprintCreateRequest?>()) {
+      return (data != null ? _i23.SprintCreateRequest.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i24.SprintDemanda?>()) {
+      return (data != null ? _i24.SprintDemanda.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i25.SprintErroCodigo?>()) {
+      return (data != null ? _i25.SprintErroCodigo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i26.SprintException?>()) {
+      return (data != null ? _i26.SprintException.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i27.SprintIndicadores?>()) {
+      return (data != null ? _i27.SprintIndicadores.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i28.SprintStatus?>()) {
+      return (data != null ? _i28.SprintStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i29.SprintUpdateRequest?>()) {
+      return (data != null ? _i29.SprintUpdateRequest.fromJson(data) : null)
+          as T;
+    }
     if (t == List<_i18.RelatorioDemandaItem>) {
       return (data as List)
               .map((e) => deserialize<_i18.RelatorioDemandaItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i21.Demanda>) {
-      return (data as List).map((e) => deserialize<_i21.Demanda>(e)).toList()
+    if (t == List<_i30.Demanda>) {
+      return (data as List).map((e) => deserialize<_i30.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i22.RegistroTempo>) {
+    if (t == List<_i31.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i22.RegistroTempo>(e))
+              .map((e) => deserialize<_i31.RegistroTempo>(e))
               .toList()
           as T;
+    }
+    if (t == List<_i32.Sprint>) {
+      return (data as List).map((e) => deserialize<_i32.Sprint>(e)).toList()
+          as T;
+    }
+    if (t == List<_i33.SprintDemanda>) {
+      return (data as List)
+              .map((e) => deserialize<_i33.SprintDemanda>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     try {
       return _i2.Protocol().deserialize<T>(data, t);
@@ -509,6 +759,15 @@ class Protocol extends _i1.SerializationManagerServer {
       _i18.RelatorioDemandaItem => 'RelatorioDemandaItem',
       _i19.RelatorioDemandaRequest => 'RelatorioDemandaRequest',
       _i20.RelatorioDemandasResponse => 'RelatorioDemandasResponse',
+      _i21.Sprint => 'Sprint',
+      _i22.SprintConclusaoResponse => 'SprintConclusaoResponse',
+      _i23.SprintCreateRequest => 'SprintCreateRequest',
+      _i24.SprintDemanda => 'SprintDemanda',
+      _i25.SprintErroCodigo => 'SprintErroCodigo',
+      _i26.SprintException => 'SprintException',
+      _i27.SprintIndicadores => 'SprintIndicadores',
+      _i28.SprintStatus => 'SprintStatus',
+      _i29.SprintUpdateRequest => 'SprintUpdateRequest',
       _ => null,
     };
   }
@@ -562,6 +821,24 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'RelatorioDemandaRequest';
       case _i20.RelatorioDemandasResponse():
         return 'RelatorioDemandasResponse';
+      case _i21.Sprint():
+        return 'Sprint';
+      case _i22.SprintConclusaoResponse():
+        return 'SprintConclusaoResponse';
+      case _i23.SprintCreateRequest():
+        return 'SprintCreateRequest';
+      case _i24.SprintDemanda():
+        return 'SprintDemanda';
+      case _i25.SprintErroCodigo():
+        return 'SprintErroCodigo';
+      case _i26.SprintException():
+        return 'SprintException';
+      case _i27.SprintIndicadores():
+        return 'SprintIndicadores';
+      case _i28.SprintStatus():
+        return 'SprintStatus';
+      case _i29.SprintUpdateRequest():
+        return 'SprintUpdateRequest';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -630,6 +907,33 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'RelatorioDemandasResponse') {
       return deserialize<_i20.RelatorioDemandasResponse>(data['data']);
     }
+    if (dataClassName == 'Sprint') {
+      return deserialize<_i21.Sprint>(data['data']);
+    }
+    if (dataClassName == 'SprintConclusaoResponse') {
+      return deserialize<_i22.SprintConclusaoResponse>(data['data']);
+    }
+    if (dataClassName == 'SprintCreateRequest') {
+      return deserialize<_i23.SprintCreateRequest>(data['data']);
+    }
+    if (dataClassName == 'SprintDemanda') {
+      return deserialize<_i24.SprintDemanda>(data['data']);
+    }
+    if (dataClassName == 'SprintErroCodigo') {
+      return deserialize<_i25.SprintErroCodigo>(data['data']);
+    }
+    if (dataClassName == 'SprintException') {
+      return deserialize<_i26.SprintException>(data['data']);
+    }
+    if (dataClassName == 'SprintIndicadores') {
+      return deserialize<_i27.SprintIndicadores>(data['data']);
+    }
+    if (dataClassName == 'SprintStatus') {
+      return deserialize<_i28.SprintStatus>(data['data']);
+    }
+    if (dataClassName == 'SprintUpdateRequest') {
+      return deserialize<_i29.SprintUpdateRequest>(data['data']);
+    }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
@@ -650,6 +954,10 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i3.Demanda.t;
       case _i15.RegistroTempo:
         return _i15.RegistroTempo.t;
+      case _i21.Sprint:
+        return _i21.Sprint.t;
+      case _i24.SprintDemanda:
+        return _i24.SprintDemanda.t;
     }
     return null;
   }

@@ -1,0 +1,7 @@
+class: SprintUpdateRequest
+fields:
+  id: int
+  nome: String
+  dataInicio: DateTime
+  dataFim: DateTime
+  tempoPrevistoMinutos: int?

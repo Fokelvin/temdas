@@ -1,0 +1,6 @@
+class: SprintIndicadores
+fields:
+  tempoPrevistoMinutos: int?
+  tempoTotalEstimadoMinutos: int
+  tempoExecutadoMinutos: int
+  diferencaExecutadoEstimadoMinutos: int
