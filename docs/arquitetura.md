@@ -75,8 +75,13 @@ demandaPaiId = id    → demanda filha
 
 Campos funcionais da V1 incluem título, descrição, status, tempo estimado,
 tempo executado e vínculo com a mãe. Prioridade permanece no modelo e na UI
-existente, sem novas regras. Sprint e observações permanecem persistidas, mas
-sem funcionalidades próprias; seus valores são preservados durante a edição.
+existente, sem novas regras. Observações permanecem persistidas, mas sem
+funcionalidades próprias e são preservadas durante a edição.
+
+A Demanda não possui campo `sprint`. Quando a integração for exibida na tela
+da Demanda, a Sprint aberta atual deverá ser obtida pelo vínculo
+`SprintDemanda`; sem vínculo aberto, a interface deverá mostrar **Sem Sprint**.
+Não recriar o campo `sprint` em `Demanda`.
 
 ### RegistroTempo
 
@@ -126,8 +131,8 @@ vínculo `registros_tempo.demandaId → demandas.id` também usa cascade.
   exclusão de lançamentos.
 - **Detalhes da demanda:** dados completos, mãe, filhas, histórico de tempo e
   comparação de estimado versus executado.
-- **Sprint:** permanece apenas como navegação preexistente; não recebe fluxo
-  funcional na V1.
+- **Sprint:** planejamento e gerenciamento de Sprints, vínculos com Demandas,
+  conclusão e indicadores persistidos pelo backend.
 
 ## Endpoints de domínio
 
@@ -183,5 +188,5 @@ o client e a migration gerados e nunca editar esses artefatos manualmente.
 ## Fora da V1
 
 Autenticação, timer automático, n8n, Google Calendar, notificações, tags,
-anexos, dashboard avançado, histórico de alterações, fluxo de Sprint e promoção
-explícita de demanda filha para raiz permanecem fora do escopo.
+anexos, dashboard avançado, histórico de alterações e promoção explícita de
+demanda filha para raiz permanecem fora do escopo.

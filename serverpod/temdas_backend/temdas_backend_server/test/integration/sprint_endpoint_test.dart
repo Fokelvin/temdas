@@ -1142,6 +1142,20 @@ void main() {
           sprint.id!,
         );
 
+        final sprintSeguinte = await endpoints.sprint.criarSprint(
+          sessionBuilder,
+          SprintCreateRequest(
+            nome: '$prefixo cancelamento seguinte',
+            dataInicio: DateTime.utc(2027, 7, 6),
+            dataFim: DateTime.utc(2027, 7, 10),
+          ),
+        );
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          sprintSeguinte.id!,
+          demanda.id!,
+        );
+
         expect(cancelada.status, SprintStatus.cancelada);
         expect(
           await SprintDemanda.db.find(
@@ -1158,6 +1172,79 @@ void main() {
           await RegistroTempo.db.findById(sessionBuilder.build(), registro.id!),
           isNotNull,
         );
+        expect(
+          await SprintDemanda.db.find(
+            sessionBuilder.build(),
+            where: (t) =>
+                t.sprintId.equals(sprintSeguinte.id!) &
+                t.demandaId.equals(demanda.id!),
+          ),
+          hasLength(1),
+        );
+      },
+    );
+
+    test(
+      'calcula somente registros no período inclusivo da sprint',
+      () async {
+        final inicio = DateTime.utc(2027, 9, 10);
+        final fim = DateTime.utc(2027, 9, 12);
+        final sprint = await endpoints.sprint.criarSprint(
+          sessionBuilder,
+          SprintCreateRequest(
+            nome: '$prefixo período inclusivo',
+            dataInicio: inicio,
+            dataFim: fim,
+          ),
+        );
+        final demanda = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo período inclusivo demanda',
+            tempoEstimadoMinutos: 60,
+          ),
+        );
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          sprint.id!,
+          demanda.id!,
+        );
+
+        final session = sessionBuilder.build();
+        for (final registro in [
+          RegistroTempo(
+            demandaId: demanda.id!,
+            inicioEm: inicio.subtract(const Duration(minutes: 1)),
+            duracaoMinutos: 1,
+            criadoEm: inicio,
+          ),
+          RegistroTempo(
+            demandaId: demanda.id!,
+            inicioEm: inicio,
+            duracaoMinutos: 10,
+            criadoEm: inicio,
+          ),
+          RegistroTempo(
+            demandaId: demanda.id!,
+            inicioEm: fim.add(const Duration(hours: 23, minutes: 59)),
+            duracaoMinutos: 20,
+            criadoEm: fim,
+          ),
+          RegistroTempo(
+            demandaId: demanda.id!,
+            inicioEm: fim.add(const Duration(days: 1)),
+            duracaoMinutos: 40,
+            criadoEm: fim,
+          ),
+        ]) {
+          await RegistroTempo.db.insertRow(session, registro);
+        }
+
+        final indicadores = await endpoints.sprint.calcularIndicadoresSprint(
+          sessionBuilder,
+          sprint.id!,
+        );
+        expect(indicadores.tempoExecutadoMinutos, 30);
       },
     );
 

@@ -4,14 +4,15 @@
 
 O TEMDAS é um sistema pessoal para organização de demandas e controle de tempo, com foco em acompanhar trabalho planejado e realizado de forma simples, visual e rastreável.
 
-A V1 consolida quatro capacidades principais:
+A V1 consolida cinco capacidades principais:
 
 - organizar demandas em uma estrutura hierárquica;
 - acompanhar o estado das demandas ao longo do fluxo de trabalho;
 - registrar tempo executado manualmente e comparar com o tempo estimado;
 - visualizar o trabalho e os lançamentos de tempo em diferentes contextos, incluindo board de demandas, agenda diária/semanal e detalhes da demanda.
+- planejar e gerenciar Sprints com vínculos de Demandas e indicadores.
 
-Sprint, automações externas e autenticação continuam fora do escopo funcional da V1.
+Automações externas e autenticação continuam fora do escopo funcional da V1.
 
 ---
 
@@ -63,7 +64,15 @@ A V1 deve permitir e já possui como núcleo funcional:
 
 Prioridade permanece presente no modelo e na interface existente, mas não constitui um eixo de evolução funcional da V1.
 
-Sprint e observações permanecem persistidas por compatibilidade com o modelo existente, mas não recebem fluxo funcional próprio nesta versão.
+Observações permanecem persistidas por compatibilidade com o modelo existente,
+mas não recebem fluxo funcional próprio nesta versão. A Demanda não possui
+campo `sprint`; vínculos com Sprints são mantidos por `SprintDemanda`.
+
+### 3.2 Sprint
+
+O planejamento e gerenciamento de Sprint foi implementado e homologado. A
+associação entre Demandas e Sprints é feita por `SprintDemanda`, preservando o
+histórico e sem duplicar o vínculo em `Demanda`.
 
 ---
 
@@ -374,8 +383,6 @@ Permanecem fora da V1:
 - anexos;
 - histórico persistente de alterações;
 - dashboard avançado;
-- fluxo funcional de Sprint;
-- planejamento de Sprint;
 - promoção explícita de demanda filha para raiz;
 - novas regras de prioridade;
 - banco local;
@@ -404,6 +411,7 @@ Design system                            ✅
 Board por status                         ✅
 Drag-and-drop de demandas                ✅
 Loading/feedback da movimentação         ✅
+Planejamento e gerenciamento de Sprint   ✅
 ```
 
 O fechamento da V1 deve se concentrar em:
@@ -415,6 +423,13 @@ O fechamento da V1 deve se concentrar em:
 - revisão responsiva e de densidade Normal/Compacta;
 - atualização e consolidação da documentação;
 - correções de bugs encontrados nessa validação.
+
+Próximo item de roadmap relacionado à Sprint:
+
+- exibir na Demanda a Sprint aberta atual à qual pertence;
+- exibir **Sem Sprint** quando não houver vínculo aberto;
+- obter a informação por `SprintDemanda`, sem recriar o campo `sprint` em
+  `Demanda`.
 
 Novas funcionalidades devem ser tratadas como pós-V1, salvo decisão explícita de mudança de escopo.
 
