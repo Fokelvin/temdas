@@ -385,9 +385,7 @@ void main() {
     },
   );
 
-  testWidgets('busca Demandas preservando contexto hierárquico no seletor', (
-    tester,
-  ) async {
+  testWidgets('busca somente Demandas raiz no seletor', (tester) async {
     await _configurarTela(tester);
     final resultado = await _abrirDetalhe(
       tester,
@@ -405,26 +403,20 @@ void main() {
       find.byKey(const ValueKey('selecionar-demanda-sprint-dialog')),
       findsOneWidget,
     );
+    expect(find.text('21 - Épico mobile'), findsOneWidget);
+    expect(find.text('22 - Ajustar formulário'), findsNothing);
     await tester.enterText(
       find.byKey(const ValueKey('buscar-demanda-sprint')),
-      'formulário',
+      'épico',
     );
     await tester.pumpAndSettle();
 
     expect(find.text('21 - Épico mobile'), findsOneWidget);
-    expect(find.text('22 - Ajustar formulário'), findsOneWidget);
+    expect(find.text('22 - Ajustar formulário'), findsNothing);
     expect(
       tester
           .widget<ListTile>(
             find.byKey(const ValueKey('candidata-demanda-sprint-21')),
-          )
-          .enabled,
-      isFalse,
-    );
-    expect(
-      tester
-          .widget<ListTile>(
-            find.byKey(const ValueKey('candidata-demanda-sprint-22')),
           )
           .enabled,
       isTrue,
@@ -462,6 +454,11 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
       await tester.pumpAndSettle();
+      expect(find.text('1h35 | + 1 demanda filha'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('candidata-demanda-sprint-32')),
+        findsNothing,
+      );
       await tester.tap(
         find.byKey(const ValueKey('candidata-demanda-sprint-31')),
       );
@@ -517,6 +514,75 @@ void main() {
     expect(resultado.repository.chamadasVinculoLote, 1);
     expect(resultado.repository.demandaIdsVinculadas, [61, 62]);
     expect(resultado.repository.chamadasVinculo, 0);
+  });
+
+  testWidgets('oculta raízes e árvores já vinculadas à Sprint atual', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final resultado = await _abrirDetalhe(
+      tester,
+      sprints: [_sprint()],
+      demandas: [
+        demandaFixture(id: 91, titulo: 'Já vinculada'),
+        demandaFixture(id: 92, demandaPaiId: 91, titulo: 'Filha vinculada'),
+        demandaFixture(id: 93, titulo: 'Disponível'),
+      ],
+      vinculosPorSprint: {
+        7: [
+          backend.SprintDemanda(id: 1, sprintId: 7, demandaId: 91),
+          backend.SprintDemanda(id: 2, sprintId: 7, demandaId: 92),
+        ],
+      },
+    );
+    addTearDown(resultado.viewModel.dispose);
+
+    await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('candidata-demanda-sprint-91')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('candidata-demanda-sprint-92')),
+      findsNothing,
+    );
+    final dialog = find.byKey(
+      const ValueKey('selecionar-demanda-sprint-dialog'),
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('91 - Já vinculada')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('93 - Disponível')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('exibe estado vazio quando todas as raízes já estão vinculadas', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final resultado = await _abrirDetalhe(
+      tester,
+      sprints: [_sprint()],
+      demandas: [demandaFixture(id: 94, titulo: 'Única raiz')],
+      vinculosPorSprint: {
+        7: [backend.SprintDemanda(id: 1, sprintId: 7, demandaId: 94)],
+      },
+    );
+    addTearDown(resultado.viewModel.dispose);
+
+    await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nenhuma Demanda encontrada.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('arvore-selecao-demandas-sprint')),
+      findsNothing,
+    );
   });
 
   testWidgets('desabilita Demanda já vinculada a outra Sprint aberta', (
@@ -584,6 +650,45 @@ void main() {
     expect(
       find.byKey(const ValueKey('selecionar-demanda-sprint-dialog')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('mostra a contagem recursiva de descendentes da raiz', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final resultado = await _abrirDetalhe(
+      tester,
+      sprints: [_sprint()],
+      demandas: [
+        demandaFixture(
+          id: 81,
+          titulo: 'Com descendentes',
+          tempoEstimadoMinutos: 60,
+        ),
+        demandaFixture(id: 82, demandaPaiId: 81, titulo: 'Filha'),
+        demandaFixture(id: 83, demandaPaiId: 82, titulo: 'Neta'),
+        demandaFixture(
+          id: 84,
+          titulo: 'Sem descendentes',
+          tempoEstimadoMinutos: 60,
+        ),
+      ],
+    );
+    addTearDown(resultado.viewModel.dispose);
+
+    await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1h | + 2 demandas filhas'), findsOneWidget);
+    expect(find.text('1h'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('candidata-demanda-sprint-82')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('candidata-demanda-sprint-83')),
+      findsNothing,
     );
   });
 

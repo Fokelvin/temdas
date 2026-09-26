@@ -29,11 +29,11 @@ webServer:
 
 # This is the database setup for your server.
 database:
-  host: localhost
-  port: 8090
-  name: temdas_backend
+  host: db.ddzwawlamjnzwjjxuava.supabase.co
+  port: 5432
+  name: postgres
   user: postgres
-  requireSsl: false
+  requireSsl: true
   maxConnectionCount: 10
 
 # This is the setup for Redis.

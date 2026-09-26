@@ -1765,66 +1765,47 @@ class _SelecionarDemandaSprintDialogState
     }
   }
 
-  List<({backend.Demanda demanda, int nivel, bool corresponde})>
+  List<({backend.Demanda demanda, Set<int> idsDaArvore, int descendentes})>
   _demandasVisiveis() {
     final porId = <int, backend.Demanda>{
       for (final demanda in widget.demandas)
         if (demanda.id != null) demanda.id!: demanda,
     };
     final consulta = _busca.trim().toLowerCase();
-    final correspondentes = <int>{};
-    if (consulta.isEmpty) {
-      correspondentes.addAll(porId.keys);
-    } else {
-      for (final demanda in widget.demandas) {
-        final id = demanda.id;
-        if (id == null) continue;
-        final texto = '${demanda.id} ${demanda.titulo}'.toLowerCase();
-        if (texto.contains(consulta)) correspondentes.add(id);
-      }
-    }
-
-    final incluidos = Set<int>.of(correspondentes);
-    for (final id in correspondentes) {
-      var paiId = porId[id]?.demandaPaiId;
-      final visitados = <int>{id};
-      while (paiId != null && visitados.add(paiId)) {
-        incluidos.add(paiId);
-        paiId = porId[paiId]?.demandaPaiId;
-      }
-    }
-
     final filhosPorPai = <int, List<int>>{};
-    for (final id in incluidos) {
+    for (final id in porId.keys) {
       final paiId = porId[id]?.demandaPaiId;
-      if (paiId != null && incluidos.contains(paiId)) {
+      if (paiId != null && porId.containsKey(paiId)) {
         filhosPorPai.putIfAbsent(paiId, () => []).add(id);
       }
     }
 
     final resultado =
-        <({backend.Demanda demanda, int nivel, bool corresponde})>[];
-    final visitados = <int>{};
-    void visitar(int id, int nivel) {
-      if (!visitados.add(id)) return;
-      final demanda = porId[id];
-      if (demanda == null) return;
+        <({backend.Demanda demanda, Set<int> idsDaArvore, int descendentes})>[];
+    for (final demanda in widget.demandas) {
+      final id = demanda.id;
+      if (id == null) continue;
+      final paiId = demanda.demandaPaiId;
+      if (paiId != null && porId.containsKey(paiId)) continue;
+
+      final texto = '${demanda.id} ${demanda.titulo}'.toLowerCase();
+      if (consulta.isNotEmpty && !texto.contains(consulta)) continue;
+
+      final idsDaArvore = <int>{};
+      void adicionar(int atualId) {
+        if (!idsDaArvore.add(atualId)) return;
+        for (final filha in filhosPorPai[atualId] ?? const <int>[]) {
+          adicionar(filha);
+        }
+      }
+
+      adicionar(id);
+      if (idsDaArvore.any(widget.idsJaVinculados.contains)) continue;
       resultado.add((
         demanda: demanda,
-        nivel: nivel,
-        corresponde: correspondentes.contains(id),
+        idsDaArvore: idsDaArvore,
+        descendentes: idsDaArvore.length - 1,
       ));
-      for (final filha in filhosPorPai[id] ?? const <int>[]) {
-        visitar(filha, nivel + 1);
-      }
-    }
-
-    for (final id in incluidos) {
-      final paiId = porId[id]?.demandaPaiId;
-      if (paiId == null || !incluidos.contains(paiId)) visitar(id, 0);
-    }
-    for (final id in incluidos) {
-      visitar(id, 0);
     }
     return resultado;
   }
@@ -1898,28 +1879,24 @@ class _SelecionarDemandaSprintDialogState
                         final linha = linhas[index];
                         final demanda = linha.demanda;
                         final id = demanda.id!;
-                        final outraSprint = _indisponiveis[id];
-                        final jaVinculada = widget.idsJaVinculados.contains(id);
+                        backend.Sprint? outraSprint;
+                        for (final idDaArvore in linha.idsDaArvore) {
+                          outraSprint ??= _indisponiveis[idDaArvore];
+                        }
                         final selecionavel =
-                            linha.corresponde &&
-                            !jaVinculada &&
-                            outraSprint == null &&
-                            !_verificandoDisponibilidade;
+                            outraSprint == null && !_verificandoDisponibilidade;
                         final selecionada = _selecionadas.contains(id);
-                        final tooltip = jaVinculada
-                            ? 'Já vinculada a esta Sprint'
-                            : outraSprint != null
+                        final tooltip = outraSprint != null
                             ? 'Já pertence à Sprint ${outraSprint.nome}'
-                            : linha.corresponde
-                            ? null
-                            : 'Selecione a Demanda correspondente à busca';
+                            : demanda.tempoEstimadoMinutos > 0
+                            ? 'Estimativa própria: ${_duracao(demanda.tempoEstimadoMinutos)}'
+                            : null;
                         return ListTile(
                           key: ValueKey('candidata-demanda-sprint-$id'),
                           enabled: selecionavel && !_enviando,
                           selected: selecionada,
-                          contentPadding: EdgeInsets.only(
-                            left: 8 + linha.nivel * 22,
-                            right: 8,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
                           ),
                           leading: Checkbox(
                             value: selecionada,
@@ -1947,7 +1924,12 @@ class _SelecionarDemandaSprintDialogState
                           trailing:
                               outraSprint == null &&
                                   demanda.tempoEstimadoMinutos > 0
-                              ? Text(_duracao(demanda.tempoEstimadoMinutos))
+                              ? Text(
+                                  _tempoDemandaRaiz(
+                                    demanda.tempoEstimadoMinutos,
+                                    linha.descendentes,
+                                  ),
+                                )
                               : null,
                           onTap: selecionavel && !_enviando
                               ? () => setState(() {
@@ -1998,6 +1980,13 @@ class _SelecionarDemandaSprintDialogState
         ),
       ],
     );
+  }
+
+  String _tempoDemandaRaiz(int minutos, int descendentes) {
+    final tempo = _duracao(minutos);
+    if (descendentes == 0) return tempo;
+    final rotulo = descendentes == 1 ? 'demanda filha' : 'demandas filhas';
+    return '$tempo | + $descendentes $rotulo';
   }
 }
 

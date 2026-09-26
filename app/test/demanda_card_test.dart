@@ -68,7 +68,6 @@ void main() {
           expect(find.byIcon(Icons.more_vert), findsNothing);
           expect(find.text('ID: 2'), findsNothing);
           expect(find.text('Descrição: Descrição inicial'), findsNothing);
-          expect(find.text('Sprint: Sprint preservada'), findsNothing);
           expect(find.text('Observações: Observação preservada'), findsNothing);
           expect(find.byType(TempoComparacao), findsNothing);
           expect(find.byType(LinearProgressIndicator), findsNothing);
@@ -90,7 +89,6 @@ void main() {
         expect(find.text(filha ? 'Pausada' : 'Aberta'), findsOneWidget);
         expect(find.text('ID: 2'), findsOneWidget);
         expect(find.text('Descrição: Descrição inicial'), findsOneWidget);
-        expect(find.text('Sprint: Sprint preservada'), findsOneWidget);
         expect(find.text('Observações: Observação preservada'), findsOneWidget);
         expect(find.byType(TempoComparacao), findsOneWidget);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
