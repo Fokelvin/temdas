@@ -15,4 +15,5 @@ values:
   - demandaFilhaSemMae
   - demandaFilhaComMaeVinculada
   - demandaNaoEncontrada
+  - usuarioDiferenteDaSprint
   - historicoSprintConcluida

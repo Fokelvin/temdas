@@ -40,14 +40,16 @@ import 'sprints/sprint_exception.dart' as _i26;
 import 'sprints/sprint_indicadores.dart' as _i27;
 import 'sprints/sprint_status.dart' as _i28;
 import 'sprints/sprint_update_request.dart' as _i29;
+import 'usuarios/email_whitelist.dart' as _i30;
+import 'usuarios/usuario.dart' as _i31;
 import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
-    as _i30;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
-    as _i31;
-import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
     as _i32;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
     as _i33;
+import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
+    as _i34;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
+    as _i35;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_movimentacao_request.dart';
@@ -75,6 +77,8 @@ export 'sprints/sprint_exception.dart';
 export 'sprints/sprint_indicadores.dart';
 export 'sprints/sprint_status.dart';
 export 'sprints/sprint_update_request.dart';
+export 'usuarios/email_whitelist.dart';
+export 'usuarios/usuario.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -96,6 +100,12 @@ class Protocol extends _i1.SerializationManagerServer {
           isNullable: false,
           dartType: 'int?',
           columnDefault: 'nextval(\'demandas_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'usuarioId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
         ),
         _i2.ColumnDefinition(
           name: 'demandaPaiId',
@@ -179,6 +189,16 @@ class Protocol extends _i1.SerializationManagerServer {
       foreignKeys: [
         _i2.ForeignKeyDefinition(
           constraintName: 'demandas_fk_0',
+          columns: ['usuarioId'],
+          referenceTable: 'usuarios',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'demandas_fk_1',
           columns: ['demandaPaiId'],
           referenceTable: 'demandas',
           referenceTableSchema: 'public',
@@ -213,6 +233,69 @@ class Protocol extends _i1.SerializationManagerServer {
           ],
           type: 'btree',
           isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'emails_whitelist',
+      dartName: 'EmailWhitelist',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'emails_whitelist_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'emailNormalizado',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'utilizadoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'emails_whitelist_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'emails_whitelist_email_normalizado_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'emailNormalizado',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
           isPrimary: false,
         ),
       ],
@@ -329,6 +412,12 @@ class Protocol extends _i1.SerializationManagerServer {
           columnDefault: 'nextval(\'sprints_id_seq\'::regclass)',
         ),
         _i2.ColumnDefinition(
+          name: 'usuarioId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
           name: 'nome',
           columnType: _i2.ColumnType.text,
           isNullable: false,
@@ -365,7 +454,18 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'protocol:SprintStatus',
         ),
       ],
-      foreignKeys: [],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'sprints_fk_0',
+          columns: ['usuarioId'],
+          referenceTable: 'usuarios',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
       indexes: [
         _i2.IndexDefinition(
           indexName: 'sprints_pkey',
@@ -384,6 +484,10 @@ class Protocol extends _i1.SerializationManagerServer {
           indexName: 'sprints_nome_normalizado_idx',
           tableSpace: null,
           elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'usuarioId',
+            ),
             _i2.IndexElementDefinition(
               type: _i2.IndexElementDefinitionType.column,
               definition: 'nomeNormalizado',
@@ -469,6 +573,63 @@ class Protocol extends _i1.SerializationManagerServer {
             _i2.IndexElementDefinition(
               type: _i2.IndexElementDefinitionType.column,
               definition: 'demandaId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'usuarios',
+      dartName: 'Usuario',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'usuarios_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'supabaseUserId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'usuarios_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'usuarios_supabase_user_id_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'supabaseUserId',
             ),
           ],
           type: 'btree',
@@ -589,6 +750,12 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i29.SprintUpdateRequest) {
       return _i29.SprintUpdateRequest.fromJson(data) as T;
     }
+    if (t == _i30.EmailWhitelist) {
+      return _i30.EmailWhitelist.fromJson(data) as T;
+    }
+    if (t == _i31.Usuario) {
+      return _i31.Usuario.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i3.Demanda?>()) {
       return (data != null ? _i3.Demanda.fromJson(data) : null) as T;
     }
@@ -704,29 +871,35 @@ class Protocol extends _i1.SerializationManagerServer {
       return (data != null ? _i29.SprintUpdateRequest.fromJson(data) : null)
           as T;
     }
+    if (t == _i1.getType<_i30.EmailWhitelist?>()) {
+      return (data != null ? _i30.EmailWhitelist.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i31.Usuario?>()) {
+      return (data != null ? _i31.Usuario.fromJson(data) : null) as T;
+    }
     if (t == List<_i18.RelatorioDemandaItem>) {
       return (data as List)
               .map((e) => deserialize<_i18.RelatorioDemandaItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i30.Demanda>) {
-      return (data as List).map((e) => deserialize<_i30.Demanda>(e)).toList()
+    if (t == List<_i32.Demanda>) {
+      return (data as List).map((e) => deserialize<_i32.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i31.RegistroTempo>) {
+    if (t == List<_i33.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i31.RegistroTempo>(e))
+              .map((e) => deserialize<_i33.RegistroTempo>(e))
               .toList()
           as T;
     }
-    if (t == List<_i32.Sprint>) {
-      return (data as List).map((e) => deserialize<_i32.Sprint>(e)).toList()
+    if (t == List<_i34.Sprint>) {
+      return (data as List).map((e) => deserialize<_i34.Sprint>(e)).toList()
           as T;
     }
-    if (t == List<_i33.SprintDemanda>) {
+    if (t == List<_i35.SprintDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i33.SprintDemanda>(e))
+              .map((e) => deserialize<_i35.SprintDemanda>(e))
               .toList()
           as T;
     }
@@ -768,6 +941,8 @@ class Protocol extends _i1.SerializationManagerServer {
       _i27.SprintIndicadores => 'SprintIndicadores',
       _i28.SprintStatus => 'SprintStatus',
       _i29.SprintUpdateRequest => 'SprintUpdateRequest',
+      _i30.EmailWhitelist => 'EmailWhitelist',
+      _i31.Usuario => 'Usuario',
       _ => null,
     };
   }
@@ -839,6 +1014,10 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'SprintStatus';
       case _i29.SprintUpdateRequest():
         return 'SprintUpdateRequest';
+      case _i30.EmailWhitelist():
+        return 'EmailWhitelist';
+      case _i31.Usuario():
+        return 'Usuario';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -934,6 +1113,12 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'SprintUpdateRequest') {
       return deserialize<_i29.SprintUpdateRequest>(data['data']);
     }
+    if (dataClassName == 'EmailWhitelist') {
+      return deserialize<_i30.EmailWhitelist>(data['data']);
+    }
+    if (dataClassName == 'Usuario') {
+      return deserialize<_i31.Usuario>(data['data']);
+    }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
@@ -958,6 +1143,10 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i21.Sprint.t;
       case _i24.SprintDemanda:
         return _i24.SprintDemanda.t;
+      case _i30.EmailWhitelist:
+        return _i30.EmailWhitelist.t;
+      case _i31.Usuario:
+        return _i31.Usuario.t;
     }
     return null;
   }

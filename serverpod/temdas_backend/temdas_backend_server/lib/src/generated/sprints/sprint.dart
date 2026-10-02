@@ -17,6 +17,7 @@ import '../sprints/sprint_status.dart' as _i2;
 abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   Sprint._({
     this.id,
+    this.usuarioId,
     required this.nome,
     this.nomeNormalizado,
     required this.dataInicio,
@@ -27,6 +28,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   factory Sprint({
     int? id,
+    int? usuarioId,
     required String nome,
     String? nomeNormalizado,
     required DateTime dataInicio,
@@ -38,6 +40,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   factory Sprint.fromJson(Map<String, dynamic> jsonSerialization) {
     return Sprint(
       id: jsonSerialization['id'] as int?,
+      usuarioId: jsonSerialization['usuarioId'] as int?,
       nome: jsonSerialization['nome'] as String,
       nomeNormalizado: jsonSerialization['nomeNormalizado'] as String?,
       dataInicio: _i1.DateTimeJsonExtension.fromJson(
@@ -57,6 +60,8 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   @override
   int? id;
+
+  int? usuarioId;
 
   String nome;
 
@@ -78,6 +83,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   @_i1.useResult
   Sprint copyWith({
     int? id,
+    int? usuarioId,
     String? nome,
     String? nomeNormalizado,
     DateTime? dataInicio,
@@ -90,6 +96,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     return {
       '__className__': 'Sprint',
       if (id != null) 'id': id,
+      if (usuarioId != null) 'usuarioId': usuarioId,
       'nome': nome,
       if (nomeNormalizado != null) 'nomeNormalizado': nomeNormalizado,
       'dataInicio': dataInicio.toJson(),
@@ -105,6 +112,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     return {
       '__className__': 'Sprint',
       if (id != null) 'id': id,
+      if (usuarioId != null) 'usuarioId': usuarioId,
       'nome': nome,
       'dataInicio': dataInicio.toJson(),
       'dataFim': dataFim.toJson(),
@@ -149,6 +157,7 @@ class _Undefined {}
 class _SprintImpl extends Sprint {
   _SprintImpl({
     int? id,
+    int? usuarioId,
     required String nome,
     String? nomeNormalizado,
     required DateTime dataInicio,
@@ -157,6 +166,7 @@ class _SprintImpl extends Sprint {
     required _i2.SprintStatus status,
   }) : super._(
          id: id,
+         usuarioId: usuarioId,
          nome: nome,
          nomeNormalizado: nomeNormalizado,
          dataInicio: dataInicio,
@@ -171,6 +181,7 @@ class _SprintImpl extends Sprint {
   @override
   Sprint copyWith({
     Object? id = _Undefined,
+    Object? usuarioId = _Undefined,
     String? nome,
     Object? nomeNormalizado = _Undefined,
     DateTime? dataInicio,
@@ -180,6 +191,7 @@ class _SprintImpl extends Sprint {
   }) {
     return Sprint(
       id: id is int? ? id : this.id,
+      usuarioId: usuarioId is int? ? usuarioId : this.usuarioId,
       nome: nome ?? this.nome,
       nomeNormalizado: nomeNormalizado is String?
           ? nomeNormalizado
@@ -196,6 +208,11 @@ class _SprintImpl extends Sprint {
 
 class SprintUpdateTable extends _i1.UpdateTable<SprintTable> {
   SprintUpdateTable(super.table);
+
+  _i1.ColumnValue<int, int> usuarioId(int? value) => _i1.ColumnValue(
+    table.usuarioId,
+    value,
+  );
 
   _i1.ColumnValue<String, String> nome(String value) => _i1.ColumnValue(
     table.nome,
@@ -236,6 +253,10 @@ class SprintUpdateTable extends _i1.UpdateTable<SprintTable> {
 class SprintTable extends _i1.Table<int?> {
   SprintTable({super.tableRelation}) : super(tableName: 'sprints') {
     updateTable = SprintUpdateTable(this);
+    usuarioId = _i1.ColumnInt(
+      'usuarioId',
+      this,
+    );
     nome = _i1.ColumnString(
       'nome',
       this,
@@ -265,6 +286,8 @@ class SprintTable extends _i1.Table<int?> {
 
   late final SprintUpdateTable updateTable;
 
+  late final _i1.ColumnInt usuarioId;
+
   late final _i1.ColumnString nome;
 
   late final _i1.ColumnString nomeNormalizado;
@@ -280,6 +303,7 @@ class SprintTable extends _i1.Table<int?> {
   @override
   List<_i1.Column> get columns => [
     id,
+    usuarioId,
     nome,
     nomeNormalizado,
     dataInicio,

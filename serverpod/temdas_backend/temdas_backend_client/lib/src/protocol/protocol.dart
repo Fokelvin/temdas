@@ -39,13 +39,15 @@ import 'sprints/sprint_exception.dart' as _i25;
 import 'sprints/sprint_indicadores.dart' as _i26;
 import 'sprints/sprint_status.dart' as _i27;
 import 'sprints/sprint_update_request.dart' as _i28;
+import 'usuarios/email_whitelist.dart' as _i29;
+import 'usuarios/usuario.dart' as _i30;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i29;
+    as _i31;
 import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
-    as _i30;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i31;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
     as _i32;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i33;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
+    as _i34;
 export 'demandas/demanda.dart';
 export 'demandas/demanda_create_request.dart';
 export 'demandas/demanda_movimentacao_request.dart';
@@ -73,6 +75,8 @@ export 'sprints/sprint_exception.dart';
 export 'sprints/sprint_indicadores.dart';
 export 'sprints/sprint_status.dart';
 export 'sprints/sprint_update_request.dart';
+export 'usuarios/email_whitelist.dart';
+export 'usuarios/usuario.dart';
 export 'client.dart';
 
 class Protocol extends _i1.SerializationManager {
@@ -190,6 +194,12 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i28.SprintUpdateRequest) {
       return _i28.SprintUpdateRequest.fromJson(data) as T;
     }
+    if (t == _i29.EmailWhitelist) {
+      return _i29.EmailWhitelist.fromJson(data) as T;
+    }
+    if (t == _i30.Usuario) {
+      return _i30.Usuario.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i2.Demanda?>()) {
       return (data != null ? _i2.Demanda.fromJson(data) : null) as T;
     }
@@ -305,29 +315,35 @@ class Protocol extends _i1.SerializationManager {
       return (data != null ? _i28.SprintUpdateRequest.fromJson(data) : null)
           as T;
     }
+    if (t == _i1.getType<_i29.EmailWhitelist?>()) {
+      return (data != null ? _i29.EmailWhitelist.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i30.Usuario?>()) {
+      return (data != null ? _i30.Usuario.fromJson(data) : null) as T;
+    }
     if (t == List<_i17.RelatorioDemandaItem>) {
       return (data as List)
               .map((e) => deserialize<_i17.RelatorioDemandaItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i29.Demanda>) {
-      return (data as List).map((e) => deserialize<_i29.Demanda>(e)).toList()
+    if (t == List<_i31.Demanda>) {
+      return (data as List).map((e) => deserialize<_i31.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i30.RegistroTempo>) {
+    if (t == List<_i32.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i30.RegistroTempo>(e))
+              .map((e) => deserialize<_i32.RegistroTempo>(e))
               .toList()
           as T;
     }
-    if (t == List<_i31.Sprint>) {
-      return (data as List).map((e) => deserialize<_i31.Sprint>(e)).toList()
+    if (t == List<_i33.Sprint>) {
+      return (data as List).map((e) => deserialize<_i33.Sprint>(e)).toList()
           as T;
     }
-    if (t == List<_i32.SprintDemanda>) {
+    if (t == List<_i34.SprintDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i32.SprintDemanda>(e))
+              .map((e) => deserialize<_i34.SprintDemanda>(e))
               .toList()
           as T;
     }
@@ -366,6 +382,8 @@ class Protocol extends _i1.SerializationManager {
       _i26.SprintIndicadores => 'SprintIndicadores',
       _i27.SprintStatus => 'SprintStatus',
       _i28.SprintUpdateRequest => 'SprintUpdateRequest',
+      _i29.EmailWhitelist => 'EmailWhitelist',
+      _i30.Usuario => 'Usuario',
       _ => null,
     };
   }
@@ -437,6 +455,10 @@ class Protocol extends _i1.SerializationManager {
         return 'SprintStatus';
       case _i28.SprintUpdateRequest():
         return 'SprintUpdateRequest';
+      case _i29.EmailWhitelist():
+        return 'EmailWhitelist';
+      case _i30.Usuario():
+        return 'Usuario';
     }
     return null;
   }
@@ -527,6 +549,12 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName == 'SprintUpdateRequest') {
       return deserialize<_i28.SprintUpdateRequest>(data['data']);
+    }
+    if (dataClassName == 'EmailWhitelist') {
+      return deserialize<_i29.EmailWhitelist>(data['data']);
+    }
+    if (dataClassName == 'Usuario') {
+      return deserialize<_i30.Usuario>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

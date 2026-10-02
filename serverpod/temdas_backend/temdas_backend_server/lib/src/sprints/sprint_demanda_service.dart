@@ -28,6 +28,7 @@ class SprintDemandaService {
       demandaId,
       transaction,
     );
+    _validarMesmoUsuario(sprint, demandas);
     final demandaRaiz = demandas.first;
     if (demandaRaiz.demandaPaiId case final demandaPaiId?) {
       final vinculoDaMae = await SprintDemanda.db.findFirstRow(
@@ -182,6 +183,14 @@ class SprintDemandaService {
       throw SprintException(codigo: SprintErroCodigo.demandaOutraSprintAberta);
     }
     if (sprintsAbertas.isEmpty) return;
+
+    final demandaFilha = await Demanda.db.findById(
+      session,
+      demandaFilhaId,
+      transaction: transaction,
+      lockMode: LockMode.forKeyShare,
+    );
+    _validarMesmoUsuario(sprintsAbertas.single, [demandaFilha!]);
 
     await SprintDemanda.db.insertRow(
       session,
@@ -371,6 +380,16 @@ class SprintDemandaService {
     );
     if (sprintsAbertas.isNotEmpty) {
       throw SprintException(codigo: SprintErroCodigo.demandaOutraSprintAberta);
+    }
+  }
+
+  void _validarMesmoUsuario(Sprint sprint, List<Demanda> demandas) {
+    for (final demanda in demandas) {
+      if (demanda.usuarioId != sprint.usuarioId) {
+        throw SprintException(
+          codigo: SprintErroCodigo.usuarioDiferenteDaSprint,
+        );
+      }
     }
   }
 

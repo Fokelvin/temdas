@@ -28,6 +28,7 @@ enum SprintErroCodigo implements _i1.SerializableModel {
   demandaFilhaSemMae,
   demandaFilhaComMaeVinculada,
   demandaNaoEncontrada,
+  usuarioDiferenteDaSprint,
   historicoSprintConcluida;
 
   static SprintErroCodigo fromJson(String name) {
@@ -60,6 +61,8 @@ enum SprintErroCodigo implements _i1.SerializableModel {
         return SprintErroCodigo.demandaFilhaComMaeVinculada;
       case 'demandaNaoEncontrada':
         return SprintErroCodigo.demandaNaoEncontrada;
+      case 'usuarioDiferenteDaSprint':
+        return SprintErroCodigo.usuarioDiferenteDaSprint;
       case 'historicoSprintConcluida':
         return SprintErroCodigo.historicoSprintConcluida;
       default:

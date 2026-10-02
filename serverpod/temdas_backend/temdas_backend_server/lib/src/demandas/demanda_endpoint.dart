@@ -57,6 +57,7 @@ class DemandaEndpoint extends Endpoint {
     }
 
     final demandaCriada = await session.db.transaction((transaction) async {
+      int? usuarioIdPai;
       if (request.demandaPaiId case final demandaPaiId?) {
         await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
         final demandaPai = await Demanda.db.findById(
@@ -69,6 +70,7 @@ class DemandaEndpoint extends Endpoint {
         if (demandaPai == null) {
           throw Exception('Demanda mãe não encontrada.');
         }
+        usuarioIdPai = demandaPai.usuarioId;
       }
 
       final agora = DateTime.now().toUtc();
@@ -77,6 +79,7 @@ class DemandaEndpoint extends Endpoint {
           : null;
 
       final demanda = Demanda(
+        usuarioId: usuarioIdPai,
         demandaPaiId: request.demandaPaiId,
         ordem: ordem,
         titulo: titulo,

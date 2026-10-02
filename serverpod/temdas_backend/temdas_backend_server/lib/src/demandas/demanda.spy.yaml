@@ -1,6 +1,8 @@
 class: Demanda
 table: demandas
 fields:
+  # Nullable apenas durante a fase de atribuição de owner aos dados existentes.
+  usuarioId: int?, relation(parent=usuarios)
   demandaPaiId: int?, relation(parent=demandas, onDelete=Cascade)
   ordem: int?
   titulo: String

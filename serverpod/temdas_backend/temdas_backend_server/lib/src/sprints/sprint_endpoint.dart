@@ -60,12 +60,13 @@ class SprintEndpoint extends Endpoint {
     return session.db.transaction((transaction) async {
       await _bloquearCicloDeVida(session, transaction);
       final nomeNormalizado = nome.toLowerCase();
-      await _validarNomeUnico(session, nomeNormalizado, transaction);
+      await _validarNomeUnico(session, nomeNormalizado, null, transaction);
       await _validarSemSobreposicao(
         session,
         dataInicio: dataInicio,
         dataFim: dataFim,
         status: SprintStatus.planejada,
+        usuarioId: null,
         transaction: transaction,
       );
 
@@ -113,6 +114,7 @@ class SprintEndpoint extends Endpoint {
       await _validarNomeUnico(
         session,
         nomeNormalizado,
+        sprint.usuarioId,
         transaction,
         sprintIdIgnorada: sprint.id,
       );
@@ -121,6 +123,7 @@ class SprintEndpoint extends Endpoint {
         dataInicio: dataInicio,
         dataFim: dataFim,
         status: sprint.status,
+        usuarioId: sprint.usuarioId,
         transaction: transaction,
         sprintIdIgnorada: sprint.id,
       );
@@ -324,6 +327,7 @@ class SprintEndpoint extends Endpoint {
       dataInicio: sprint.dataInicio,
       dataFim: sprint.dataFim,
       status: destino,
+      usuarioId: sprint.usuarioId,
       transaction: transaction,
       sprintIdIgnorada: sprint.id,
     );
@@ -331,7 +335,9 @@ class SprintEndpoint extends Endpoint {
     if (destino == SprintStatus.ativa) {
       final ativa = await Sprint.db.findFirstRow(
         session,
-        where: (t) => t.status.equals(SprintStatus.ativa),
+        where: (t) =>
+            t.status.equals(SprintStatus.ativa) &
+            t.usuarioId.equals(sprint.usuarioId),
         transaction: transaction,
         lockMode: LockMode.forUpdate,
       );
@@ -376,14 +382,17 @@ class SprintEndpoint extends Endpoint {
   Future<void> _validarNomeUnico(
     Session session,
     String nomeNormalizado,
+    int? usuarioId,
     Transaction transaction, {
     int? sprintIdIgnorada,
   }) async {
     final existente = await Sprint.db.findFirstRow(
       session,
       where: (t) => sprintIdIgnorada == null
-          ? t.nomeNormalizado.equals(nomeNormalizado)
-          : t.nomeNormalizado.equals(nomeNormalizado) &
+          ? t.usuarioId.equals(usuarioId) &
+                t.nomeNormalizado.equals(nomeNormalizado)
+          : t.usuarioId.equals(usuarioId) &
+                t.nomeNormalizado.equals(nomeNormalizado) &
                 t.id.notEquals(sprintIdIgnorada),
       transaction: transaction,
       lockMode: LockMode.forUpdate,
@@ -398,6 +407,7 @@ class SprintEndpoint extends Endpoint {
     required DateTime dataInicio,
     required DateTime dataFim,
     required SprintStatus status,
+    required int? usuarioId,
     required Transaction transaction,
     int? sprintIdIgnorada,
   }) async {
@@ -412,9 +422,13 @@ class SprintEndpoint extends Endpoint {
           SprintStatus.ativa,
           SprintStatus.concluida,
         });
+        final mesmoUsuario = t.usuarioId.equals(usuarioId);
         final ignorarAtual = sprintIdIgnorada == null
-            ? periodo & statusBloqueador
-            : periodo & statusBloqueador & t.id.notEquals(sprintIdIgnorada);
+            ? mesmoUsuario & periodo & statusBloqueador
+            : mesmoUsuario &
+                  periodo &
+                  statusBloqueador &
+                  t.id.notEquals(sprintIdIgnorada);
         return ignorarAtual;
       },
       transaction: transaction,
