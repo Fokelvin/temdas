@@ -384,6 +384,8 @@ class SprintViewModel extends ChangeNotifier {
           'A Demanda não foi encontrada ou já foi removida.',
         backend.SprintErroCodigo.historicoSprintConcluida =>
           'Esta Demanda não pode ser excluída porque possui histórico em uma Sprint concluída.',
+        backend.SprintErroCodigo.usuarioDiferenteDaSprint =>
+          'A Demanda e a Sprint devem pertencer ao mesmo usuário.',
       };
     }
     if (error is backend.ServerpodClientException && error.statusCode == -1) {

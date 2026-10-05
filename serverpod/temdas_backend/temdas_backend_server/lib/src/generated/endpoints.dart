@@ -12,65 +12,87 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod/serverpod.dart' as _i1;
-import '../demandas/demanda_endpoint.dart' as _i2;
-import '../greetings/greeting_endpoint.dart' as _i3;
-import '../registros_tempo/registro_tempo_endpoint.dart' as _i4;
-import '../relatorios/relatorio_endpoint.dart' as _i5;
-import '../sprints/sprint_endpoint.dart' as _i6;
+import '../auth/auth_endpoint.dart' as _i2;
+import '../demandas/demanda_endpoint.dart' as _i3;
+import '../greetings/greeting_endpoint.dart' as _i4;
+import '../registros_tempo/registro_tempo_endpoint.dart' as _i5;
+import '../relatorios/relatorio_endpoint.dart' as _i6;
+import '../sprints/sprint_endpoint.dart' as _i7;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
-    as _i7;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i8;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i9;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i10;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i11;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i12;
-import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
     as _i13;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
     as _i14;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
     as _i15;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+    as _i16;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
   void initializeEndpoints(_i1.Server server) {
     var endpoints = <String, _i1.Endpoint>{
-      'demanda': _i2.DemandaEndpoint()
+      'auth': _i2.AuthEndpoint()
+        ..initialize(
+          server,
+          'auth',
+          null,
+        ),
+      'demanda': _i3.DemandaEndpoint()
         ..initialize(
           server,
           'demanda',
           null,
         ),
-      'greeting': _i3.GreetingEndpoint()
+      'greeting': _i4.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
           null,
         ),
-      'registroTempo': _i4.RegistroTempoEndpoint()
+      'registroTempo': _i5.RegistroTempoEndpoint()
         ..initialize(
           server,
           'registroTempo',
           null,
         ),
-      'relatorio': _i5.RelatorioEndpoint()
+      'relatorio': _i6.RelatorioEndpoint()
         ..initialize(
           server,
           'relatorio',
           null,
         ),
-      'sprint': _i6.SprintEndpoint()
+      'sprint': _i7.SprintEndpoint()
         ..initialize(
           server,
           'sprint',
           null,
         ),
     };
+    connectors['auth'] = _i1.EndpointConnector(
+      name: 'auth',
+      endpoint: endpoints['auth']!,
+      methodConnectors: {
+        'me': _i1.MethodConnector(
+          name: 'me',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['auth'] as _i2.AuthEndpoint).me(session),
+        ),
+      },
+    );
     connectors['demanda'] = _i1.EndpointConnector(
       name: 'demanda',
       endpoint: endpoints['demanda']!,
@@ -85,7 +107,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'status': _i1.ParameterDescription(
               name: 'status',
-              type: _i1.getType<_i7.DemandaStatus>(),
+              type: _i1.getType<_i8.DemandaStatus>(),
               nullable: false,
             ),
             'motivoCancelamento': _i1.ParameterDescription(
@@ -98,7 +120,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .alterarStatusDemanda(
                     session,
                     params['id'],
@@ -119,7 +141,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .concluirDemandaEmCascata(
                     session,
                     params['id'],
@@ -143,7 +165,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .cancelarDemandaEmCascata(
                     session,
                     params['id'],
@@ -155,7 +177,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i8.DemandaMovimentacaoRequest>(),
+              type: _i1.getType<_i9.DemandaMovimentacaoRequest>(),
               nullable: false,
             ),
           },
@@ -164,7 +186,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['demanda'] as _i2.DemandaEndpoint).moverDemanda(
+                  (endpoints['demanda'] as _i3.DemandaEndpoint).moverDemanda(
                     session,
                     params['request'],
                   ),
@@ -174,7 +196,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i9.DemandaCreateRequest>(),
+              type: _i1.getType<_i10.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -183,7 +205,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['demanda'] as _i2.DemandaEndpoint).criarDemanda(
+                  (endpoints['demanda'] as _i3.DemandaEndpoint).criarDemanda(
                     session,
                     params['request'],
                   ),
@@ -195,7 +217,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .listarDemandas(session),
         ),
         'buscarDemandaPorId': _i1.MethodConnector(
@@ -211,7 +233,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .buscarDemandaPorId(
                     session,
                     params['id'],
@@ -222,7 +244,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i10.DemandaUpdateRequest>(),
+              type: _i1.getType<_i11.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -230,7 +252,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .atualizarDemanda(
                     session,
                     params['request'],
@@ -250,7 +272,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['demanda'] as _i2.DemandaEndpoint).excluirDemanda(
+                  (endpoints['demanda'] as _i3.DemandaEndpoint).excluirDemanda(
                     session,
                     params['id'],
                   ),
@@ -268,7 +290,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['demanda'] as _i2.DemandaEndpoint)
+              ) async => (endpoints['demanda'] as _i3.DemandaEndpoint)
                   .excluirArvoreDemanda(
                     session,
                     params['id'],
@@ -293,7 +315,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i3.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i4.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
@@ -309,7 +331,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i11.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i12.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },
@@ -318,7 +340,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                  (endpoints['registroTempo'] as _i5.RegistroTempoEndpoint)
                       .registrarTempo(
                         session,
                         params['request'],
@@ -329,7 +351,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i12.RegistroTempoUpdateRequest>(),
+              type: _i1.getType<_i13.RegistroTempoUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -338,7 +360,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                  (endpoints['registroTempo'] as _i5.RegistroTempoEndpoint)
                       .editarRegistroTempo(
                         session,
                         params['request'],
@@ -363,7 +385,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                  (endpoints['registroTempo'] as _i5.RegistroTempoEndpoint)
                       .listarRegistrosTempoPorPeriodo(
                         session,
                         params['inicio'],
@@ -384,7 +406,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                  (endpoints['registroTempo'] as _i5.RegistroTempoEndpoint)
                       .listarRegistrosTempoDaDemanda(
                         session,
                         params['demandaId'],
@@ -404,7 +426,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['registroTempo'] as _i4.RegistroTempoEndpoint)
+                  (endpoints['registroTempo'] as _i5.RegistroTempoEndpoint)
                       .excluirRegistroTempo(
                         session,
                         params['id'],
@@ -421,7 +443,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i13.RelatorioDemandaRequest>(),
+              type: _i1.getType<_i14.RelatorioDemandaRequest>(),
               nullable: false,
             ),
           },
@@ -429,7 +451,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['relatorio'] as _i5.RelatorioEndpoint)
+              ) async => (endpoints['relatorio'] as _i6.RelatorioEndpoint)
                   .gerarRelatorioDemandas(
                     session,
                     params['request'],
@@ -448,7 +470,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+              ) async => (endpoints['sprint'] as _i7.SprintEndpoint)
                   .listarSprints(session),
         ),
         'buscarSprintPorId': _i1.MethodConnector(
@@ -465,7 +487,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).buscarSprintPorId(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).buscarSprintPorId(
                     session,
                     params['id'],
                   ),
@@ -483,7 +505,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+              ) async => (endpoints['sprint'] as _i7.SprintEndpoint)
                   .listarDemandasDaSprint(
                     session,
                     params['sprintId'],
@@ -494,7 +516,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i14.SprintCreateRequest>(),
+              type: _i1.getType<_i15.SprintCreateRequest>(),
               nullable: false,
             ),
           },
@@ -503,7 +525,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).criarSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).criarSprint(
                     session,
                     params['request'],
                   ),
@@ -513,7 +535,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i15.SprintUpdateRequest>(),
+              type: _i1.getType<_i16.SprintUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -522,7 +544,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).atualizarSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).atualizarSprint(
                     session,
                     params['request'],
                   ),
@@ -541,7 +563,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).ativarSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).ativarSprint(
                     session,
                     params['id'],
                   ),
@@ -560,7 +582,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).cancelarSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).cancelarSprint(
                     session,
                     params['id'],
                   ),
@@ -579,7 +601,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).concluirSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).concluirSprint(
                     session,
                     params['id'],
                   ),
@@ -597,7 +619,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+              ) async => (endpoints['sprint'] as _i7.SprintEndpoint)
                   .obterResumoConclusaoSprint(
                     session,
                     params['id'],
@@ -616,7 +638,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+              ) async => (endpoints['sprint'] as _i7.SprintEndpoint)
                   .calcularIndicadoresSprint(
                     session,
                     params['id'],
@@ -636,7 +658,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).excluirSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).excluirSprint(
                     session,
                     params['id'],
                   ),
@@ -655,7 +677,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).reabrirSprint(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).reabrirSprint(
                     session,
                     params['id'],
                   ),
@@ -679,7 +701,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).vincularDemanda(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).vincularDemanda(
                     session,
                     params['sprintId'],
                     params['demandaId'],
@@ -704,7 +726,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['sprint'] as _i6.SprintEndpoint).vincularDemandas(
+                  (endpoints['sprint'] as _i7.SprintEndpoint).vincularDemandas(
                     session,
                     params['sprintId'],
                     params['demandaIds'],
@@ -728,7 +750,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sprint'] as _i6.SprintEndpoint)
+              ) async => (endpoints['sprint'] as _i7.SprintEndpoint)
                   .desvincularDemanda(
                     session,
                     params['sprintId'],

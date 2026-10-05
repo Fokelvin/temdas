@@ -13,40 +13,55 @@
 
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
+import 'package:temdas_backend_client/src/protocol/auth/auth_me.dart' as _i3;
 import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i3;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda_status.dart'
     as _i4;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda_movimentacao_request.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda_status.dart'
     as _i5;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda_movimentacao_request.dart'
     as _i6;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda_create_request.dart'
     as _i7;
-import 'package:temdas_backend_client/src/protocol/greetings/greeting.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda_update_request.dart'
     as _i8;
-import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
+import 'package:temdas_backend_client/src/protocol/greetings/greeting.dart'
     as _i9;
-import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
     as _i10;
-import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_create_request.dart'
     as _i11;
-import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demandas_response.dart'
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo_update_request.dart'
     as _i12;
-import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demanda_request.dart'
+import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demandas_response.dart'
     as _i13;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i14;
+import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demanda_request.dart'
+    as _i14;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i15;
 import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
-    as _i15;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_create_request.dart'
     as _i16;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_update_request.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_create_request.dart'
     as _i17;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_response.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_update_request.dart'
     as _i18;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_response.dart'
     as _i19;
-import 'protocol.dart' as _i20;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
+    as _i20;
+import 'protocol.dart' as _i21;
+
+/// {@category Endpoint}
+class EndpointAuth extends _i1.EndpointRef {
+  EndpointAuth(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'auth';
+
+  _i2.Future<_i3.AuthMe> me() => caller.callServerEndpoint<_i3.AuthMe>(
+    'auth',
+    'me',
+    {},
+  );
+}
 
 /// {@category Endpoint}
 class EndpointDemanda extends _i1.EndpointRef {
@@ -55,11 +70,11 @@ class EndpointDemanda extends _i1.EndpointRef {
   @override
   String get name => 'demanda';
 
-  _i2.Future<_i3.Demanda> alterarStatusDemanda(
+  _i2.Future<_i4.Demanda> alterarStatusDemanda(
     int id,
-    _i4.DemandaStatus status, {
+    _i5.DemandaStatus status, {
     String? motivoCancelamento,
-  }) => caller.callServerEndpoint<_i3.Demanda>(
+  }) => caller.callServerEndpoint<_i4.Demanda>(
     'demanda',
     'alterarStatusDemanda',
     {
@@ -69,17 +84,17 @@ class EndpointDemanda extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<_i3.Demanda> concluirDemandaEmCascata(int id) =>
-      caller.callServerEndpoint<_i3.Demanda>(
+  _i2.Future<_i4.Demanda> concluirDemandaEmCascata(int id) =>
+      caller.callServerEndpoint<_i4.Demanda>(
         'demanda',
         'concluirDemandaEmCascata',
         {'id': id},
       );
 
-  _i2.Future<_i3.Demanda> cancelarDemandaEmCascata(
+  _i2.Future<_i4.Demanda> cancelarDemandaEmCascata(
     int id,
     String motivoCancelamento,
-  ) => caller.callServerEndpoint<_i3.Demanda>(
+  ) => caller.callServerEndpoint<_i4.Demanda>(
     'demanda',
     'cancelarDemandaEmCascata',
     {
@@ -88,37 +103,37 @@ class EndpointDemanda extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<_i3.Demanda> moverDemanda(
-    _i5.DemandaMovimentacaoRequest request,
-  ) => caller.callServerEndpoint<_i3.Demanda>(
+  _i2.Future<_i4.Demanda> moverDemanda(
+    _i6.DemandaMovimentacaoRequest request,
+  ) => caller.callServerEndpoint<_i4.Demanda>(
     'demanda',
     'moverDemanda',
     {'request': request},
   );
 
-  _i2.Future<_i3.Demanda> criarDemanda(_i6.DemandaCreateRequest request) =>
-      caller.callServerEndpoint<_i3.Demanda>(
+  _i2.Future<_i4.Demanda> criarDemanda(_i7.DemandaCreateRequest request) =>
+      caller.callServerEndpoint<_i4.Demanda>(
         'demanda',
         'criarDemanda',
         {'request': request},
       );
 
-  _i2.Future<List<_i3.Demanda>> listarDemandas() =>
-      caller.callServerEndpoint<List<_i3.Demanda>>(
+  _i2.Future<List<_i4.Demanda>> listarDemandas() =>
+      caller.callServerEndpoint<List<_i4.Demanda>>(
         'demanda',
         'listarDemandas',
         {},
       );
 
-  _i2.Future<_i3.Demanda?> buscarDemandaPorId(int id) =>
-      caller.callServerEndpoint<_i3.Demanda?>(
+  _i2.Future<_i4.Demanda?> buscarDemandaPorId(int id) =>
+      caller.callServerEndpoint<_i4.Demanda?>(
         'demanda',
         'buscarDemandaPorId',
         {'id': id},
       );
 
-  _i2.Future<_i3.Demanda> atualizarDemanda(_i7.DemandaUpdateRequest request) =>
-      caller.callServerEndpoint<_i3.Demanda>(
+  _i2.Future<_i4.Demanda> atualizarDemanda(_i8.DemandaUpdateRequest request) =>
+      caller.callServerEndpoint<_i4.Demanda>(
         'demanda',
         'atualizarDemanda',
         {'request': request},
@@ -148,8 +163,8 @@ class EndpointGreeting extends _i1.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i8.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i8.Greeting>(
+  _i2.Future<_i9.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i9.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -163,26 +178,26 @@ class EndpointRegistroTempo extends _i1.EndpointRef {
   @override
   String get name => 'registroTempo';
 
-  _i2.Future<_i9.RegistroTempo> registrarTempo(
-    _i10.RegistroTempoCreateRequest request,
-  ) => caller.callServerEndpoint<_i9.RegistroTempo>(
+  _i2.Future<_i10.RegistroTempo> registrarTempo(
+    _i11.RegistroTempoCreateRequest request,
+  ) => caller.callServerEndpoint<_i10.RegistroTempo>(
     'registroTempo',
     'registrarTempo',
     {'request': request},
   );
 
-  _i2.Future<_i9.RegistroTempo> editarRegistroTempo(
-    _i11.RegistroTempoUpdateRequest request,
-  ) => caller.callServerEndpoint<_i9.RegistroTempo>(
+  _i2.Future<_i10.RegistroTempo> editarRegistroTempo(
+    _i12.RegistroTempoUpdateRequest request,
+  ) => caller.callServerEndpoint<_i10.RegistroTempo>(
     'registroTempo',
     'editarRegistroTempo',
     {'request': request},
   );
 
-  _i2.Future<List<_i9.RegistroTempo>> listarRegistrosTempoPorPeriodo(
+  _i2.Future<List<_i10.RegistroTempo>> listarRegistrosTempoPorPeriodo(
     DateTime inicio,
     DateTime fim,
-  ) => caller.callServerEndpoint<List<_i9.RegistroTempo>>(
+  ) => caller.callServerEndpoint<List<_i10.RegistroTempo>>(
     'registroTempo',
     'listarRegistrosTempoPorPeriodo',
     {
@@ -191,9 +206,9 @@ class EndpointRegistroTempo extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<List<_i9.RegistroTempo>> listarRegistrosTempoDaDemanda(
+  _i2.Future<List<_i10.RegistroTempo>> listarRegistrosTempoDaDemanda(
     int demandaId,
-  ) => caller.callServerEndpoint<List<_i9.RegistroTempo>>(
+  ) => caller.callServerEndpoint<List<_i10.RegistroTempo>>(
     'registroTempo',
     'listarRegistrosTempoDaDemanda',
     {'demandaId': demandaId},
@@ -214,9 +229,9 @@ class EndpointRelatorio extends _i1.EndpointRef {
   @override
   String get name => 'relatorio';
 
-  _i2.Future<_i12.RelatorioDemandasResponse> gerarRelatorioDemandas(
-    _i13.RelatorioDemandaRequest request,
-  ) => caller.callServerEndpoint<_i12.RelatorioDemandasResponse>(
+  _i2.Future<_i13.RelatorioDemandasResponse> gerarRelatorioDemandas(
+    _i14.RelatorioDemandaRequest request,
+  ) => caller.callServerEndpoint<_i13.RelatorioDemandasResponse>(
     'relatorio',
     'gerarRelatorioDemandas',
     {'request': request},
@@ -230,71 +245,71 @@ class EndpointSprint extends _i1.EndpointRef {
   @override
   String get name => 'sprint';
 
-  _i2.Future<List<_i14.Sprint>> listarSprints() =>
-      caller.callServerEndpoint<List<_i14.Sprint>>(
+  _i2.Future<List<_i15.Sprint>> listarSprints() =>
+      caller.callServerEndpoint<List<_i15.Sprint>>(
         'sprint',
         'listarSprints',
         {},
       );
 
-  _i2.Future<_i14.Sprint> buscarSprintPorId(int id) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> buscarSprintPorId(int id) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'buscarSprintPorId',
         {'id': id},
       );
 
-  _i2.Future<List<_i15.SprintDemanda>> listarDemandasDaSprint(int sprintId) =>
-      caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+  _i2.Future<List<_i16.SprintDemanda>> listarDemandasDaSprint(int sprintId) =>
+      caller.callServerEndpoint<List<_i16.SprintDemanda>>(
         'sprint',
         'listarDemandasDaSprint',
         {'sprintId': sprintId},
       );
 
-  _i2.Future<_i14.Sprint> criarSprint(_i16.SprintCreateRequest request) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> criarSprint(_i17.SprintCreateRequest request) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'criarSprint',
         {'request': request},
       );
 
-  _i2.Future<_i14.Sprint> atualizarSprint(_i17.SprintUpdateRequest request) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> atualizarSprint(_i18.SprintUpdateRequest request) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'atualizarSprint',
         {'request': request},
       );
 
-  _i2.Future<_i14.Sprint> ativarSprint(int id) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> ativarSprint(int id) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'ativarSprint',
         {'id': id},
       );
 
-  _i2.Future<_i14.Sprint> cancelarSprint(int id) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> cancelarSprint(int id) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'cancelarSprint',
         {'id': id},
       );
 
-  _i2.Future<_i18.SprintConclusaoResponse> concluirSprint(int id) =>
-      caller.callServerEndpoint<_i18.SprintConclusaoResponse>(
+  _i2.Future<_i19.SprintConclusaoResponse> concluirSprint(int id) =>
+      caller.callServerEndpoint<_i19.SprintConclusaoResponse>(
         'sprint',
         'concluirSprint',
         {'id': id},
       );
 
-  _i2.Future<_i18.SprintConclusaoResponse> obterResumoConclusaoSprint(int id) =>
-      caller.callServerEndpoint<_i18.SprintConclusaoResponse>(
+  _i2.Future<_i19.SprintConclusaoResponse> obterResumoConclusaoSprint(int id) =>
+      caller.callServerEndpoint<_i19.SprintConclusaoResponse>(
         'sprint',
         'obterResumoConclusaoSprint',
         {'id': id},
       );
 
-  _i2.Future<_i19.SprintIndicadores> calcularIndicadoresSprint(int id) =>
-      caller.callServerEndpoint<_i19.SprintIndicadores>(
+  _i2.Future<_i20.SprintIndicadores> calcularIndicadoresSprint(int id) =>
+      caller.callServerEndpoint<_i20.SprintIndicadores>(
         'sprint',
         'calcularIndicadoresSprint',
         {'id': id},
@@ -306,17 +321,17 @@ class EndpointSprint extends _i1.EndpointRef {
     {'id': id},
   );
 
-  _i2.Future<_i14.Sprint> reabrirSprint(int id) =>
-      caller.callServerEndpoint<_i14.Sprint>(
+  _i2.Future<_i15.Sprint> reabrirSprint(int id) =>
+      caller.callServerEndpoint<_i15.Sprint>(
         'sprint',
         'reabrirSprint',
         {'id': id},
       );
 
-  _i2.Future<List<_i15.SprintDemanda>> vincularDemanda(
+  _i2.Future<List<_i16.SprintDemanda>> vincularDemanda(
     int sprintId,
     int demandaId,
-  ) => caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+  ) => caller.callServerEndpoint<List<_i16.SprintDemanda>>(
     'sprint',
     'vincularDemanda',
     {
@@ -329,10 +344,10 @@ class EndpointSprint extends _i1.EndpointRef {
   ///
   /// A propagação da árvore, os locks e as validações continuam
   /// concentrados no serviço. Qualquer falha aborta a transação inteira.
-  _i2.Future<List<_i15.SprintDemanda>> vincularDemandas(
+  _i2.Future<List<_i16.SprintDemanda>> vincularDemandas(
     int sprintId,
     List<int> demandaIds,
-  ) => caller.callServerEndpoint<List<_i15.SprintDemanda>>(
+  ) => caller.callServerEndpoint<List<_i16.SprintDemanda>>(
     'sprint',
     'vincularDemandas',
     {
@@ -374,7 +389,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i20.Protocol(),
+         _i21.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -383,12 +398,15 @@ class Client extends _i1.ServerpodClientShared {
          disconnectStreamsOnLostInternetConnection:
              disconnectStreamsOnLostInternetConnection,
        ) {
+    auth = EndpointAuth(this);
     demanda = EndpointDemanda(this);
     greeting = EndpointGreeting(this);
     registroTempo = EndpointRegistroTempo(this);
     relatorio = EndpointRelatorio(this);
     sprint = EndpointSprint(this);
   }
+
+  late final EndpointAuth auth;
 
   late final EndpointDemanda demanda;
 
@@ -402,6 +420,7 @@ class Client extends _i1.ServerpodClientShared {
 
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
+    'auth': auth,
     'demanda': demanda,
     'greeting': greeting,
     'registroTempo': registroTempo,

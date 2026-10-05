@@ -4,13 +4,22 @@ import 'package:serverpod/serverpod.dart';
 
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
+import 'src/auth/supabase_auth_service.dart';
+import 'src/sprints/sprint_custom_schema.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/root.dart';
 
 /// The starting point of the Serverpod server.
 Future<void> run(List<String> args) async {
+  registerSprintCustomIndexes();
+
   // Initialize Serverpod and connect it with your generated code.
-  final pod = Serverpod(args, Protocol(), Endpoints());
+  final pod = Serverpod(
+    args,
+    Protocol(),
+    Endpoints(),
+    authenticationHandler: supabaseAuthenticationHandler,
+  );
 
   // Setup a default page at the web root.
   pod.webServer.addRoute(RootRoute(), '/');
