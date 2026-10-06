@@ -1,18 +1,34 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/supabase_auth_service.dart';
 
 class RelatorioEndpoint extends Endpoint {
   Future<RelatorioDemandasResponse> gerarRelatorioDemandas(
     Session session,
     RelatorioDemandaRequest request,
   ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     _validarPeriodo(request.inicioEm, request.fimExclusivo);
 
-    final demandas = await Demanda.db.find(session);
+    final demandas = await Demanda.db.find(
+      session,
+      where: (t) => t.usuarioId.equals(usuarioId),
+    );
+    final ownedIds = demandas.map((demanda) => demanda.id!).toSet();
+    if (ownedIds.isEmpty) {
+      return RelatorioDemandasResponse(
+        inicioEm: request.inicioEm,
+        fimExclusivo: request.fimExclusivo,
+        tempoRealizadoTotalMinutos: 0,
+        quantidadeDemandasComTempo: 0,
+        itens: [],
+      );
+    }
     final registros = await RegistroTempo.db.find(
       session,
       where: (t) =>
+          t.demandaId.inSet(ownedIds) &
           (t.inicioEm >= request.inicioEm) &
           (t.inicioEm < request.fimExclusivo),
       orderBy: (t) => t.inicioEm,

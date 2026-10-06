@@ -2,10 +2,13 @@ import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/authenticated_test_user.dart';
 
 void main() {
   final prefixo = 'teste-status-${DateTime.now().microsecondsSinceEpoch}';
   withServerpod('Transições de status', (sessionBuilder, endpoints) {
+    setUp(() => installAal2TestUser(sessionBuilder, 'status-regression-owner'));
+    tearDown(clearAal2TestUser);
     Future<Demanda> criar(
       String titulo, {
       int? pai,

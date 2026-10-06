@@ -206,11 +206,34 @@ class SupabaseAuthService {
 }
 
 SupabaseAuthService? _service;
+Future<AuthenticatedUsuario> Function(Session)? _testUsuarioResolver;
+
+/// Installs a local JWKS fixture in Dart tests. Asserts are disabled in
+/// production, so this cannot replace the configured service in a release.
+void setSupabaseAuthServiceForTesting(SupabaseAuthService? service) {
+  assert(() {
+    _service = service;
+    return true;
+  }());
+}
+
+/// Keeps older domain regression tests authenticated without changing RPCs.
+/// The resolver is only installed when assertions are enabled in test code.
+void setUsuarioResolverForTesting(
+  Future<AuthenticatedUsuario> Function(Session)? resolver,
+) {
+  assert(() {
+    _testUsuarioResolver = resolver;
+    return true;
+  }());
+}
 
 SupabaseAuthService _configuredService() {
+  final existing = _service;
+  if (existing != null) return existing;
   final url = Platform.environment['SUPABASE_URL'];
   if (url == null || url.isEmpty) throw _failure('authNotConfigured');
-  return _service ??= SupabaseAuthService(supabaseUrl: url);
+  return _service = SupabaseAuthService(supabaseUrl: url);
 }
 
 /// Serverpod initializes authentication before dispatch, even on public RPCs.
@@ -237,6 +260,8 @@ Future<AuthenticatedUsuario> requireAuthenticatedUsuario(
   Session session, {
   SupabaseAuthService? authService,
 }) {
+  final testResolver = _testUsuarioResolver;
+  if (testResolver != null) return testResolver(session);
   final token = session.authenticationKey;
   if (token == null || token.isEmpty) throw _failure('tokenMissing');
   return (authService ?? _configuredService()).usuarioForSession(session);

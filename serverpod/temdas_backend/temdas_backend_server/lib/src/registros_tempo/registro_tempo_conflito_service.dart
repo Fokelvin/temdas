@@ -1,13 +1,19 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/usuario_scope.dart';
 
 class RegistroTempoConflitoService {
   Future<void> validarAusenciaDeConflito(
     Session session,
     RegistroTempo intervalo,
     Transaction transaction,
+    int usuarioId,
   ) async {
+    final ownedIds = await UsuarioScope(
+      usuarioId,
+    ).demandaIds(session, transaction: transaction);
+    if (ownedIds.isEmpty) return;
     final fim = intervalo.inicioEm.add(
       Duration(minutes: intervalo.duracaoMinutos),
     );
@@ -15,7 +21,9 @@ class RegistroTempoConflitoService {
       session,
       where: (t) {
         final filtro =
-            t.demandaId.notEquals(intervalo.demandaId) & (t.inicioEm < fim);
+            t.demandaId.inSet(ownedIds) &
+            t.demandaId.notEquals(intervalo.demandaId) &
+            (t.inicioEm < fim);
         return intervalo.id == null
             ? filtro
             : filtro & t.id.notEquals(intervalo.id!);

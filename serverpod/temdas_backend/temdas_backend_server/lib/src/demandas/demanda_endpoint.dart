@@ -1,6 +1,8 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/supabase_auth_service.dart';
+import '../auth/usuario_scope.dart';
 import '../sprints/sprint_demanda_service.dart';
 import 'demanda_status_service.dart';
 import 'demanda_ordem_service.dart';
@@ -15,31 +17,49 @@ class DemandaEndpoint extends Endpoint {
     int id,
     DemandaStatus status, {
     String? motivoCancelamento,
-  }) => _statusService.alterarStatus(
-    session,
-    id,
-    status,
-    motivoCancelamento: motivoCancelamento,
-  );
+  }) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return _statusService.alterarStatus(
+      session,
+      id,
+      status,
+      usuarioId: usuarioId,
+      motivoCancelamento: motivoCancelamento,
+    );
+  }
 
-  Future<Demanda> concluirDemandaEmCascata(Session session, int id) =>
-      _statusService.concluirEmCascata(session, id);
+  Future<Demanda> concluirDemandaEmCascata(Session session, int id) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return _statusService.concluirEmCascata(session, id, usuarioId);
+  }
 
   Future<Demanda> cancelarDemandaEmCascata(
     Session session,
     int id,
     String motivoCancelamento,
-  ) => _statusService.cancelarEmCascata(session, id, motivoCancelamento);
+  ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return _statusService.cancelarEmCascata(
+      session,
+      id,
+      motivoCancelamento,
+      usuarioId,
+    );
+  }
 
   Future<Demanda> moverDemanda(
     Session session,
     DemandaMovimentacaoRequest request,
-  ) => _ordemService.mover(session, request);
+  ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return _ordemService.mover(session, request, usuarioId);
+  }
 
   Future<Demanda> criarDemanda(
     Session session,
     DemandaCreateRequest request,
   ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final titulo = request.titulo.trim();
 
     if (titulo.isEmpty) {
@@ -57,10 +77,9 @@ class DemandaEndpoint extends Endpoint {
     }
 
     final demandaCriada = await session.db.transaction((transaction) async {
-      int? usuarioIdPai;
       if (request.demandaPaiId case final demandaPaiId?) {
         await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
-        final demandaPai = await Demanda.db.findById(
+        final demandaPai = await UsuarioScope(usuarioId).demanda(
           session,
           demandaPaiId,
           transaction: transaction,
@@ -68,18 +87,20 @@ class DemandaEndpoint extends Endpoint {
         );
 
         if (demandaPai == null) {
-          throw Exception('Demanda mãe não encontrada.');
+          throw TransicaoStatusException(
+            codigo: TransicaoStatusErroCodigo.demandaNaoEncontrada,
+            mensagem: 'Demanda não encontrada.',
+          );
         }
-        usuarioIdPai = demandaPai.usuarioId;
       }
 
       final agora = DateTime.now().toUtc();
       final ordem = request.demandaPaiId == null
-          ? await _proximaOrdem(session, transaction)
+          ? await _proximaOrdem(session, transaction, usuarioId)
           : null;
 
       final demanda = Demanda(
-        usuarioId: usuarioIdPai,
+        usuarioId: usuarioId,
         demandaPaiId: request.demandaPaiId,
         ordem: ordem,
         titulo: titulo,
@@ -104,6 +125,7 @@ class DemandaEndpoint extends Endpoint {
           session,
           demandaPaiId: demandaPaiId,
           demandaFilhaId: demandaCriada.id!,
+          usuarioId: usuarioId,
           transaction: transaction,
         );
       }
@@ -118,8 +140,10 @@ class DemandaEndpoint extends Endpoint {
   }
 
   Future<List<Demanda>> listarDemandas(Session session) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final demandas = await Demanda.db.find(
       session,
+      where: (t) => t.usuarioId.equals(usuarioId),
       orderBy: (t) => t.criadoEm,
       orderDescending: true,
     );
@@ -134,11 +158,17 @@ class DemandaEndpoint extends Endpoint {
     return [...raizes, ...filhas];
   }
 
-  Future<int> _proximaOrdem(Session session, Transaction transaction) async {
+  Future<int> _proximaOrdem(
+    Session session,
+    Transaction transaction,
+    int usuarioId,
+  ) async {
     final raizes = await Demanda.db.find(
       session,
       where: (t) =>
-          t.demandaPaiId.equals(null) & t.status.equals(DemandaStatus.aberta),
+          t.usuarioId.equals(usuarioId) &
+          t.demandaPaiId.equals(null) &
+          t.status.equals(DemandaStatus.aberta),
       transaction: transaction,
       lockMode: LockMode.forUpdate,
     );
@@ -155,13 +185,15 @@ class DemandaEndpoint extends Endpoint {
     Session session,
     int id,
   ) async {
-    return Demanda.db.findById(session, id);
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return UsuarioScope(usuarioId).demanda(session, id);
   }
 
   Future<Demanda> atualizarDemanda(
     Session session,
     DemandaUpdateRequest request,
   ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final titulo = request.titulo.trim();
 
     if (titulo.isEmpty) {
@@ -179,7 +211,7 @@ class DemandaEndpoint extends Endpoint {
     }
 
     final demandaAtualizada = await session.db.transaction((transaction) async {
-      final demandaAtual = await Demanda.db.findById(
+      final demandaAtual = await UsuarioScope(usuarioId).demanda(
         session,
         request.id,
         transaction: transaction,
@@ -198,6 +230,7 @@ class DemandaEndpoint extends Endpoint {
           session,
           request.id,
           request.status,
+          usuarioId: usuarioId,
           motivoCancelamento: request.motivoCancelamento,
           transaction: transaction,
         );
@@ -218,7 +251,10 @@ class DemandaEndpoint extends Endpoint {
       );
 
       if (demandaAtualizada == null) {
-        throw Exception('Demanda não encontrada.');
+        throw TransicaoStatusException(
+          codigo: TransicaoStatusErroCodigo.demandaNaoEncontrada,
+          mensagem: 'Demanda não encontrada.',
+        );
       }
 
       return demandaAtualizada;
@@ -232,12 +268,14 @@ class DemandaEndpoint extends Endpoint {
     Session session,
     int id,
   ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final excluida = await session.db.transaction((transaction) async {
       await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
       final arvore = await _sprintDemandaService.carregarArvoreBloqueadaOuNula(
         session,
         id,
         transaction,
+        usuarioId: usuarioId,
       );
       if (arvore == null) return false;
       if (arvore.length > 1) {
@@ -269,12 +307,14 @@ class DemandaEndpoint extends Endpoint {
     Session session,
     int id,
   ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final excluida = await session.db.transaction((transaction) async {
       await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
       final arvore = await _sprintDemandaService.carregarArvoreBloqueadaOuNula(
         session,
         id,
         transaction,
+        usuarioId: usuarioId,
       );
       if (arvore == null) return false;
       await _sprintDemandaService.validarSemHistoricoConcluido(

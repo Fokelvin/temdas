@@ -1,6 +1,8 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/supabase_auth_service.dart';
+import '../auth/usuario_scope.dart';
 import 'sprint_demanda_service.dart';
 import 'sprint_indicadores_service.dart';
 
@@ -8,16 +10,25 @@ class SprintEndpoint extends Endpoint {
   final _demandaService = SprintDemandaService();
   final _indicadoresService = SprintIndicadoresService();
 
-  Future<List<Sprint>> listarSprints(Session session) => Sprint.db.find(
-    session,
-    orderByList: (t) => [
-      Order(column: t.dataInicio, orderDescending: true),
-      Order(column: t.id, orderDescending: true),
-    ],
-  );
+  Future<int> _owner(Session session) async =>
+      (await requireAal2Usuario(session)).usuario.id!;
+
+  Future<List<Sprint>> listarSprints(Session session) async {
+    final usuarioId = await _owner(session);
+    return Sprint.db.find(
+      session,
+      where: (t) => t.usuarioId.equals(usuarioId),
+      orderByList: (t) => [
+        Order(column: t.dataInicio, orderDescending: true),
+        Order(column: t.id, orderDescending: true),
+      ],
+    );
+  }
 
   Future<Sprint> buscarSprintPorId(Session session, int id) async {
-    final sprint = await Sprint.db.findById(session, id);
+    final sprint = await UsuarioScope(
+      await _owner(session),
+    ).sprint(session, id);
     if (sprint == null) {
       throw SprintException(codigo: SprintErroCodigo.sprintNaoEncontrada);
     }
@@ -28,13 +39,16 @@ class SprintEndpoint extends Endpoint {
     Session session,
     int sprintId,
   ) async {
-    final sprint = await Sprint.db.findById(session, sprintId);
+    final usuarioId = await _owner(session);
+    final sprint = await UsuarioScope(usuarioId).sprint(session, sprintId);
     if (sprint == null) {
       throw SprintException(codigo: SprintErroCodigo.sprintNaoEncontrada);
     }
+    final ownedIds = await UsuarioScope(usuarioId).demandaIds(session);
+    if (ownedIds.isEmpty) return [];
     return SprintDemanda.db.find(
       session,
-      where: (t) => t.sprintId.equals(sprintId),
+      where: (t) => t.sprintId.equals(sprintId) & t.demandaId.inSet(ownedIds),
       orderBy: (t) => t.demandaId,
     );
   }
@@ -43,6 +57,7 @@ class SprintEndpoint extends Endpoint {
     Session session,
     SprintCreateRequest request,
   ) async {
+    final usuarioId = await _owner(session);
     final nome = _normalizarNome(request.nome);
     if (nome.isEmpty) {
       throw SprintException(codigo: SprintErroCodigo.nomeObrigatorio);
@@ -60,19 +75,20 @@ class SprintEndpoint extends Endpoint {
     return session.db.transaction((transaction) async {
       await _bloquearCicloDeVida(session, transaction);
       final nomeNormalizado = nome.toLowerCase();
-      await _validarNomeUnico(session, nomeNormalizado, null, transaction);
+      await _validarNomeUnico(session, nomeNormalizado, usuarioId, transaction);
       await _validarSemSobreposicao(
         session,
         dataInicio: dataInicio,
         dataFim: dataFim,
         status: SprintStatus.planejada,
-        usuarioId: null,
+        usuarioId: usuarioId,
         transaction: transaction,
       );
 
       return Sprint.db.insertRow(
         session,
         Sprint(
+          usuarioId: usuarioId,
           nome: nome,
           nomeNormalizado: nomeNormalizado,
           dataInicio: dataInicio,
@@ -89,6 +105,7 @@ class SprintEndpoint extends Endpoint {
     Session session,
     SprintUpdateRequest request,
   ) async {
+    final usuarioId = await _owner(session);
     final nome = _normalizarNome(request.nome);
     if (nome.isEmpty) {
       throw SprintException(codigo: SprintErroCodigo.nomeObrigatorio);
@@ -109,6 +126,7 @@ class SprintEndpoint extends Endpoint {
         session,
         request.id,
         transaction,
+        usuarioId,
       );
       final nomeNormalizado = nome.toLowerCase();
       await _validarNomeUnico(
@@ -152,90 +170,114 @@ class SprintEndpoint extends Endpoint {
   Future<SprintConclusaoResponse> concluirSprint(
     Session session,
     int id,
-  ) => session.db.transaction((transaction) async {
-    await _bloquearCicloDeVida(session, transaction);
-    final sprint = await _buscarSprintBloqueada(session, id, transaction);
-    if (!_transicaoPermitida(sprint.status, SprintStatus.concluida)) {
-      throw SprintException(
-        codigo: SprintErroCodigo.transicaoStatusInvalida,
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      await _bloquearCicloDeVida(session, transaction);
+      final sprint = await _buscarSprintBloqueada(
+        session,
+        id,
+        transaction,
+        usuarioId,
       );
-    }
+      if (!_transicaoPermitida(sprint.status, SprintStatus.concluida)) {
+        throw SprintException(
+          codigo: SprintErroCodigo.transicaoStatusInvalida,
+        );
+      }
 
-    final indicadores = await _indicadoresService.calcular(
-      session,
-      sprint: sprint,
-      transaction: transaction,
-    );
-    final naoConcluidas = await _indicadoresService.contarDemandasNaoConcluidas(
-      session,
-      sprintId: sprint.id!,
-      transaction: transaction,
-    );
-    final sprintConcluida = (await Sprint.db.updateById(
-      session,
-      sprint.id!,
-      columnValues: (t) => [t.status(SprintStatus.concluida)],
-      transaction: transaction,
-    ))!;
-    return SprintConclusaoResponse(
-      sprint: sprintConcluida,
-      quantidadeDemandasNaoConcluidas: naoConcluidas,
-      indicadores: indicadores,
-    );
-  });
+      final indicadores = await _indicadoresService.calcular(
+        session,
+        sprint: sprint,
+        transaction: transaction,
+      );
+      final naoConcluidas = await _indicadoresService
+          .contarDemandasNaoConcluidas(
+            session,
+            sprintId: sprint.id!,
+            usuarioId: usuarioId,
+            transaction: transaction,
+          );
+      final sprintConcluida = (await Sprint.db.updateById(
+        session,
+        sprint.id!,
+        columnValues: (t) => [t.status(SprintStatus.concluida)],
+        transaction: transaction,
+      ))!;
+      return SprintConclusaoResponse(
+        sprint: sprintConcluida,
+        quantidadeDemandasNaoConcluidas: naoConcluidas,
+        indicadores: indicadores,
+      );
+    });
+  }
 
   Future<SprintConclusaoResponse> obterResumoConclusaoSprint(
     Session session,
     int id,
-  ) => session.db.transaction((transaction) async {
-    await _bloquearCicloDeVida(session, transaction);
-    final sprint = await _buscarSprintBloqueada(session, id, transaction);
-    final indicadores = await _indicadoresService.calcular(
-      session,
-      sprint: sprint,
-      transaction: transaction,
-    );
-    final naoConcluidas = await _indicadoresService.contarDemandasNaoConcluidas(
-      session,
-      sprintId: sprint.id!,
-      transaction: transaction,
-    );
-    return SprintConclusaoResponse(
-      sprint: sprint,
-      quantidadeDemandasNaoConcluidas: naoConcluidas,
-      indicadores: indicadores,
-    );
-  });
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      await _bloquearCicloDeVida(session, transaction);
+      final sprint = await _buscarSprintBloqueada(
+        session,
+        id,
+        transaction,
+        usuarioId,
+      );
+      final indicadores = await _indicadoresService.calcular(
+        session,
+        sprint: sprint,
+        transaction: transaction,
+      );
+      final naoConcluidas = await _indicadoresService
+          .contarDemandasNaoConcluidas(
+            session,
+            sprintId: sprint.id!,
+            usuarioId: usuarioId,
+            transaction: transaction,
+          );
+      return SprintConclusaoResponse(
+        sprint: sprint,
+        quantidadeDemandasNaoConcluidas: naoConcluidas,
+        indicadores: indicadores,
+      );
+    });
+  }
 
   Future<SprintIndicadores> calcularIndicadoresSprint(
     Session session,
     int id,
   ) async {
-    final sprint = await Sprint.db.findById(session, id);
+    final sprint = await UsuarioScope(
+      await _owner(session),
+    ).sprint(session, id);
     if (sprint == null) {
       throw SprintException(codigo: SprintErroCodigo.sprintNaoEncontrada);
     }
     return _indicadoresService.calcular(session, sprint: sprint);
   }
 
-  Future<bool> excluirSprint(Session session, int id) =>
-      session.db.transaction((transaction) async {
-        await _bloquearCicloDeVida(session, transaction);
-        final sprint = await Sprint.db.findById(
-          session,
-          id,
-          transaction: transaction,
-          lockMode: LockMode.forUpdate,
-        );
-        if (sprint == null) return false;
-        await _demandaService.removerTodosVinculosDaSprint(
-          session,
-          sprintId: id,
-          transaction: transaction,
-        );
-        await Sprint.db.deleteRow(session, sprint, transaction: transaction);
-        return true;
-      });
+  Future<bool> excluirSprint(Session session, int id) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      await _bloquearCicloDeVida(session, transaction);
+      final sprint = await UsuarioScope(usuarioId).sprint(
+        session,
+        id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (sprint == null) return false;
+      await _demandaService.removerTodosVinculosDaSprint(
+        session,
+        sprintId: id,
+        transaction: transaction,
+      );
+      await Sprint.db.deleteRow(session, sprint, transaction: transaction);
+      return true;
+    });
+  }
 
   Future<Sprint> reabrirSprint(Session session, int id) =>
       _transicionar(session, id, SprintStatus.planejada);
@@ -244,14 +286,18 @@ class SprintEndpoint extends Endpoint {
     Session session,
     int sprintId,
     int demandaId,
-  ) => session.db.transaction(
-    (transaction) => _demandaService.vincularArvore(
-      session,
-      sprintId: sprintId,
-      demandaId: demandaId,
-      transaction: transaction,
-    ),
-  );
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction(
+      (transaction) => _demandaService.vincularArvore(
+        session,
+        usuarioId: usuarioId,
+        sprintId: sprintId,
+        demandaId: demandaId,
+        transaction: transaction,
+      ),
+    );
+  }
 
   /// Vincula várias Demandas como uma única operação atômica.
   ///
@@ -261,98 +307,114 @@ class SprintEndpoint extends Endpoint {
     Session session,
     int sprintId,
     List<int> demandaIds,
-  ) async => session.db.transaction((transaction) async {
-    return _demandaService.vincularArvores(
-      session,
-      sprintId: sprintId,
-      demandaIds: demandaIds,
-      transaction: transaction,
-    );
-  });
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      return _demandaService.vincularArvores(
+        session,
+        usuarioId: usuarioId,
+        sprintId: sprintId,
+        demandaIds: demandaIds,
+        transaction: transaction,
+      );
+    });
+  }
 
   Future<bool> desvincularDemanda(
     Session session,
     int sprintId,
     int demandaId,
-  ) => session.db.transaction(
-    (transaction) => _demandaService.desvincularArvore(
-      session,
-      sprintId: sprintId,
-      demandaId: demandaId,
-      transaction: transaction,
-    ),
-  );
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction(
+      (transaction) => _demandaService.desvincularArvore(
+        session,
+        usuarioId: usuarioId,
+        sprintId: sprintId,
+        demandaId: demandaId,
+        transaction: transaction,
+      ),
+    );
+  }
 
   Future<Sprint> _transicionar(
     Session session,
     int id,
     SprintStatus destino,
-  ) => session.db.transaction((transaction) async {
-    await _bloquearCicloDeVida(session, transaction);
-    final sprint = await _buscarSprintBloqueada(session, id, transaction);
-    if (!_transicaoPermitida(sprint.status, destino)) {
-      throw SprintException(codigo: SprintErroCodigo.transicaoStatusInvalida);
-    }
-
-    if (destino == SprintStatus.planejada) {
-      await _demandaService.validarReabertura(
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      await _bloquearCicloDeVida(session, transaction);
+      final sprint = await _buscarSprintBloqueada(
         session,
-        sprintId: sprint.id!,
-        transaction: transaction,
+        id,
+        transaction,
+        usuarioId,
       );
-    }
+      if (!_transicaoPermitida(sprint.status, destino)) {
+        throw SprintException(codigo: SprintErroCodigo.transicaoStatusInvalida);
+      }
 
-    if (destino == SprintStatus.ativa) {
-      final hoje = _hojeUtc();
-      if (hoje.isBefore(sprint.dataInicio)) {
-        throw SprintException(
-          codigo: SprintErroCodigo.inicioAntesDataInicio,
+      if (destino == SprintStatus.planejada) {
+        await _demandaService.validarReabertura(
+          session,
+          sprintId: sprint.id!,
+          transaction: transaction,
         );
       }
-      if ((sprint.tempoPrevistoMinutos ?? 0) <= 0) {
-        throw SprintException(codigo: SprintErroCodigo.tempoPrevistoInvalido);
+
+      if (destino == SprintStatus.ativa) {
+        final hoje = _hojeUtc();
+        if (hoje.isBefore(sprint.dataInicio)) {
+          throw SprintException(
+            codigo: SprintErroCodigo.inicioAntesDataInicio,
+          );
+        }
+        if ((sprint.tempoPrevistoMinutos ?? 0) <= 0) {
+          throw SprintException(codigo: SprintErroCodigo.tempoPrevistoInvalido);
+        }
       }
-    }
 
-    if (destino == SprintStatus.cancelada) {
-      await _demandaService.removerTodosVinculosDaSprint(
-        session,
-        sprintId: sprint.id!,
-        transaction: transaction,
-      );
-    }
-
-    await _validarSemSobreposicao(
-      session,
-      dataInicio: sprint.dataInicio,
-      dataFim: sprint.dataFim,
-      status: destino,
-      usuarioId: sprint.usuarioId,
-      transaction: transaction,
-      sprintIdIgnorada: sprint.id,
-    );
-
-    if (destino == SprintStatus.ativa) {
-      final ativa = await Sprint.db.findFirstRow(
-        session,
-        where: (t) =>
-            t.status.equals(SprintStatus.ativa) &
-            t.usuarioId.equals(sprint.usuarioId),
-        transaction: transaction,
-        lockMode: LockMode.forUpdate,
-      );
-      if (ativa != null && ativa.id != sprint.id) {
-        throw SprintException(codigo: SprintErroCodigo.sprintAtivaExistente);
+      if (destino == SprintStatus.cancelada) {
+        await _demandaService.removerTodosVinculosDaSprint(
+          session,
+          sprintId: sprint.id!,
+          transaction: transaction,
+        );
       }
-    }
 
-    return (await Sprint.db.updateById(
-      session,
-      sprint.id!,
-      columnValues: (t) => [t.status(destino)],
-      transaction: transaction,
-    ))!;
-  });
+      await _validarSemSobreposicao(
+        session,
+        dataInicio: sprint.dataInicio,
+        dataFim: sprint.dataFim,
+        status: destino,
+        usuarioId: sprint.usuarioId,
+        transaction: transaction,
+        sprintIdIgnorada: sprint.id,
+      );
+
+      if (destino == SprintStatus.ativa) {
+        final ativa = await Sprint.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.status.equals(SprintStatus.ativa) &
+              t.usuarioId.equals(sprint.usuarioId),
+          transaction: transaction,
+          lockMode: LockMode.forUpdate,
+        );
+        if (ativa != null && ativa.id != sprint.id) {
+          throw SprintException(codigo: SprintErroCodigo.sprintAtivaExistente);
+        }
+      }
+
+      return (await Sprint.db.updateById(
+        session,
+        sprint.id!,
+        columnValues: (t) => [t.status(destino)],
+        transaction: transaction,
+      ))!;
+    });
+  }
 
   Future<void> _bloquearCicloDeVida(
     Session session,
@@ -366,8 +428,9 @@ class SprintEndpoint extends Endpoint {
     Session session,
     int id,
     Transaction transaction,
+    int usuarioId,
   ) async {
-    final sprint = await Sprint.db.findById(
+    final sprint = await UsuarioScope(usuarioId).sprint(
       session,
       id,
       transaction: transaction,

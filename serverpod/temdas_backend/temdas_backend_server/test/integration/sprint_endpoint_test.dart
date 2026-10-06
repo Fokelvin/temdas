@@ -2,6 +2,7 @@ import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/authenticated_test_user.dart';
 
 Matcher throwsSprint(SprintErroCodigo codigo) => throwsA(
   isA<SprintException>().having((erro) => erro.codigo, 'codigo', codigo),
@@ -11,6 +12,8 @@ void main() {
   final prefixo = 'teste-sprint-${DateTime.now().microsecondsSinceEpoch}';
 
   withServerpod('Base de domínio de sprint', (sessionBuilder, endpoints) {
+    setUp(() => installAal2TestUser(sessionBuilder, 'sprint-regression-owner'));
+    tearDown(clearAal2TestUser);
     tearDown(() async {
       final session = sessionBuilder.build();
       await Sprint.db.deleteWhere(
@@ -571,6 +574,7 @@ void main() {
       ) => Sprint.db.insertRow(
         session,
         Sprint(
+          usuarioId: demanda.usuarioId,
           nome: '$prefixo trigger $sufixo',
           nomeNormalizado: '$prefixo trigger $sufixo'.toLowerCase(),
           dataInicio: inicio,

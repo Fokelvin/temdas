@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/usuario_scope.dart';
 
 class SprintDemandaService {
   Future<void> bloquearCicloDeVida(
@@ -15,10 +16,16 @@ class SprintDemandaService {
     Session session, {
     required int sprintId,
     required int demandaId,
+    required int usuarioId,
     required Transaction transaction,
   }) async {
     await bloquearCicloDeVida(session, transaction);
-    final sprint = await _buscarSprintBloqueada(session, sprintId, transaction);
+    final sprint = await _buscarSprintBloqueada(
+      session,
+      sprintId,
+      transaction,
+      usuarioId,
+    );
     if (!_estaAberta(sprint.status)) {
       throw SprintException(codigo: SprintErroCodigo.vinculoStatusProibido);
     }
@@ -27,6 +34,7 @@ class SprintDemandaService {
       session,
       demandaId,
       transaction,
+      usuarioId,
     );
     _validarMesmoUsuario(sprint, demandas);
     final demandaRaiz = demandas.first;
@@ -84,8 +92,11 @@ class SprintDemandaService {
     Session session, {
     required int sprintId,
     required Iterable<int> demandaIds,
+    required int usuarioId,
     required Transaction transaction,
   }) async {
+    await bloquearCicloDeVida(session, transaction);
+    await _buscarSprintBloqueada(session, sprintId, transaction, usuarioId);
     final resultado = <SprintDemanda>[];
     for (final demandaId in demandaIds.toSet()) {
       resultado.addAll(
@@ -93,6 +104,7 @@ class SprintDemandaService {
           session,
           sprintId: sprintId,
           demandaId: demandaId,
+          usuarioId: usuarioId,
           transaction: transaction,
         ),
       );
@@ -104,6 +116,7 @@ class SprintDemandaService {
     Session session, {
     required int sprintId,
     required int demandaId,
+    required int usuarioId,
     required Transaction transaction,
   }) async {
     await bloquearCicloDeVida(session, transaction);
@@ -111,6 +124,7 @@ class SprintDemandaService {
       session,
       sprintId,
       transaction,
+      usuarioId,
     );
     if (sprint == null) return false;
 
@@ -118,6 +132,7 @@ class SprintDemandaService {
       session,
       demandaId,
       transaction,
+      usuarioId,
     );
     final demandaRaiz = demandas.first;
     final demandaIds = demandas.map((demanda) => demanda.id!).toSet();
@@ -159,6 +174,7 @@ class SprintDemandaService {
     Session session, {
     required int demandaPaiId,
     required int demandaFilhaId,
+    required int usuarioId,
     required Transaction transaction,
   }) async {
     await bloquearCicloDeVida(session, transaction);
@@ -184,13 +200,16 @@ class SprintDemandaService {
     }
     if (sprintsAbertas.isEmpty) return;
 
-    final demandaFilha = await Demanda.db.findById(
+    final demandaFilha = await UsuarioScope(usuarioId).demanda(
       session,
       demandaFilhaId,
       transaction: transaction,
       lockMode: LockMode.forKeyShare,
     );
-    _validarMesmoUsuario(sprintsAbertas.single, [demandaFilha!]);
+    if (demandaFilha == null) {
+      throw SprintException(codigo: SprintErroCodigo.demandaNaoEncontrada);
+    }
+    _validarMesmoUsuario(sprintsAbertas.single, [demandaFilha]);
 
     await SprintDemanda.db.insertRow(
       session,
@@ -246,16 +265,22 @@ class SprintDemandaService {
   Future<List<Demanda>?> carregarArvoreBloqueadaOuNula(
     Session session,
     int demandaId,
-    Transaction transaction,
-  ) async {
-    final raiz = await Demanda.db.findById(
+    Transaction transaction, {
+    required int usuarioId,
+  }) async {
+    final raiz = await UsuarioScope(usuarioId).demanda(
       session,
       demandaId,
       transaction: transaction,
       lockMode: LockMode.forUpdate,
     );
     if (raiz == null) return null;
-    return _carregarDescendentesBloqueados(session, raiz, transaction);
+    return _carregarDescendentesBloqueados(
+      session,
+      raiz,
+      transaction,
+      usuarioId,
+    );
   }
 
   Future<void> validarSemHistoricoConcluido(
@@ -291,11 +316,13 @@ class SprintDemandaService {
     Session session,
     int sprintId,
     Transaction transaction,
+    int usuarioId,
   ) async {
     final sprint = await _buscarSprintBloqueadaOuNula(
       session,
       sprintId,
       transaction,
+      usuarioId,
     );
     if (sprint == null) {
       throw SprintException(codigo: SprintErroCodigo.sprintNaoEncontrada);
@@ -307,7 +334,8 @@ class SprintDemandaService {
     Session session,
     int sprintId,
     Transaction transaction,
-  ) => Sprint.db.findById(
+    int usuarioId,
+  ) => UsuarioScope(usuarioId).sprint(
     session,
     sprintId,
     transaction: transaction,
@@ -318,8 +346,9 @@ class SprintDemandaService {
     Session session,
     int demandaId,
     Transaction transaction,
+    int usuarioId,
   ) async {
-    final raiz = await Demanda.db.findById(
+    final raiz = await UsuarioScope(usuarioId).demanda(
       session,
       demandaId,
       transaction: transaction,
@@ -329,13 +358,19 @@ class SprintDemandaService {
       throw SprintException(codigo: SprintErroCodigo.demandaNaoEncontrada);
     }
 
-    return _carregarDescendentesBloqueados(session, raiz, transaction);
+    return _carregarDescendentesBloqueados(
+      session,
+      raiz,
+      transaction,
+      usuarioId,
+    );
   }
 
   Future<List<Demanda>> _carregarDescendentesBloqueados(
     Session session,
     Demanda raiz,
     Transaction transaction,
+    int usuarioId,
   ) async {
     final demandas = <Demanda>[raiz];
     final visitados = <int>{raiz.id!};
@@ -343,7 +378,8 @@ class SprintDemandaService {
     while (pais.isNotEmpty) {
       final filhas = await Demanda.db.find(
         session,
-        where: (t) => t.demandaPaiId.inSet(pais),
+        where: (t) =>
+            t.usuarioId.equals(usuarioId) & t.demandaPaiId.inSet(pais),
         orderBy: (t) => t.id,
         transaction: transaction,
         lockMode: LockMode.forUpdate,

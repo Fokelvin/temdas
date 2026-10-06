@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/usuario_scope.dart';
 
 /// Fonte de verdade das transições, compartilhada pelo update e pelas cascatas.
 class DemandaStatusService {
@@ -8,6 +9,7 @@ class DemandaStatusService {
     Session session,
     int id,
     DemandaStatus status, {
+    required int usuarioId,
     String? motivoCancelamento,
     bool concluirEmCascata = false,
     Transaction? transaction,
@@ -18,6 +20,7 @@ class DemandaStatusService {
           session,
           id,
           status,
+          usuarioId: usuarioId,
           motivoCancelamento: motivoCancelamento,
           concluirEmCascata: concluirEmCascata,
           transaction: tx,
@@ -25,7 +28,7 @@ class DemandaStatusService {
       );
     }
 
-    final raiz = await Demanda.db.findById(
+    final raiz = await UsuarioScope(usuarioId).demanda(
       session,
       id,
       transaction: transaction,
@@ -39,7 +42,7 @@ class DemandaStatusService {
     }
 
     final descendentes = _terminal(status)
-        ? await _carregarDescendentes(session, raiz, transaction)
+        ? await _carregarDescendentes(session, raiz, transaction, usuarioId)
         : const <Demanda>[];
     final ativos = descendentes.where((demanda) => !_terminal(demanda.status));
     final motivo = status == DemandaStatus.cancelada
@@ -83,21 +86,25 @@ class DemandaStatusService {
     );
   }
 
-  Future<Demanda> concluirEmCascata(Session session, int id) => alterarStatus(
-    session,
-    id,
-    DemandaStatus.concluida,
-    concluirEmCascata: true,
-  );
+  Future<Demanda> concluirEmCascata(Session session, int id, int usuarioId) =>
+      alterarStatus(
+        session,
+        id,
+        DemandaStatus.concluida,
+        usuarioId: usuarioId,
+        concluirEmCascata: true,
+      );
 
   Future<Demanda> cancelarEmCascata(
     Session session,
     int id,
     String motivo,
+    int usuarioId,
   ) => alterarStatus(
     session,
     id,
     DemandaStatus.cancelada,
+    usuarioId: usuarioId,
     motivoCancelamento: motivo,
   );
 
@@ -137,6 +144,7 @@ class DemandaStatusService {
     Session session,
     Demanda raiz,
     Transaction transaction,
+    int usuarioId,
   ) async {
     final descendentes = <Demanda>[];
     final visitados = <int>{raiz.id!};
@@ -144,7 +152,8 @@ class DemandaStatusService {
     while (pais.isNotEmpty) {
       final filhas = await Demanda.db.find(
         session,
-        where: (t) => t.demandaPaiId.inSet(pais),
+        where: (t) =>
+            t.usuarioId.equals(usuarioId) & t.demandaPaiId.inSet(pais),
         orderBy: (t) => t.id,
         transaction: transaction,
         lockMode: LockMode.forUpdate,
