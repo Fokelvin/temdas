@@ -316,8 +316,6 @@ class MfaChallengePage extends StatefulWidget {
 }
 
 class _MfaChallengePageState extends State<MfaChallengePage> {
-  String? _factorId;
-  String? _challengeId;
   final _code = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -335,42 +333,29 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
     try {
       await action();
     } catch (error) {
-      if (mounted) setState(() => _error = _mfaError(error));
+      if (mounted) setState(() => _error = _challengeError(error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _challenge() async {
-    final factor = preferredTotpFactor(
-      widget.factors,
-      selectedFactorId: _factorId,
-    );
+  Future<void> _confirm() async {
+    final code = _code.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      throw const _InvalidTotpCode();
+    }
+
+    final factor = preferredTotpFactor(widget.factors);
     if (factor == null || factor.status != FactorStatus.verified) {
       throw StateError('Não há fator TOTP verificado.');
     }
+
     final challenge = await widget.session.client.auth.mfa.challenge(
       factorId: factor.id,
     );
-    setState(() {
-      _factorId = factor.id;
-      _challengeId = challenge.id;
-    });
-  }
-
-  Future<void> _verify() async {
-    final factorId = _factorId;
-    final challengeId = _challengeId;
-    if (factorId == null || challengeId == null) {
-      throw StateError('Inicie o challenge antes de verificar.');
-    }
-    final code = _code.text.trim();
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      throw const FormatException('Informe o código de 6 dígitos.');
-    }
     await widget.session.client.auth.mfa.verify(
-      factorId: factorId,
-      challengeId: challengeId,
+      factorId: factor.id,
+      challengeId: challenge.id,
       code: code,
     );
     _code.clear();
@@ -381,38 +366,53 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
     title: 'Confirme sua identidade',
     subtitle: 'Informe o código gerado pelo seu aplicativo autenticador.',
     children: [
-      Text(
-        'Fatores TOTP verificados: ${widget.factors.where((f) => f.factorType == FactorType.totp && f.status == FactorStatus.verified).length}',
-      ),
-      FilledButton.tonal(
-        onPressed: _loading ? null : () => _run(_challenge),
-        child: const Text('Iniciar challenge'),
-      ),
       TextField(
         controller: _code,
         keyboardType: TextInputType.number,
         autofillHints: const [AutofillHints.oneTimeCode],
-        decoration: const InputDecoration(labelText: 'Código TOTP'),
-        onSubmitted: (_) => _run(_verify),
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(labelText: 'Código de 6 dígitos'),
+        onSubmitted: (_) => _run(_confirm),
       ),
+      const SizedBox(height: 20),
       FilledButton(
-        onPressed: _loading || _challengeId == null
-            ? null
-            : () => _run(_verify),
-        child: const Text('Verificar'),
+        onPressed: _loading ? null : () => _run(_confirm),
+        child: const Text('Confirmar'),
       ),
       if (_error != null)
-        Text(
-          _error!,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ),
-      if (_loading) const LinearProgressIndicator(),
+      if (_loading)
+        const Padding(
+          padding: EdgeInsets.only(top: 16),
+          child: LinearProgressIndicator(),
+        ),
+      const SizedBox(height: 12),
       TextButton(
         onPressed: _loading ? null : widget.onSignOut,
         child: const Text('Sair'),
       ),
     ],
   );
+}
+
+String _challengeError(Object error) {
+  if (error is _InvalidTotpCode) {
+    return 'Informe um código válido de 6 dígitos.';
+  }
+  if (error is AuthException && error.code == 'mfa_verification_failed') {
+    return 'Código inválido. Confira o aplicativo autenticador e tente novamente.';
+  }
+  return 'Não foi possível confirmar sua identidade. Tente novamente.';
+}
+
+class _InvalidTotpCode implements Exception {
+  const _InvalidTotpCode();
 }
 
 String _mfaError(Object error) {

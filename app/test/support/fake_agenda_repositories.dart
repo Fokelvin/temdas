@@ -169,6 +169,7 @@ backend.Demanda demandaAgendaFixture({
 }) {
   final agora = DateTime.utc(2026, 9, 9, 12);
   return backend.Demanda(
+    usuarioId: 1,
     id: id,
     titulo: titulo,
     status: backend.DemandaStatus.aberta,

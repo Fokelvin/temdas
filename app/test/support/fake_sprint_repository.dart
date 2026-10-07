@@ -124,6 +124,7 @@ class FakeSprintRepository implements SprintRepository {
     dataFimEnviada = dataFim;
     tempoPrevistoEnviado = tempoPrevistoMinutos;
     final sprint = backend.Sprint(
+      usuarioId: 1,
       id: _proximoId++,
       nome: nome,
       dataInicio: dataInicio,
