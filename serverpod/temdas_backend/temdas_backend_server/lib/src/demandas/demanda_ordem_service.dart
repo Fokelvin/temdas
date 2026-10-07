@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/usuario_scope.dart';
 import 'demanda_status_service.dart';
 
 class DemandaOrdemService {
@@ -12,9 +13,10 @@ class DemandaOrdemService {
   Future<Demanda> mover(
     Session session,
     DemandaMovimentacaoRequest request,
+    int usuarioId,
   ) => session.db.transaction(
     (transaction) async {
-      final solicitada = await Demanda.db.findById(
+      final solicitada = await UsuarioScope(usuarioId).demanda(
         session,
         request.demandaId,
         transaction: transaction,
@@ -36,7 +38,8 @@ class DemandaOrdemService {
       // serializes reorder operations without leaving duplicate positions.
       final raizes = await Demanda.db.find(
         session,
-        where: (t) => t.demandaPaiId.equals(null),
+        where: (t) =>
+            t.usuarioId.equals(usuarioId) & t.demandaPaiId.equals(null),
         orderBy: (t) => t.id,
         transaction: transaction,
         lockMode: LockMode.forUpdate,
@@ -83,6 +86,7 @@ class DemandaOrdemService {
           session,
           demanda.id!,
           destino,
+          usuarioId: usuarioId,
           transaction: transaction,
         );
         demanda.status = destino;
@@ -93,7 +97,7 @@ class DemandaOrdemService {
         await _renumerar(session, listaDestino, transaction);
       }
 
-      return (await Demanda.db.findById(
+      return (await UsuarioScope(usuarioId).demanda(
         session,
         demanda.id!,
         transaction: transaction,

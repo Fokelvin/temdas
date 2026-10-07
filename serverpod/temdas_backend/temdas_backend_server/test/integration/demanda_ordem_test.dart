@@ -2,6 +2,7 @@ import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/authenticated_test_user.dart';
 
 void main() {
   final prefixo = 'teste-ordem-${DateTime.now().microsecondsSinceEpoch}';
@@ -10,6 +11,8 @@ void main() {
     sessionBuilder,
     endpoints,
   ) {
+    setUp(() => installAal2TestUser(sessionBuilder, '$prefixo-owner'));
+    tearDown(clearAal2TestUser);
     Future<Demanda> criar(
       String nome, {
       int? pai,

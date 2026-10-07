@@ -119,6 +119,7 @@ class FakeDemandaRepository implements DemandaRepository {
       (maior, demanda) => (demanda.id ?? 0) > maior ? demanda.id! : maior,
     );
     final demanda = backend.Demanda(
+      usuarioId: 1,
       id: maiorId + 1,
       demandaPaiId: demandaPaiId,
       titulo: titulo,
@@ -427,6 +428,7 @@ backend.Demanda demandaFixture({
   String? observacoes = 'Observação preservada',
 }) {
   return backend.Demanda(
+    usuarioId: 1,
     id: id,
     demandaPaiId: demandaPaiId,
     titulo: titulo,

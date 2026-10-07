@@ -1,0 +1,10 @@
+class: EmailWhitelist
+table: emails_whitelist
+fields:
+  emailNormalizado: String
+  utilizadoEm: DateTime?
+  createdAt: DateTime
+indexes:
+  emails_whitelist_email_normalizado_idx:
+    fields: emailNormalizado
+    unique: true

@@ -1,0 +1,3 @@
+exception: RegistroTempoException
+fields:
+  codigo: String

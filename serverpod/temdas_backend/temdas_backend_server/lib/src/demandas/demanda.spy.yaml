@@ -1,6 +1,7 @@
 class: Demanda
 table: demandas
 fields:
+  usuarioId: int, relation(parent=usuarios)
   demandaPaiId: int?, relation(parent=demandas, onDelete=Cascade)
   ordem: int?
   titulo: String

@@ -19,6 +19,7 @@ abstract class Demanda
     implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   Demanda._({
     this.id,
+    required this.usuarioId,
     this.demandaPaiId,
     this.ordem,
     required this.titulo,
@@ -36,6 +37,7 @@ abstract class Demanda
 
   factory Demanda({
     int? id,
+    required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
@@ -54,6 +56,7 @@ abstract class Demanda
   factory Demanda.fromJson(Map<String, dynamic> jsonSerialization) {
     return Demanda(
       id: jsonSerialization['id'] as int?,
+      usuarioId: jsonSerialization['usuarioId'] as int,
       demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       ordem: jsonSerialization['ordem'] as int?,
       titulo: jsonSerialization['titulo'] as String,
@@ -89,6 +92,8 @@ abstract class Demanda
   @override
   int? id;
 
+  int usuarioId;
+
   int? demandaPaiId;
 
   int? ordem;
@@ -123,6 +128,7 @@ abstract class Demanda
   @_i1.useResult
   Demanda copyWith({
     int? id,
+    int? usuarioId,
     int? demandaPaiId,
     int? ordem,
     String? titulo,
@@ -142,6 +148,7 @@ abstract class Demanda
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
+      'usuarioId': usuarioId,
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       if (ordem != null) 'ordem': ordem,
       'titulo': titulo,
@@ -163,6 +170,7 @@ abstract class Demanda
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
+      'usuarioId': usuarioId,
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       if (ordem != null) 'ordem': ordem,
       'titulo': titulo,
@@ -214,6 +222,7 @@ class _Undefined {}
 class _DemandaImpl extends Demanda {
   _DemandaImpl({
     int? id,
+    required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
@@ -229,6 +238,7 @@ class _DemandaImpl extends Demanda {
     DateTime? concluidoEm,
   }) : super._(
          id: id,
+         usuarioId: usuarioId,
          demandaPaiId: demandaPaiId,
          ordem: ordem,
          titulo: titulo,
@@ -250,6 +260,7 @@ class _DemandaImpl extends Demanda {
   @override
   Demanda copyWith({
     Object? id = _Undefined,
+    int? usuarioId,
     Object? demandaPaiId = _Undefined,
     Object? ordem = _Undefined,
     String? titulo,
@@ -266,6 +277,7 @@ class _DemandaImpl extends Demanda {
   }) {
     return Demanda(
       id: id is int? ? id : this.id,
+      usuarioId: usuarioId ?? this.usuarioId,
       demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       ordem: ordem is int? ? ordem : this.ordem,
       titulo: titulo ?? this.titulo,
@@ -288,6 +300,11 @@ class _DemandaImpl extends Demanda {
 
 class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
   DemandaUpdateTable(super.table);
+
+  _i1.ColumnValue<int, int> usuarioId(int value) => _i1.ColumnValue(
+    table.usuarioId,
+    value,
+  );
 
   _i1.ColumnValue<int, int> demandaPaiId(int? value) => _i1.ColumnValue(
     table.demandaPaiId,
@@ -366,6 +383,10 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
 class DemandaTable extends _i1.Table<int?> {
   DemandaTable({super.tableRelation}) : super(tableName: 'demandas') {
     updateTable = DemandaUpdateTable(this);
+    usuarioId = _i1.ColumnInt(
+      'usuarioId',
+      this,
+    );
     demandaPaiId = _i1.ColumnInt(
       'demandaPaiId',
       this,
@@ -424,6 +445,8 @@ class DemandaTable extends _i1.Table<int?> {
 
   late final DemandaUpdateTable updateTable;
 
+  late final _i1.ColumnInt usuarioId;
+
   late final _i1.ColumnInt demandaPaiId;
 
   late final _i1.ColumnInt ordem;
@@ -453,6 +476,7 @@ class DemandaTable extends _i1.Table<int?> {
   @override
   List<_i1.Column> get columns => [
     id,
+    usuarioId,
     demandaPaiId,
     ordem,
     titulo,

@@ -31,12 +31,15 @@ dependencies:
   flutter:
     sdk: flutter
 
+  supabase_flutter: ^2.18.0
+  qr_flutter: ^4.1.0
   temdas_backend_client:
     path: ../serverpod/temdas_backend/temdas_backend_client
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  http: ^1.6.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

@@ -1,6 +1,7 @@
 class: Sprint
 table: sprints
 fields:
+  usuarioId: int, relation(parent=usuarios)
   nome: String
   nomeNormalizado: String?, scope=serverOnly
   dataInicio: DateTime
@@ -9,5 +10,5 @@ fields:
   status: SprintStatus
 indexes:
   sprints_nome_normalizado_idx:
-    fields: nomeNormalizado
+    fields: usuarioId, nomeNormalizado
     unique: true

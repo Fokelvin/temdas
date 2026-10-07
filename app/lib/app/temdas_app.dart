@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'auth_gate.dart';
 import 'app_routes.dart';
 
 class TemdasApp extends StatelessWidget {
@@ -14,8 +15,10 @@ class TemdasApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      initialRoute: Navigator.defaultRouteName,
+      initialRoute: AppRoutes.demandas,
       onGenerateRoute: AppRoutes.onGenerateRoute,
+      builder: (context, child) =>
+          AuthGate(session: null, child: child ?? const SizedBox.shrink()),
     );
   }
 }

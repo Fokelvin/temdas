@@ -1,0 +1,9 @@
+class: Usuario
+table: usuarios
+fields:
+  supabaseUserId: String
+  createdAt: DateTime
+indexes:
+  usuarios_supabase_user_id_idx:
+    fields: supabaseUserId
+    unique: true

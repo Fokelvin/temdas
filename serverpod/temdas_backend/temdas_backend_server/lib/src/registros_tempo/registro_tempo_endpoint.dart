@@ -1,14 +1,20 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../auth/supabase_auth_service.dart';
+import '../auth/usuario_scope.dart';
 import 'registro_tempo_conflito_service.dart';
 import 'registro_tempo_normalizacao_service.dart';
 
 class RegistroTempoEndpoint extends Endpoint {
+  Future<int> _owner(Session session) async =>
+      (await requireAal2Usuario(session)).usuario.id!;
+
   Future<RegistroTempo> registrarTempo(
     Session session,
     RegistroTempoCreateRequest request,
   ) async {
+    final usuarioId = await _owner(session);
     _validarDataUtc(request.inicioEm, 'O início do registro');
 
     if (request.duracaoMinutos <= 0) {
@@ -17,7 +23,7 @@ class RegistroTempoEndpoint extends Endpoint {
 
     final registroCriado = await session.db.transaction((transaction) async {
       await _bloquearAgenda(session, transaction);
-      final demanda = await Demanda.db.findById(
+      final demanda = await UsuarioScope(usuarioId).demanda(
         session,
         request.demandaId,
         transaction: transaction,
@@ -25,7 +31,7 @@ class RegistroTempoEndpoint extends Endpoint {
       );
 
       if (demanda == null) {
-        throw Exception('Demanda não encontrada.');
+        throw RegistroTempoException(codigo: 'demandaNaoEncontrada');
       }
 
       final registro = RegistroTempo(
@@ -35,7 +41,7 @@ class RegistroTempoEndpoint extends Endpoint {
         criadoEm: DateTime.now().toUtc(),
       );
 
-      return _normalizarEPersistir(session, registro, transaction);
+      return _normalizarEPersistir(session, registro, transaction, usuarioId);
     });
 
     session.log(
@@ -50,6 +56,7 @@ class RegistroTempoEndpoint extends Endpoint {
     Session session,
     RegistroTempoUpdateRequest request,
   ) async {
+    final usuarioId = await _owner(session);
     _validarDataUtc(request.inicioEm, 'O início do registro');
     if (request.duracaoMinutos <= 0) {
       throw Exception('A duração deve ser maior que zero.');
@@ -57,34 +64,39 @@ class RegistroTempoEndpoint extends Endpoint {
 
     final atualizado = await session.db.transaction((transaction) async {
       await _bloquearAgenda(session, transaction);
-      final registroInicial = await RegistroTempo.db.findById(
+      final ownedIds = await UsuarioScope(
+        usuarioId,
+      ).demandaIds(session, transaction: transaction);
+      final registroInicial = await RegistroTempo.db.findFirstRow(
         session,
-        request.id,
+        where: (t) => t.id.equals(request.id) & t.demandaId.inSet(ownedIds),
         transaction: transaction,
       );
       if (registroInicial == null) {
-        throw Exception('Registro de tempo não encontrado.');
+        throw RegistroTempoException(codigo: 'registroNaoEncontrado');
       }
 
       // Mantém a ordem demanda -> registro, usada também na exclusão,
       // evitando inversão de locks com operações concorrentes.
-      final demanda = await Demanda.db.findById(
+      final demanda = await UsuarioScope(usuarioId).demanda(
         session,
         registroInicial.demandaId,
         transaction: transaction,
         lockMode: LockMode.forUpdate,
       );
       if (demanda == null) {
-        throw Exception('Demanda não encontrada.');
+        throw RegistroTempoException(codigo: 'registroNaoEncontrado');
       }
-      final registro = await RegistroTempo.db.findById(
+      final registro = await RegistroTempo.db.findFirstRow(
         session,
-        request.id,
+        where: (t) =>
+            t.id.equals(request.id) &
+            t.demandaId.equals(registroInicial.demandaId),
         transaction: transaction,
         lockMode: LockMode.forUpdate,
       );
       if (registro == null) {
-        throw Exception('Registro de tempo não encontrado.');
+        throw RegistroTempoException(codigo: 'registroNaoEncontrado');
       }
 
       // ID, demandaId e criadoEm vêm exclusivamente do registro bloqueado.
@@ -92,7 +104,7 @@ class RegistroTempoEndpoint extends Endpoint {
         inicioEm: request.inicioEm,
         duracaoMinutos: request.duracaoMinutos,
       );
-      return _normalizarEPersistir(session, desejado, transaction);
+      return _normalizarEPersistir(session, desejado, transaction, usuarioId);
     });
 
     session.log(
@@ -108,11 +120,16 @@ class RegistroTempoEndpoint extends Endpoint {
     DateTime inicio,
     DateTime fim,
   ) async {
+    final usuarioId = await _owner(session);
     _validarPeriodo(inicio, fim);
-
+    final ownedIds = await UsuarioScope(usuarioId).demandaIds(session);
+    if (ownedIds.isEmpty) return [];
     return RegistroTempo.db.find(
       session,
-      where: (t) => (t.inicioEm >= inicio) & (t.inicioEm < fim),
+      where: (t) =>
+          t.demandaId.inSet(ownedIds) &
+          (t.inicioEm >= inicio) &
+          (t.inicioEm < fim),
       orderBy: (t) => t.inicioEm,
     );
   }
@@ -121,6 +138,11 @@ class RegistroTempoEndpoint extends Endpoint {
     Session session,
     int demandaId,
   ) async {
+    final usuarioId = await _owner(session);
+    final demanda = await UsuarioScope(usuarioId).demanda(session, demandaId);
+    if (demanda == null) {
+      throw RegistroTempoException(codigo: 'demandaNaoEncontrada');
+    }
     return RegistroTempo.db.find(
       session,
       where: (t) => t.demandaId.equals(demandaId),
@@ -133,10 +155,14 @@ class RegistroTempoEndpoint extends Endpoint {
     Session session,
     int id,
   ) async {
+    final usuarioId = await _owner(session);
     final excluido = await session.db.transaction((transaction) async {
-      final registroInicial = await RegistroTempo.db.findById(
+      final ownedIds = await UsuarioScope(
+        usuarioId,
+      ).demandaIds(session, transaction: transaction);
+      final registroInicial = await RegistroTempo.db.findFirstRow(
         session,
-        id,
+        where: (t) => t.id.equals(id) & t.demandaId.inSet(ownedIds),
         transaction: transaction,
       );
 
@@ -144,7 +170,7 @@ class RegistroTempoEndpoint extends Endpoint {
         return false;
       }
 
-      final demanda = await Demanda.db.findById(
+      final demanda = await UsuarioScope(usuarioId).demanda(
         session,
         registroInicial.demandaId,
         transaction: transaction,
@@ -155,9 +181,10 @@ class RegistroTempoEndpoint extends Endpoint {
         return false;
       }
 
-      final registro = await RegistroTempo.db.findById(
+      final registro = await RegistroTempo.db.findFirstRow(
         session,
-        id,
+        where: (t) =>
+            t.id.equals(id) & t.demandaId.equals(registroInicial.demandaId),
         transaction: transaction,
       );
 
@@ -199,6 +226,7 @@ class RegistroTempoEndpoint extends Endpoint {
     Session session,
     RegistroTempo registro,
     Transaction transaction,
+    int usuarioId,
   ) async {
     final existentes = await RegistroTempo.db.find(
       session,
@@ -220,6 +248,7 @@ class RegistroTempoEndpoint extends Endpoint {
       session,
       resultante,
       transaction,
+      usuarioId,
     );
     final salvo = resultante.id == null
         ? await RegistroTempo.db.insertRow(
@@ -270,7 +299,7 @@ class RegistroTempoEndpoint extends Endpoint {
     );
 
     if (demandaAtualizada == null) {
-      throw Exception('Demanda não encontrada.');
+      throw RegistroTempoException(codigo: 'demandaNaoEncontrada');
     }
   }
 

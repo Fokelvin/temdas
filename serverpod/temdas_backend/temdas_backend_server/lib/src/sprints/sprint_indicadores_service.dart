@@ -24,13 +24,15 @@ class SprintIndicadoresService {
 
     final demandas = await Demanda.db.find(
       session,
-      where: (t) => t.id.inSet(demandaIds),
+      where: (t) =>
+          t.usuarioId.equals(sprint.usuarioId) & t.id.inSet(demandaIds),
       transaction: transaction,
     );
+    final ownedIds = demandas.map((demanda) => demanda.id!).toSet();
     final registros = await RegistroTempo.db.find(
       session,
       where: (t) =>
-          t.demandaId.inSet(demandaIds) &
+          t.demandaId.inSet(ownedIds) &
           (t.inicioEm >= sprint.dataInicio) &
           (t.inicioEm < sprint.dataFim.add(const Duration(days: 1))),
       transaction: transaction,
@@ -52,6 +54,7 @@ class SprintIndicadoresService {
   Future<int> contarDemandasNaoConcluidas(
     Session session, {
     required int sprintId,
+    required int usuarioId,
     Transaction? transaction,
   }) async {
     final demandaIds = (await SprintDemanda.db.find(
@@ -64,7 +67,9 @@ class SprintIndicadoresService {
     final demandas = await Demanda.db.find(
       session,
       where: (t) =>
-          t.id.inSet(demandaIds) & t.status.notEquals(DemandaStatus.concluida),
+          t.usuarioId.equals(usuarioId) &
+          t.id.inSet(demandaIds) &
+          t.status.notEquals(DemandaStatus.concluida),
       transaction: transaction,
     );
     return demandas.length;

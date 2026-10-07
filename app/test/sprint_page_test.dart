@@ -1514,6 +1514,7 @@ backend.Sprint _sprint({
   String nome = 'Entrega Alpha',
   backend.SprintStatus status = backend.SprintStatus.ativa,
 }) => backend.Sprint(
+  usuarioId: 1,
   id: id,
   nome: nome,
   dataInicio: DateTime.utc(2026, 1, 5),

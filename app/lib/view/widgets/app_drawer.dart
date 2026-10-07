@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
 import '../../theme/app_theme.dart';
+import '../../data/supabase_session.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key, required this.currentRoute});
@@ -44,6 +45,15 @@ class AppDrawer extends StatelessWidget {
         icon: Icon(Icons.assessment_outlined),
         selectedIcon: Icon(Icons.assessment),
         label: Text('Relatórios'),
+      ),
+      const Divider(),
+      ListTile(
+        leading: const Icon(Icons.logout),
+        title: const Text('Sair'),
+        onTap: () async {
+          Navigator.pop(context);
+          await supabaseSession?.signOut();
+        },
       ),
     ],
   );

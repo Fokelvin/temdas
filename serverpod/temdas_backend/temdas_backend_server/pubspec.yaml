@@ -9,6 +9,8 @@ environment:
 resolution: workspace
 
 dependencies:
+  http: ^1.6.0
+  jose: ^0.3.5+2
   serverpod: 3.4.11
 
 dev_dependencies:

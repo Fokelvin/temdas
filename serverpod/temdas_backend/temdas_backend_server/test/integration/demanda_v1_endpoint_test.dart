@@ -2,6 +2,7 @@ import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/authenticated_test_user.dart';
 
 void main() {
   final prefixo = 'teste-v1-${DateTime.now().microsecondsSinceEpoch}';
@@ -9,6 +10,8 @@ void main() {
   withServerpod(
     'Fluxos V1 de demandas e registros de tempo',
     (sessionBuilder, endpoints) {
+      setUp(() => installAal2TestUser(sessionBuilder, '$prefixo-owner'));
+      tearDown(clearAal2TestUser);
       tearDown(() async {
         final session = sessionBuilder.build();
         await Demanda.db.deleteWhere(
