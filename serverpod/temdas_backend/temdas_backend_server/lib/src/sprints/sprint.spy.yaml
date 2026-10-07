@@ -1,8 +1,7 @@
 class: Sprint
 table: sprints
 fields:
-  # Nullable apenas durante a fase de atribuição de owner aos dados existentes.
-  usuarioId: int?, relation(parent=usuarios)
+  usuarioId: int, relation(parent=usuarios)
   nome: String
   nomeNormalizado: String?, scope=serverOnly
   dataInicio: DateTime

@@ -17,7 +17,7 @@ import '../sprints/sprint_status.dart' as _i2;
 abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   Sprint._({
     this.id,
-    this.usuarioId,
+    required this.usuarioId,
     required this.nome,
     this.nomeNormalizado,
     required this.dataInicio,
@@ -28,7 +28,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   factory Sprint({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     required String nome,
     String? nomeNormalizado,
     required DateTime dataInicio,
@@ -40,7 +40,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   factory Sprint.fromJson(Map<String, dynamic> jsonSerialization) {
     return Sprint(
       id: jsonSerialization['id'] as int?,
-      usuarioId: jsonSerialization['usuarioId'] as int?,
+      usuarioId: jsonSerialization['usuarioId'] as int,
       nome: jsonSerialization['nome'] as String,
       nomeNormalizado: jsonSerialization['nomeNormalizado'] as String?,
       dataInicio: _i1.DateTimeJsonExtension.fromJson(
@@ -61,7 +61,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   @override
   int? id;
 
-  int? usuarioId;
+  int usuarioId;
 
   String nome;
 
@@ -96,7 +96,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     return {
       '__className__': 'Sprint',
       if (id != null) 'id': id,
-      if (usuarioId != null) 'usuarioId': usuarioId,
+      'usuarioId': usuarioId,
       'nome': nome,
       if (nomeNormalizado != null) 'nomeNormalizado': nomeNormalizado,
       'dataInicio': dataInicio.toJson(),
@@ -112,7 +112,7 @@ abstract class Sprint implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     return {
       '__className__': 'Sprint',
       if (id != null) 'id': id,
-      if (usuarioId != null) 'usuarioId': usuarioId,
+      'usuarioId': usuarioId,
       'nome': nome,
       'dataInicio': dataInicio.toJson(),
       'dataFim': dataFim.toJson(),
@@ -157,7 +157,7 @@ class _Undefined {}
 class _SprintImpl extends Sprint {
   _SprintImpl({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     required String nome,
     String? nomeNormalizado,
     required DateTime dataInicio,
@@ -181,7 +181,7 @@ class _SprintImpl extends Sprint {
   @override
   Sprint copyWith({
     Object? id = _Undefined,
-    Object? usuarioId = _Undefined,
+    int? usuarioId,
     String? nome,
     Object? nomeNormalizado = _Undefined,
     DateTime? dataInicio,
@@ -191,7 +191,7 @@ class _SprintImpl extends Sprint {
   }) {
     return Sprint(
       id: id is int? ? id : this.id,
-      usuarioId: usuarioId is int? ? usuarioId : this.usuarioId,
+      usuarioId: usuarioId ?? this.usuarioId,
       nome: nome ?? this.nome,
       nomeNormalizado: nomeNormalizado is String?
           ? nomeNormalizado
@@ -209,7 +209,7 @@ class _SprintImpl extends Sprint {
 class SprintUpdateTable extends _i1.UpdateTable<SprintTable> {
   SprintUpdateTable(super.table);
 
-  _i1.ColumnValue<int, int> usuarioId(int? value) => _i1.ColumnValue(
+  _i1.ColumnValue<int, int> usuarioId(int value) => _i1.ColumnValue(
     table.usuarioId,
     value,
   );

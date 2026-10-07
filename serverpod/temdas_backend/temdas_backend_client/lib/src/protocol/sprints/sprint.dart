@@ -17,7 +17,7 @@ import '../sprints/sprint_status.dart' as _i2;
 abstract class Sprint implements _i1.SerializableModel {
   Sprint._({
     this.id,
-    this.usuarioId,
+    required this.usuarioId,
     required this.nome,
     required this.dataInicio,
     required this.dataFim,
@@ -27,7 +27,7 @@ abstract class Sprint implements _i1.SerializableModel {
 
   factory Sprint({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     required String nome,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -38,7 +38,7 @@ abstract class Sprint implements _i1.SerializableModel {
   factory Sprint.fromJson(Map<String, dynamic> jsonSerialization) {
     return Sprint(
       id: jsonSerialization['id'] as int?,
-      usuarioId: jsonSerialization['usuarioId'] as int?,
+      usuarioId: jsonSerialization['usuarioId'] as int,
       nome: jsonSerialization['nome'] as String,
       dataInicio: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['dataInicio'],
@@ -56,7 +56,7 @@ abstract class Sprint implements _i1.SerializableModel {
   /// the id will be null.
   int? id;
 
-  int? usuarioId;
+  int usuarioId;
 
   String nome;
 
@@ -85,7 +85,7 @@ abstract class Sprint implements _i1.SerializableModel {
     return {
       '__className__': 'Sprint',
       if (id != null) 'id': id,
-      if (usuarioId != null) 'usuarioId': usuarioId,
+      'usuarioId': usuarioId,
       'nome': nome,
       'dataInicio': dataInicio.toJson(),
       'dataFim': dataFim.toJson(),
@@ -106,7 +106,7 @@ class _Undefined {}
 class _SprintImpl extends Sprint {
   _SprintImpl({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     required String nome,
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -128,7 +128,7 @@ class _SprintImpl extends Sprint {
   @override
   Sprint copyWith({
     Object? id = _Undefined,
-    Object? usuarioId = _Undefined,
+    int? usuarioId,
     String? nome,
     DateTime? dataInicio,
     DateTime? dataFim,
@@ -137,7 +137,7 @@ class _SprintImpl extends Sprint {
   }) {
     return Sprint(
       id: id is int? ? id : this.id,
-      usuarioId: usuarioId is int? ? usuarioId : this.usuarioId,
+      usuarioId: usuarioId ?? this.usuarioId,
       nome: nome ?? this.nome,
       dataInicio: dataInicio ?? this.dataInicio,
       dataFim: dataFim ?? this.dataFim,

@@ -20,28 +20,12 @@ void registerSprintCustomIndexes() {
   final existingNames = table.indexes.map((index) => index.indexName).toSet();
   final customIndexes = <IndexDefinition>[
     IndexDefinition(
-      indexName: 'sprints_nome_normalizado_sem_usuario_idx',
-      elements: [_column('nomeNormalizado')],
-      type: 'btree',
-      isUnique: true,
-      isPrimary: false,
-      predicate: '("usuarioId" IS NULL)',
-    ),
-    IndexDefinition(
       indexName: 'sprints_uma_ativa_por_usuario_idx',
       elements: [_column('usuarioId')],
       type: 'btree',
       isUnique: true,
       isPrimary: false,
-      predicate: "((status = 'ativa'::text) AND (\"usuarioId\" IS NOT NULL))",
-    ),
-    IndexDefinition(
-      indexName: 'sprints_uma_ativa_sem_usuario_idx',
-      elements: [_expression('(1)')],
-      type: 'btree',
-      isUnique: true,
-      isPrimary: false,
-      predicate: "((status = 'ativa'::text) AND (\"usuarioId\" IS NULL))",
+      predicate: "(status = 'ativa'::text)",
     ),
     IndexDefinition(
       indexName: 'sprints_periodos_sem_sobreposicao_por_usuario',
@@ -54,19 +38,7 @@ void registerSprintCustomIndexes() {
       type: 'gist',
       isUnique: false,
       isPrimary: false,
-      predicate: _activePeriodPredicate(isLegacy: false),
-    ),
-    IndexDefinition(
-      indexName: 'sprints_periodos_sem_sobreposicao_sem_usuario',
-      elements: [
-        _expression(
-          'daterange("dataInicio"::date, "dataFim"::date, \'[]\'::text)',
-        ),
-      ],
-      type: 'gist',
-      isUnique: false,
-      isPrimary: false,
-      predicate: _activePeriodPredicate(isLegacy: true),
+      predicate: _activePeriodPredicate,
     ),
   ];
 
@@ -90,7 +62,6 @@ IndexElementDefinition _expression(String sql) => IndexElementDefinition(
   definition: sql,
 );
 
-String _activePeriodPredicate({required bool isLegacy}) =>
-    '(("usuarioId" IS ${isLegacy ? '' : 'NOT '}NULL) AND '
+const _activePeriodPredicate =
     "(status = ANY (ARRAY['planejada'::text, 'ativa'::text, "
-    "'concluida'::text])))";
+    "'concluida'::text]))";

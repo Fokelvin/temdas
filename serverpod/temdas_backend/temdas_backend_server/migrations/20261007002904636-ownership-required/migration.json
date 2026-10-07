@@ -1,0 +1,100 @@
+{
+  "__className__": "serverpod.DatabaseMigration",
+  "actions": [
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "demandas",
+        "schema": "public",
+        "addColumns": [],
+        "deleteColumns": [],
+        "modifyColumns": [
+          {
+            "__className__": "serverpod.ColumnMigration",
+            "columnName": "usuarioId",
+            "addNullable": false,
+            "removeNullable": true,
+            "changeDefault": false
+          }
+        ],
+        "addIndexes": [],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "notNullAdded",
+            "message": "Column \"usuarioId\" of table \"demandas\" is modified to be not null. If there are existing rows with null values, this migration will fail.",
+            "table": "demandas",
+            "columns": [
+              "usuarioId"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "sprints",
+        "schema": "public",
+        "addColumns": [],
+        "deleteColumns": [],
+        "modifyColumns": [
+          {
+            "__className__": "serverpod.ColumnMigration",
+            "columnName": "usuarioId",
+            "addNullable": false,
+            "removeNullable": true,
+            "changeDefault": false
+          }
+        ],
+        "addIndexes": [],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "notNullAdded",
+            "message": "Column \"usuarioId\" of table \"sprints\" is modified to be not null. If there are existing rows with null values, this migration will fail.",
+            "table": "sprints",
+            "columns": [
+              "usuarioId"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "notNullAdded",
+      "message": "Column \"usuarioId\" of table \"demandas\" is modified to be not null. If there are existing rows with null values, this migration will fail.",
+      "table": "demandas",
+      "columns": [
+        "usuarioId"
+      ],
+      "destrucive": false
+    },
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "notNullAdded",
+      "message": "Column \"usuarioId\" of table \"sprints\" is modified to be not null. If there are existing rows with null values, this migration will fail.",
+      "table": "sprints",
+      "columns": [
+        "usuarioId"
+      ],
+      "destrucive": false
+    }
+  ],
+  "migrationApiVersion": 1
+}

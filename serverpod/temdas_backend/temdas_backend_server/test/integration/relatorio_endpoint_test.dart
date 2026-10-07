@@ -1,4 +1,5 @@
 import 'package:temdas_backend_server/src/generated/protocol.dart';
+import 'package:temdas_backend_server/src/relatorios/relatorio_endpoint.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
@@ -89,7 +90,7 @@ void main() {
           endpoints,
           sessionBuilder,
           semTempo.id!,
-          inicio.subtract(const Duration(minutes: 1)),
+          inicio.subtract(const Duration(minutes: 30)),
           15,
         );
 
@@ -171,7 +172,7 @@ void main() {
             endpoints,
             sessionBuilder,
             outra.id!,
-            DateTime.utc(2026, 9, 1, 3),
+            DateTime.utc(2026, 9, 1, 3, 30),
             20,
           );
 
@@ -231,18 +232,23 @@ void main() {
           ),
           throwsA(isA<Exception>()),
         );
-        await expectLater(
-          endpoints.relatorio.gerarRelatorioDemandas(
-            sessionBuilder,
-            RelatorioDemandaRequest(
-              inicioEm: DateTime(2026, 9, 1),
-              fimExclusivo: fim,
-              status: null,
-              prioridade: null,
+        final session = sessionBuilder.build();
+        try {
+          await expectLater(
+            RelatorioEndpoint().gerarRelatorioDemandas(
+              session,
+              RelatorioDemandaRequest(
+                inicioEm: DateTime(2026, 9, 1),
+                fimExclusivo: fim,
+                status: null,
+                prioridade: null,
+              ),
             ),
-          ),
-          throwsA(isA<Exception>()),
-        );
+            throwsA(isA<Exception>()),
+          );
+        } finally {
+          await session.close();
+        }
       });
     },
     rollbackDatabase: RollbackDatabase.disabled,

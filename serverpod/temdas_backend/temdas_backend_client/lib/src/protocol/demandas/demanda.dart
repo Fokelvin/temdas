@@ -18,7 +18,7 @@ import '../demandas/prioridade.dart' as _i3;
 abstract class Demanda implements _i1.SerializableModel {
   Demanda._({
     this.id,
-    this.usuarioId,
+    required this.usuarioId,
     this.demandaPaiId,
     this.ordem,
     required this.titulo,
@@ -36,7 +36,7 @@ abstract class Demanda implements _i1.SerializableModel {
 
   factory Demanda({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
@@ -55,7 +55,7 @@ abstract class Demanda implements _i1.SerializableModel {
   factory Demanda.fromJson(Map<String, dynamic> jsonSerialization) {
     return Demanda(
       id: jsonSerialization['id'] as int?,
-      usuarioId: jsonSerialization['usuarioId'] as int?,
+      usuarioId: jsonSerialization['usuarioId'] as int,
       demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       ordem: jsonSerialization['ordem'] as int?,
       titulo: jsonSerialization['titulo'] as String,
@@ -89,7 +89,7 @@ abstract class Demanda implements _i1.SerializableModel {
   /// the id will be null.
   int? id;
 
-  int? usuarioId;
+  int usuarioId;
 
   int? demandaPaiId;
 
@@ -142,7 +142,7 @@ abstract class Demanda implements _i1.SerializableModel {
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
-      if (usuarioId != null) 'usuarioId': usuarioId,
+      'usuarioId': usuarioId,
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       if (ordem != null) 'ordem': ordem,
       'titulo': titulo,
@@ -170,7 +170,7 @@ class _Undefined {}
 class _DemandaImpl extends Demanda {
   _DemandaImpl({
     int? id,
-    int? usuarioId,
+    required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
@@ -208,7 +208,7 @@ class _DemandaImpl extends Demanda {
   @override
   Demanda copyWith({
     Object? id = _Undefined,
-    Object? usuarioId = _Undefined,
+    int? usuarioId,
     Object? demandaPaiId = _Undefined,
     Object? ordem = _Undefined,
     String? titulo,
@@ -225,7 +225,7 @@ class _DemandaImpl extends Demanda {
   }) {
     return Demanda(
       id: id is int? ? id : this.id,
-      usuarioId: usuarioId is int? ? usuarioId : this.usuarioId,
+      usuarioId: usuarioId ?? this.usuarioId,
       demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       ordem: ordem is int? ? ordem : this.ordem,
       titulo: titulo ?? this.titulo,

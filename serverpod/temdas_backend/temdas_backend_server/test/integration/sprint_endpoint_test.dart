@@ -509,6 +509,10 @@ void main() {
 
     test('constraints do banco protegem período e sprint ativa', () async {
       final session = sessionBuilder.build();
+      final usuario = await Usuario.db.findFirstRow(
+        session,
+        where: (t) => t.supabaseUserId.equals('sprint-regression-owner'),
+      );
       Future<Sprint> inserir({
         required String sufixo,
         required DateTime inicio,
@@ -517,6 +521,7 @@ void main() {
       }) => Sprint.db.insertRow(
         session,
         Sprint(
+          usuarioId: usuario!.id!,
           nome: '$prefixo banco $sufixo',
           nomeNormalizado: '$prefixo banco $sufixo'.toLowerCase(),
           dataInicio: inicio,
