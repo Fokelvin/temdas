@@ -77,7 +77,12 @@ void main() {
             HttpHeaders.authorizationHeader,
           );
           request.response.write(
-            jsonEncode({'className': 'AuthMe', 'usuarioId': 1, 'aal': 'aal2'}),
+            jsonEncode({
+              'className': 'AuthMe',
+              'usuarioId': 1,
+              'aal': 'aal2',
+              'isAdmin': false,
+            }),
           );
         }
         await request.response.close();
@@ -124,6 +129,7 @@ void main() {
     final me = await client.auth.me();
     expect(me.usuarioId, 1);
     expect(me.aal, 'aal2');
+    expect(me.isAdmin, isFalse);
     expect(serverpodAuthorization, 'Bearer $aal2Token');
   });
 }

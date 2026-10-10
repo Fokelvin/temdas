@@ -18,12 +18,14 @@ abstract class Usuario
   Usuario._({
     this.id,
     required this.supabaseUserId,
+    bool? isAdmin,
     required this.createdAt,
-  });
+  }) : isAdmin = isAdmin ?? false;
 
   factory Usuario({
     int? id,
     required String supabaseUserId,
+    bool? isAdmin,
     required DateTime createdAt,
   }) = _UsuarioImpl;
 
@@ -31,6 +33,9 @@ abstract class Usuario
     return Usuario(
       id: jsonSerialization['id'] as int?,
       supabaseUserId: jsonSerialization['supabaseUserId'] as String,
+      isAdmin: jsonSerialization['isAdmin'] == null
+          ? null
+          : _i1.BoolJsonExtension.fromJson(jsonSerialization['isAdmin']),
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
@@ -46,6 +51,8 @@ abstract class Usuario
 
   String supabaseUserId;
 
+  bool isAdmin;
+
   DateTime createdAt;
 
   @override
@@ -57,6 +64,7 @@ abstract class Usuario
   Usuario copyWith({
     int? id,
     String? supabaseUserId,
+    bool? isAdmin,
     DateTime? createdAt,
   });
   @override
@@ -65,6 +73,7 @@ abstract class Usuario
       '__className__': 'Usuario',
       if (id != null) 'id': id,
       'supabaseUserId': supabaseUserId,
+      'isAdmin': isAdmin,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -75,6 +84,7 @@ abstract class Usuario
       '__className__': 'Usuario',
       if (id != null) 'id': id,
       'supabaseUserId': supabaseUserId,
+      'isAdmin': isAdmin,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -115,10 +125,12 @@ class _UsuarioImpl extends Usuario {
   _UsuarioImpl({
     int? id,
     required String supabaseUserId,
+    bool? isAdmin,
     required DateTime createdAt,
   }) : super._(
          id: id,
          supabaseUserId: supabaseUserId,
+         isAdmin: isAdmin,
          createdAt: createdAt,
        );
 
@@ -129,11 +141,13 @@ class _UsuarioImpl extends Usuario {
   Usuario copyWith({
     Object? id = _Undefined,
     String? supabaseUserId,
+    bool? isAdmin,
     DateTime? createdAt,
   }) {
     return Usuario(
       id: id is int? ? id : this.id,
       supabaseUserId: supabaseUserId ?? this.supabaseUserId,
+      isAdmin: isAdmin ?? this.isAdmin,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -147,6 +161,11 @@ class UsuarioUpdateTable extends _i1.UpdateTable<UsuarioTable> {
         table.supabaseUserId,
         value,
       );
+
+  _i1.ColumnValue<bool, bool> isAdmin(bool value) => _i1.ColumnValue(
+    table.isAdmin,
+    value,
+  );
 
   _i1.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _i1.ColumnValue(
@@ -162,6 +181,11 @@ class UsuarioTable extends _i1.Table<int?> {
       'supabaseUserId',
       this,
     );
+    isAdmin = _i1.ColumnBool(
+      'isAdmin',
+      this,
+      hasDefault: true,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -172,12 +196,15 @@ class UsuarioTable extends _i1.Table<int?> {
 
   late final _i1.ColumnString supabaseUserId;
 
+  late final _i1.ColumnBool isAdmin;
+
   late final _i1.ColumnDateTime createdAt;
 
   @override
   List<_i1.Column> get columns => [
     id,
     supabaseUserId,
+    isAdmin,
     createdAt,
   ];
 }

@@ -1,4 +1,9 @@
+convite:
+  - consultar:
+  - convidar:
+  - reenviar:
 auth:
+  - provisionar:
   - me:
 demanda:
   - alterarStatusDemanda:

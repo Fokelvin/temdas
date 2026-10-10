@@ -41,7 +41,12 @@ void main() {
           headers.add(request.headers.value(HttpHeaders.authorizationHeader));
           request.response.headers.contentType = ContentType.json;
           request.response.write(
-            jsonEncode({'className': 'AuthMe', 'usuarioId': 42, 'aal': 'aal2'}),
+            jsonEncode({
+              'className': 'AuthMe',
+              'usuarioId': 42,
+              'aal': 'aal2',
+              'isAdmin': true,
+            }),
           );
         }
         await request.response.close();
@@ -77,7 +82,10 @@ void main() {
       refreshed = jwt('refreshed');
       await session.signInWithPassword('test@example.com', 'test-password');
       expect(session.accessToken, first);
-      expect((await client.auth.me()).usuarioId, 42);
+      final me = await client.auth.me();
+      expect(me.usuarioId, 42);
+      expect(me.aal, 'aal2');
+      expect(me.isAdmin, isTrue);
       await supabase.auth.refreshSession();
       await client.auth.me();
       await session.signOut();

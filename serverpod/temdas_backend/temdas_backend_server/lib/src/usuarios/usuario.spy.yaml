@@ -2,6 +2,7 @@ class: Usuario
 table: usuarios
 fields:
   supabaseUserId: String
+  isAdmin: bool, default=false
   createdAt: DateTime
 indexes:
   usuarios_supabase_user_id_idx:

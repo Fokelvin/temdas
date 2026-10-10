@@ -18,6 +18,9 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
     this.id,
     required this.emailNormalizado,
     this.utilizadoEm,
+    this.ultimoConviteEm,
+    this.conviteReservaId,
+    this.conviteReservadoAte,
     required this.createdAt,
   });
 
@@ -25,6 +28,9 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
     int? id,
     required String emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     required DateTime createdAt,
   }) = _EmailWhitelistImpl;
 
@@ -36,6 +42,17 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
           ? null
           : _i1.DateTimeJsonExtension.fromJson(
               jsonSerialization['utilizadoEm'],
+            ),
+      ultimoConviteEm: jsonSerialization['ultimoConviteEm'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['ultimoConviteEm'],
+            ),
+      conviteReservaId: jsonSerialization['conviteReservaId'] as String?,
+      conviteReservadoAte: jsonSerialization['conviteReservadoAte'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['conviteReservadoAte'],
             ),
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
@@ -52,6 +69,12 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
 
   DateTime? utilizadoEm;
 
+  DateTime? ultimoConviteEm;
+
+  String? conviteReservaId;
+
+  DateTime? conviteReservadoAte;
+
   DateTime createdAt;
 
   /// Returns a shallow copy of this [EmailWhitelist]
@@ -61,6 +84,9 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
     int? id,
     String? emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     DateTime? createdAt,
   });
   @override
@@ -70,6 +96,10 @@ abstract class EmailWhitelist implements _i1.SerializableModel {
       if (id != null) 'id': id,
       'emailNormalizado': emailNormalizado,
       if (utilizadoEm != null) 'utilizadoEm': utilizadoEm?.toJson(),
+      if (ultimoConviteEm != null) 'ultimoConviteEm': ultimoConviteEm?.toJson(),
+      if (conviteReservaId != null) 'conviteReservaId': conviteReservaId,
+      if (conviteReservadoAte != null)
+        'conviteReservadoAte': conviteReservadoAte?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -87,11 +117,17 @@ class _EmailWhitelistImpl extends EmailWhitelist {
     int? id,
     required String emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     required DateTime createdAt,
   }) : super._(
          id: id,
          emailNormalizado: emailNormalizado,
          utilizadoEm: utilizadoEm,
+         ultimoConviteEm: ultimoConviteEm,
+         conviteReservaId: conviteReservaId,
+         conviteReservadoAte: conviteReservadoAte,
          createdAt: createdAt,
        );
 
@@ -103,12 +139,24 @@ class _EmailWhitelistImpl extends EmailWhitelist {
     Object? id = _Undefined,
     String? emailNormalizado,
     Object? utilizadoEm = _Undefined,
+    Object? ultimoConviteEm = _Undefined,
+    Object? conviteReservaId = _Undefined,
+    Object? conviteReservadoAte = _Undefined,
     DateTime? createdAt,
   }) {
     return EmailWhitelist(
       id: id is int? ? id : this.id,
       emailNormalizado: emailNormalizado ?? this.emailNormalizado,
       utilizadoEm: utilizadoEm is DateTime? ? utilizadoEm : this.utilizadoEm,
+      ultimoConviteEm: ultimoConviteEm is DateTime?
+          ? ultimoConviteEm
+          : this.ultimoConviteEm,
+      conviteReservaId: conviteReservaId is String?
+          ? conviteReservaId
+          : this.conviteReservaId,
+      conviteReservadoAte: conviteReservadoAte is DateTime?
+          ? conviteReservadoAte
+          : this.conviteReservadoAte,
       createdAt: createdAt ?? this.createdAt,
     );
   }

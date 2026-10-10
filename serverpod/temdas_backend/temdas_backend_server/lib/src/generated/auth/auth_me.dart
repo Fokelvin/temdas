@@ -18,17 +18,20 @@ abstract class AuthMe
   AuthMe._({
     required this.usuarioId,
     required this.aal,
+    required this.isAdmin,
   });
 
   factory AuthMe({
     required int usuarioId,
     required String aal,
+    required bool isAdmin,
   }) = _AuthMeImpl;
 
   factory AuthMe.fromJson(Map<String, dynamic> jsonSerialization) {
     return AuthMe(
       usuarioId: jsonSerialization['usuarioId'] as int,
       aal: jsonSerialization['aal'] as String,
+      isAdmin: _i1.BoolJsonExtension.fromJson(jsonSerialization['isAdmin']),
     );
   }
 
@@ -36,12 +39,15 @@ abstract class AuthMe
 
   String aal;
 
+  bool isAdmin;
+
   /// Returns a shallow copy of this [AuthMe]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
   AuthMe copyWith({
     int? usuarioId,
     String? aal,
+    bool? isAdmin,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -49,6 +55,7 @@ abstract class AuthMe
       '__className__': 'AuthMe',
       'usuarioId': usuarioId,
       'aal': aal,
+      'isAdmin': isAdmin,
     };
   }
 
@@ -58,6 +65,7 @@ abstract class AuthMe
       '__className__': 'AuthMe',
       'usuarioId': usuarioId,
       'aal': aal,
+      'isAdmin': isAdmin,
     };
   }
 
@@ -71,9 +79,11 @@ class _AuthMeImpl extends AuthMe {
   _AuthMeImpl({
     required int usuarioId,
     required String aal,
+    required bool isAdmin,
   }) : super._(
          usuarioId: usuarioId,
          aal: aal,
+         isAdmin: isAdmin,
        );
 
   /// Returns a shallow copy of this [AuthMe]
@@ -83,10 +93,12 @@ class _AuthMeImpl extends AuthMe {
   AuthMe copyWith({
     int? usuarioId,
     String? aal,
+    bool? isAdmin,
   }) {
     return AuthMe(
       usuarioId: usuarioId ?? this.usuarioId,
       aal: aal ?? this.aal,
+      isAdmin: isAdmin ?? this.isAdmin,
     );
   }
 }

@@ -50,11 +50,47 @@ import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.da
 import 'protocol.dart' as _i21;
 
 /// {@category Endpoint}
+class EndpointConvite extends _i1.EndpointRef {
+  EndpointConvite(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'convite';
+
+  _i2.Future<String> consultar(String email) =>
+      caller.callServerEndpoint<String>(
+        'convite',
+        'consultar',
+        {'email': email},
+      );
+
+  _i2.Future<String> convidar(String email) =>
+      caller.callServerEndpoint<String>(
+        'convite',
+        'convidar',
+        {'email': email},
+      );
+
+  _i2.Future<String> reenviar(String email) =>
+      caller.callServerEndpoint<String>(
+        'convite',
+        'reenviar',
+        {'email': email},
+      );
+}
+
+/// {@category Endpoint}
 class EndpointAuth extends _i1.EndpointRef {
   EndpointAuth(_i1.EndpointCaller caller) : super(caller);
 
   @override
   String get name => 'auth';
+
+  /// Onboarding accepts AAL1/AAL2 before an internal Usuario exists.
+  _i2.Future<_i3.AuthMe> provisionar() => caller.callServerEndpoint<_i3.AuthMe>(
+    'auth',
+    'provisionar',
+    {},
+  );
 
   _i2.Future<_i3.AuthMe> me() => caller.callServerEndpoint<_i3.AuthMe>(
     'auth',
@@ -398,6 +434,7 @@ class Client extends _i1.ServerpodClientShared {
          disconnectStreamsOnLostInternetConnection:
              disconnectStreamsOnLostInternetConnection,
        ) {
+    convite = EndpointConvite(this);
     auth = EndpointAuth(this);
     demanda = EndpointDemanda(this);
     greeting = EndpointGreeting(this);
@@ -405,6 +442,8 @@ class Client extends _i1.ServerpodClientShared {
     relatorio = EndpointRelatorio(this);
     sprint = EndpointSprint(this);
   }
+
+  late final EndpointConvite convite;
 
   late final EndpointAuth auth;
 
@@ -420,6 +459,7 @@ class Client extends _i1.ServerpodClientShared {
 
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
+    'convite': convite,
     'auth': auth,
     'demanda': demanda,
     'greeting': greeting,

@@ -3,6 +3,9 @@ table: emails_whitelist
 fields:
   emailNormalizado: String
   utilizadoEm: DateTime?
+  ultimoConviteEm: DateTime?
+  conviteReservaId: String?
+  conviteReservadoAte: DateTime?
   createdAt: DateTime
 indexes:
   emails_whitelist_email_normalizado_idx:

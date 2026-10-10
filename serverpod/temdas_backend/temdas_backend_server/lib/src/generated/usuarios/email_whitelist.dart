@@ -19,6 +19,9 @@ abstract class EmailWhitelist
     this.id,
     required this.emailNormalizado,
     this.utilizadoEm,
+    this.ultimoConviteEm,
+    this.conviteReservaId,
+    this.conviteReservadoAte,
     required this.createdAt,
   });
 
@@ -26,6 +29,9 @@ abstract class EmailWhitelist
     int? id,
     required String emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     required DateTime createdAt,
   }) = _EmailWhitelistImpl;
 
@@ -37,6 +43,17 @@ abstract class EmailWhitelist
           ? null
           : _i1.DateTimeJsonExtension.fromJson(
               jsonSerialization['utilizadoEm'],
+            ),
+      ultimoConviteEm: jsonSerialization['ultimoConviteEm'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['ultimoConviteEm'],
+            ),
+      conviteReservaId: jsonSerialization['conviteReservaId'] as String?,
+      conviteReservadoAte: jsonSerialization['conviteReservadoAte'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['conviteReservadoAte'],
             ),
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
@@ -55,6 +72,12 @@ abstract class EmailWhitelist
 
   DateTime? utilizadoEm;
 
+  DateTime? ultimoConviteEm;
+
+  String? conviteReservaId;
+
+  DateTime? conviteReservadoAte;
+
   DateTime createdAt;
 
   @override
@@ -67,6 +90,9 @@ abstract class EmailWhitelist
     int? id,
     String? emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     DateTime? createdAt,
   });
   @override
@@ -76,6 +102,10 @@ abstract class EmailWhitelist
       if (id != null) 'id': id,
       'emailNormalizado': emailNormalizado,
       if (utilizadoEm != null) 'utilizadoEm': utilizadoEm?.toJson(),
+      if (ultimoConviteEm != null) 'ultimoConviteEm': ultimoConviteEm?.toJson(),
+      if (conviteReservaId != null) 'conviteReservaId': conviteReservaId,
+      if (conviteReservadoAte != null)
+        'conviteReservadoAte': conviteReservadoAte?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -87,6 +117,10 @@ abstract class EmailWhitelist
       if (id != null) 'id': id,
       'emailNormalizado': emailNormalizado,
       if (utilizadoEm != null) 'utilizadoEm': utilizadoEm?.toJson(),
+      if (ultimoConviteEm != null) 'ultimoConviteEm': ultimoConviteEm?.toJson(),
+      if (conviteReservaId != null) 'conviteReservaId': conviteReservaId,
+      if (conviteReservadoAte != null)
+        'conviteReservadoAte': conviteReservadoAte?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -128,11 +162,17 @@ class _EmailWhitelistImpl extends EmailWhitelist {
     int? id,
     required String emailNormalizado,
     DateTime? utilizadoEm,
+    DateTime? ultimoConviteEm,
+    String? conviteReservaId,
+    DateTime? conviteReservadoAte,
     required DateTime createdAt,
   }) : super._(
          id: id,
          emailNormalizado: emailNormalizado,
          utilizadoEm: utilizadoEm,
+         ultimoConviteEm: ultimoConviteEm,
+         conviteReservaId: conviteReservaId,
+         conviteReservadoAte: conviteReservadoAte,
          createdAt: createdAt,
        );
 
@@ -144,12 +184,24 @@ class _EmailWhitelistImpl extends EmailWhitelist {
     Object? id = _Undefined,
     String? emailNormalizado,
     Object? utilizadoEm = _Undefined,
+    Object? ultimoConviteEm = _Undefined,
+    Object? conviteReservaId = _Undefined,
+    Object? conviteReservadoAte = _Undefined,
     DateTime? createdAt,
   }) {
     return EmailWhitelist(
       id: id is int? ? id : this.id,
       emailNormalizado: emailNormalizado ?? this.emailNormalizado,
       utilizadoEm: utilizadoEm is DateTime? ? utilizadoEm : this.utilizadoEm,
+      ultimoConviteEm: ultimoConviteEm is DateTime?
+          ? ultimoConviteEm
+          : this.ultimoConviteEm,
+      conviteReservaId: conviteReservaId is String?
+          ? conviteReservaId
+          : this.conviteReservaId,
+      conviteReservadoAte: conviteReservadoAte is DateTime?
+          ? conviteReservadoAte
+          : this.conviteReservadoAte,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -167,6 +219,24 @@ class EmailWhitelistUpdateTable extends _i1.UpdateTable<EmailWhitelistTable> {
   _i1.ColumnValue<DateTime, DateTime> utilizadoEm(DateTime? value) =>
       _i1.ColumnValue(
         table.utilizadoEm,
+        value,
+      );
+
+  _i1.ColumnValue<DateTime, DateTime> ultimoConviteEm(DateTime? value) =>
+      _i1.ColumnValue(
+        table.ultimoConviteEm,
+        value,
+      );
+
+  _i1.ColumnValue<String, String> conviteReservaId(String? value) =>
+      _i1.ColumnValue(
+        table.conviteReservaId,
+        value,
+      );
+
+  _i1.ColumnValue<DateTime, DateTime> conviteReservadoAte(DateTime? value) =>
+      _i1.ColumnValue(
+        table.conviteReservadoAte,
         value,
       );
 
@@ -189,6 +259,18 @@ class EmailWhitelistTable extends _i1.Table<int?> {
       'utilizadoEm',
       this,
     );
+    ultimoConviteEm = _i1.ColumnDateTime(
+      'ultimoConviteEm',
+      this,
+    );
+    conviteReservaId = _i1.ColumnString(
+      'conviteReservaId',
+      this,
+    );
+    conviteReservadoAte = _i1.ColumnDateTime(
+      'conviteReservadoAte',
+      this,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -201,6 +283,12 @@ class EmailWhitelistTable extends _i1.Table<int?> {
 
   late final _i1.ColumnDateTime utilizadoEm;
 
+  late final _i1.ColumnDateTime ultimoConviteEm;
+
+  late final _i1.ColumnString conviteReservaId;
+
+  late final _i1.ColumnDateTime conviteReservadoAte;
+
   late final _i1.ColumnDateTime createdAt;
 
   @override
@@ -208,6 +296,9 @@ class EmailWhitelistTable extends _i1.Table<int?> {
     id,
     emailNormalizado,
     utilizadoEm,
+    ultimoConviteEm,
+    conviteReservaId,
+    conviteReservadoAte,
     createdAt,
   ];
 }
