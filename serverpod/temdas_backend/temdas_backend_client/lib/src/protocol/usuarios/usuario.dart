@@ -17,12 +17,14 @@ abstract class Usuario implements _i1.SerializableModel {
   Usuario._({
     this.id,
     required this.supabaseUserId,
+    bool? isAdmin,
     required this.createdAt,
-  });
+  }) : isAdmin = isAdmin ?? false;
 
   factory Usuario({
     int? id,
     required String supabaseUserId,
+    bool? isAdmin,
     required DateTime createdAt,
   }) = _UsuarioImpl;
 
@@ -30,6 +32,9 @@ abstract class Usuario implements _i1.SerializableModel {
     return Usuario(
       id: jsonSerialization['id'] as int?,
       supabaseUserId: jsonSerialization['supabaseUserId'] as String,
+      isAdmin: jsonSerialization['isAdmin'] == null
+          ? null
+          : _i1.BoolJsonExtension.fromJson(jsonSerialization['isAdmin']),
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
@@ -43,6 +48,8 @@ abstract class Usuario implements _i1.SerializableModel {
 
   String supabaseUserId;
 
+  bool isAdmin;
+
   DateTime createdAt;
 
   /// Returns a shallow copy of this [Usuario]
@@ -51,6 +58,7 @@ abstract class Usuario implements _i1.SerializableModel {
   Usuario copyWith({
     int? id,
     String? supabaseUserId,
+    bool? isAdmin,
     DateTime? createdAt,
   });
   @override
@@ -59,6 +67,7 @@ abstract class Usuario implements _i1.SerializableModel {
       '__className__': 'Usuario',
       if (id != null) 'id': id,
       'supabaseUserId': supabaseUserId,
+      'isAdmin': isAdmin,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -75,10 +84,12 @@ class _UsuarioImpl extends Usuario {
   _UsuarioImpl({
     int? id,
     required String supabaseUserId,
+    bool? isAdmin,
     required DateTime createdAt,
   }) : super._(
          id: id,
          supabaseUserId: supabaseUserId,
+         isAdmin: isAdmin,
          createdAt: createdAt,
        );
 
@@ -89,11 +100,13 @@ class _UsuarioImpl extends Usuario {
   Usuario copyWith({
     Object? id = _Undefined,
     String? supabaseUserId,
+    bool? isAdmin,
     DateTime? createdAt,
   }) {
     return Usuario(
       id: id is int? ? id : this.id,
       supabaseUserId: supabaseUserId ?? this.supabaseUserId,
+      isAdmin: isAdmin ?? this.isAdmin,
       createdAt: createdAt ?? this.createdAt,
     );
   }

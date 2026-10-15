@@ -39,6 +39,11 @@ Future<void> initializeSupabaseSession() async {
   if (!key.startsWith('sb_publishable_')) {
     throw StateError('Use a Supabase publishable key in Flutter.');
   }
-  await Supabase.initialize(url: url, publishableKey: key);
+  await Supabase.initialize(
+    url: url,
+    publishableKey: key,
+    // The callback route consumes the URL and reports errors itself.
+    authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
+  );
   supabaseSession = SupabaseSession(Supabase.instance.client);
 }

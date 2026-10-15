@@ -1,10 +1,9 @@
 # Autenticação Supabase → Serverpod (primeira camada)
 
 Supabase Auth autentica e-mail/senha e emite o access JWT. O TEMDAS não armazena
-senhas nem emite outro token. Nesta etapa, apenas `client.auth.me()` exige
-usuário interno e `aal2`; Demanda/Sprint e os demais endpoints continuam com
-seu comportamento atual. Esta etapa ainda não constitui a proteção integral
-do aplicativo.
+senhas nem emite outro token. `auth.provisionar()` aceita JWT AAL1/AAL2 para
+criar o `Usuario` interno; `auth.me()` e as operações funcionais continuam
+exigindo `Usuario` e AAL2.
 
 ## Dependências e compatibilidade
 
@@ -25,7 +24,9 @@ Servidor: variável de ambiente pública `SUPABASE_URL=https://<projeto>.supabas
 Aceita somente uma origem HTTPS, sem credenciais, query ou fragmento. Ausência
 da configuração retorna `authNotConfigured` nas chamadas com token ao endpoint
 protegido. Os endpoints existentes podem ser executados sem Supabase configurado.
-O servidor não precisa de publishable key, service_role ou JWT secret.
+O JWT é validado sem publishable key, service_role ou JWT secret. O onboarding
+e o envio de convites exigem `SUPABASE_SECRET_KEY=sb_secret_...` somente no
+backend, para consultar o usuário confirmado e enviar convites, respectivamente.
 
 Flutter:
 
@@ -81,7 +82,8 @@ além do cache do próprio Supabase. Há timeout de 5 segundos para headers e
 5 segundos para corpo, limite de 256 KiB e rejeição de `kid` duplicado/chave
 privada. Falhas não renovam o cache, e chaves expiradas não são usadas.
 
-Não há consulta a Supabase Auth por request. Logout/ revogação de sessão não
+O onboarding consulta Supabase Auth a cada chamada; as rotas funcionais não.
+Logout/ revogação de sessão não
 revogam instantaneamente um access JWT já emitido: validação é local até seu
 `exp`, conforme o modelo JWT escolhido.
 
@@ -98,6 +100,34 @@ não usa e-mail para associação e não assume `Usuario.id = 1`.
 ```json
 {"usuarioId": 1, "aal": "aal2"}
 ```
+
+## Provisioning AAL1/AAL2
+
+`auth.provisionar()` não recebe e-mail do cliente e não exige `Usuario` prévio.
+Usa o `sub` do JWT validado, consulta `GET /auth/v1/admin/users/{sub}` no
+Supabase Auth com a chave secreta apenas no header `apikey` e exige que o `id`
+da resposta coincida com `sub` e que `email_confirmed_at` esteja preenchido.
+Ignora `JWT.email`, `user_metadata` e `confirmed_at` (que também pode indicar
+confirmação de telefone). A leitura ocorre antes da transação PostgreSQL.
+
+O e-mail retornado pelo Auth é normalizado como nos convites e deve existir em
+`EmailWhitelist`. Uma transação com locks por `sub` e e-mail cria no máximo um
+`Usuario` por `supabaseUserId`, sempre com `isAdmin=false`, e preenche
+`utilizadoEm` junto com a criação. Repetições retornam o mesmo ID e não alteram
+um admin existente. Um registro de whitelist consumido sem `Usuario` para o
+mesmo `sub` é recusado. A restrição única do usuário também cobre escritores
+que não utilizem os advisory locks. O retorno usa o mesmo `AuthMe` de `auth.me`.
+Como a whitelist não registra o `sub` consumidor, a repetição de um `Usuario`
+existente é identificada pelo `supabaseUserId`; não é possível provar pelo
+registro da whitelist qual `sub` o consumiu originalmente.
+
+Não há transação distribuída com Supabase Auth: uma mudança ou revogação do
+e-mail após a consulta e antes do commit só será observada numa próxima
+chamada. O JWT também continua válido até `exp` conforme a política já descrita.
+Falhas da consulta não criam usuário nem consomem whitelist. Códigos adicionais:
+`authNaoConfigurado`, `authIndisponivel`, `usuarioSupabaseNaoEncontrado`,
+`emailNaoConfirmado`, `emailInvalido`, `emailNaoAutorizado`,
+`conviteJaUtilizado` e `provisioningConflito`.
 
 São erros serializáveis `AuthException.codigo`:
 
@@ -126,9 +156,12 @@ Serverpod não verifica provisioning interno nem MFA.
 
 ## Verificação
 
-Executados: `serverpod generate`, `dart analyze` no workspace backend/client,
-`flutter analyze`, 16 testes unitários do backend e 35 testes Flutter
-(sessão/Bearer, Sprint view model e widgets básicos).
+Nesta etapa foram executados `serverpod generate`, `dart analyze` no backend e
+cliente e 43 testes unitários do backend. Os testes de onboarding cobrem JWT
+AAL1/AAL2, acesso funcional AAL2, e-mail confirmado vindo do Auth, whitelist,
+repetição, concorrência simulada e preservação de admin. Os testes de
+concorrência usam store em memória; não substituem a validação transacional em
+PostgreSQL.
 
 Os unitários cobrem os sete casos solicitados, ES256/RS256, audience/issuer,
 cache concorrente, rotação, cooldown, remoção de chave, indisponibilidade,
@@ -139,8 +172,8 @@ cliente gerado do Serverpod. Ele usa tokens sintéticos e não valida criptograf
 O teste com PostgreSQL real está em `test/integration/auth_usuario_test.dart`:
 associação exata do sub, aal1/aal2, sub desconhecido e `auth.me` sem token.
 Depende do PostgreSQL de testes em localhost:9090. O banco não respondeu nesta
-sessão e o socket Docker não estava acessível; a validação com banco e com o
-projeto Supabase real precisa ser executada no ambiente configurado.
+sessão e o socket Docker não estava acessível; a transação de provisioning e
+a consulta ao projeto Supabase real ainda precisam de validação nesse ambiente.
 
 ```bash
 # A partir de temdas_backend_server, com os serviços de teste disponíveis:
@@ -153,6 +186,6 @@ As decisões de e-mail/senha, TOTP obrigatório e acesso funcional apenas em aal
 estão preservadas. Falta fornecer URL/chave pública do ambiente e confirmar a
 signing key assimétrica ativa no Supabase, a associação do sub real em usuarios
 e uma sessão aal2 para prova ponta a ponta. A próxima implementação deve tratar
-enrollment/challenge TOTP, refletir o token elevado na sessão e aplicar os
-helpers aos demais endpoints. O desenho das telas de MFA permanece para essa
-etapa; não há provisioning automático, recovery, RLS ou roles nesta entrega.
+enrollment/challenge TOTP e refletir o token elevado na sessão. O desenho das
+telas de MFA permanece para essa etapa; não há UI de onboarding, recovery, RLS
+ou roles nesta entrega.

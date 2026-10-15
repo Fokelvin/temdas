@@ -180,6 +180,8 @@ void main() {
       supabaseUserId: 'supabase-user',
       createdAt: now,
     );
+    expect(usuario.isAdmin, isFalse);
+    expect(usuario.copyWith(isAdmin: true).isAdmin, isTrue);
     Future<Usuario?> lookup(String sub) async {
       expect(sub, usuario.supabaseUserId);
       return usuario;

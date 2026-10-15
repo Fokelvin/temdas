@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 import '../view/demanda_detalhe_page.dart';
 import '../view/demandas_page.dart';
 import '../view/log_time_page.dart';
+import '../view/meu_perfil_page.dart';
 import '../view/relatorios_page.dart';
 import '../view/sprint_page.dart';
+import '../view/auth_callback_page.dart';
 
 abstract final class AppRoutes {
   static const demandas = '/demandas';
+  static const authCallback = '/auth/callback';
   static const demandaDetalhe = '/demandas/detalhe';
   static const sprint = '/sprint';
   static const logTime = '/log-time';
   static const relatorios = '/relatorios';
+  static const perfil = '/perfil';
 
   static String detalheDaDemanda(int demandaId) => Uri(
     path: demandaDetalhe,
@@ -20,7 +24,10 @@ abstract final class AppRoutes {
 
   static String detalheDaSprint(int sprintId) => '$sprint/$sprintId';
 
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+  static Route<dynamic> onGenerateRoute(
+    RouteSettings settings, {
+    Uri? callbackUri,
+  }) {
     final uri = Uri.tryParse(settings.name ?? Navigator.defaultRouteName);
     final demandaId = settings.arguments is int
         ? settings.arguments as int
@@ -34,6 +41,7 @@ abstract final class AppRoutes {
         ? int.tryParse(segmentosSprint[1])
         : null;
     final page = switch (uri?.path) {
+      authCallback => AuthCallbackPage(uri: callbackUri ?? Uri.base),
       demandaDetalhe => switch (demandaId) {
         final int id when id > 0 => DemandaDetalhePage(demandaId: id),
         _ => const _ArgumentoDetalheInvalidoPage(),
@@ -45,6 +53,7 @@ abstract final class AppRoutes {
       },
       logTime => const LogTimePage(),
       relatorios => const RelatoriosPage(),
+      perfil => const MeuPerfilPage(),
       _ => const DemandasPage(),
     };
     return MaterialPageRoute(builder: (_) => page, settings: settings);

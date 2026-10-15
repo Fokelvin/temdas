@@ -17,6 +17,7 @@ class AppDrawer extends StatelessWidget {
         AppRoutes.sprint,
         AppRoutes.logTime,
         AppRoutes.relatorios,
+        AppRoutes.perfil,
       ][index];
       Navigator.pop(context);
       if (route != currentRoute) Navigator.pushReplacementNamed(context, route);
@@ -46,6 +47,11 @@ class AppDrawer extends StatelessWidget {
         selectedIcon: Icon(Icons.assessment),
         label: Text('Relatórios'),
       ),
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.person_outline),
+        selectedIcon: Icon(Icons.person),
+        label: Text('Meu Perfil'),
+      ),
       const Divider(),
       ListTile(
         leading: const Icon(Icons.logout),
@@ -62,6 +68,7 @@ class AppDrawer extends StatelessWidget {
     AppRoutes.sprint => 1,
     AppRoutes.logTime => 2,
     AppRoutes.relatorios => 3,
+    AppRoutes.perfil => 4,
     AppRoutes.demandas || AppRoutes.demandaDetalhe => 0,
     _ => 0,
   };

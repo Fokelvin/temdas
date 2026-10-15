@@ -236,6 +236,17 @@ SupabaseAuthService _configuredService() {
   return _service = SupabaseAuthService(supabaseUrl: url);
 }
 
+/// Onboarding validates the same JWT as functional routes, before a Usuario
+/// exists. Functional routes continue to use requireAal2Usuario.
+Future<({String sub, String aal})> requireValidSupabaseClaims(
+  Session session, {
+  SupabaseAuthService? authService,
+}) {
+  final token = session.authenticationKey;
+  if (token == null || token.isEmpty) throw _failure('tokenMissing');
+  return (authService ?? _configuredService()).claimsForSession(session);
+}
+
 /// Serverpod initializes authentication before dispatch, even on public RPCs.
 /// Invalid credentials stay unauthenticated; guards expose typed error codes.
 /// Internal provisioning and mandatory AAL2 are enforced by the guards below.

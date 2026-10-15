@@ -2,3 +2,4 @@ class: AuthMe
 fields:
   usuarioId: int
   aal: String
+  isAdmin: bool
