@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app/app_routes.dart';
 import '../data/supabase_session.dart';
 import 'totp_enrollment_qr.dart';
 import 'totp_factor_selection.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.session});
+  const LoginPage({super.key, required this.session, this.currentUri});
   final SupabaseSession? session;
+  final Uri? currentUri;
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -16,16 +20,23 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _loading = false;
+  bool _recovering = false;
+  bool _recoveryLoading = false;
+  bool _recoverySent = false;
+  bool _recoveryCooldown = false;
+  Timer? _recoveryTimer;
   String? _error;
 
   @override
   void dispose() {
+    _recoveryTimer?.cancel();
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
+    if (_loading) return;
     final session = widget.session;
     if (session == null) {
       setState(() => _error = 'A autenticação ainda não está configurada.');
@@ -56,47 +67,207 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _showRecovery(bool recovering) {
+    if (_recoveryLoading) return;
+    setState(() {
+      _recovering = recovering;
+      _error = null;
+    });
+  }
+
+  Future<void> _sendRecovery() async {
+    if (_recoveryLoading || _recoveryCooldown) return;
+    final email = _email.text.trim();
+    if (email.length > 254 ||
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      setState(() => _error = 'Informe um e-mail válido.');
+      return;
+    }
+    final session = widget.session;
+    if (session == null) {
+      setState(() => _error = 'A autenticação ainda não está configurada.');
+      return;
+    }
+    final location = widget.currentUri ?? Uri.base;
+    if ((location.scheme != 'https' && location.scheme != 'http') ||
+        location.host.isEmpty) {
+      setState(
+        () => _error = 'Não foi possível identificar o endereço do app.',
+      );
+      return;
+    }
+
+    setState(() {
+      _recoveryLoading = true;
+      _recoverySent = false;
+      _error = null;
+    });
+    try {
+      await session.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: '${location.origin}${AppRoutes.authCallback}',
+      );
+      if (mounted) _showRecoverySent();
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      final message = _recoveryError(error);
+      if (message == null) {
+        _showRecoverySent();
+      } else {
+        setState(() => _error = message);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = _recoveryUnavailable);
+    } finally {
+      if (mounted) setState(() => _recoveryLoading = false);
+    }
+  }
+
+  void _showRecoverySent() {
+    _recoveryTimer?.cancel();
+    _recoveryTimer = Timer(const Duration(minutes: 1), () {
+      if (mounted) setState(() => _recoveryCooldown = false);
+    });
+    setState(() {
+      _recoverySent = true;
+      _recoveryCooldown = true;
+      _error = null;
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => _AuthLayout(
-    title: 'Entrar no TEMDAS',
-    subtitle: 'Use sua conta para continuar.',
-    children: [
-      TextField(
-        controller: _email,
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [AutofillHints.username],
-        decoration: const InputDecoration(labelText: 'E-mail'),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _password,
-        obscureText: true,
-        autofillHints: const [AutofillHints.password],
-        decoration: const InputDecoration(labelText: 'Senha'),
-        onSubmitted: (_) => _login(),
-      ),
-      if (_error != null) ...[
-        const SizedBox(height: 12),
-        Text(
-          _error!,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      ],
-      const SizedBox(height: 20),
-      SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: _loading ? null : _login,
-          child: _loading
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Entrar'),
-        ),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) => _recovering
+      ? _AuthLayout(
+          title: 'Esqueci minha senha',
+          subtitle:
+              'Informe seu e-mail para receber instruções de recuperação.',
+          children: [
+            if (!_recoverySent || !_recoveryCooldown) ...[
+              TextField(
+                controller: _email,
+                enabled: !_recoveryLoading,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(labelText: 'E-mail'),
+                onSubmitted: (_) => _sendRecovery(),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _recoveryLoading ? null : _sendRecovery,
+                  child: _recoveryLoading
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Enviar instruções'),
+                ),
+              ),
+            ],
+            if (_recoverySent) ...[
+              const SizedBox(height: 12),
+              const Text(_recoveryConfirmation),
+              if (_recoveryCooldown)
+                const Text('Aguarde um minuto antes de solicitar novamente.'),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _recoveryLoading ? null : () => _showRecovery(false),
+              child: const Text('Voltar ao login'),
+            ),
+          ],
+        )
+      : _AuthLayout(
+          title: 'Entrar no TEMDAS',
+          subtitle: 'Use sua conta para continuar.',
+          children: [
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.username],
+              decoration: const InputDecoration(labelText: 'E-mail'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              decoration: const InputDecoration(labelText: 'Senha'),
+              onSubmitted: (_) => _login(),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _loading ? null : _login,
+                child: _loading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Entrar'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _loading ? null : () => _showRecovery(true),
+              child: const Text('Esqueci minha senha'),
+            ),
+          ],
+        );
+}
+
+const _recoveryConfirmation =
+    'Se houver uma conta para este e-mail, você receberá instruções para redefinir sua senha.';
+const _recoveryUnavailable =
+    'Não foi possível solicitar a recuperação. Verifique a conexão e tente novamente.';
+const _recoveryRejected =
+    'A solicitação de recuperação foi recusada. Tente novamente ou contate o suporte.';
+const _recoveryUnauthorized =
+    'A recuperação não está disponível nesta configuração. Contate o suporte.';
+const _recoveryRateLimited =
+    'Limite de tentativas atingido. Aguarde antes de solicitar novamente.';
+
+/// Returns null only when a generic confirmation protects account existence.
+String? _recoveryError(AuthException error) {
+  if (error is AuthRetryableFetchException || error is AuthUnknownException) {
+    return _recoveryUnavailable;
+  }
+  final status = int.tryParse(error.statusCode ?? '');
+  if (status != null && status >= 500) return _recoveryUnavailable;
+  if (status == 429) return _recoveryRateLimited;
+  if (status == 401 || status == 403) return _recoveryUnauthorized;
+  switch (error.code) {
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return _recoveryRateLimited;
+    case 'request_timeout':
+    case 'hook_timeout':
+    case 'hook_timeout_after_retry':
+    case 'unexpected_failure':
+      return _recoveryUnavailable;
+  }
+  if (error.code == 'user_not_found' || error.code == 'email_not_confirmed') {
+    return null;
+  }
+  if (status == 400) return _recoveryRejected;
+  if (status == 404) return null;
+  return _recoveryUnavailable;
 }
 
 String _loginError(AuthException error) {

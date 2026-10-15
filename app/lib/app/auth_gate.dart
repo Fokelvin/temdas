@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -15,6 +16,36 @@ enum AuthGateState {
   challenge,
   authenticated,
   error,
+}
+
+typedef _AuthFingerprint = ({
+  String? userId,
+  AuthenticatorAssuranceLevels? aal,
+  String factors,
+});
+
+_AuthFingerprint _fingerprint(SupabaseSession? session) {
+  final current = session?.currentSession;
+  if (current == null) return (userId: null, aal: null, factors: '');
+  AuthenticatorAssuranceLevels? aal;
+  try {
+    aal = session!.client.auth.mfa.getAuthenticatorAssuranceLevel().currentLevel;
+  } catch (_) {
+    // The evaluation reports malformed sessions through the gate error state.
+  }
+  final factors =
+      (current.user.factors ?? const <Factor>[])
+          .map(
+            (factor) =>
+                '${factor.id}:${factor.factorType.name}:${factor.status.name}',
+          )
+          .toList()
+        ..sort();
+  return (
+    userId: current.user.id,
+    aal: aal,
+    factors: factors.join('|'),
+  );
 }
 
 AuthGateState resolveAuthGateState({
@@ -52,6 +83,7 @@ class _AuthGateState extends State<AuthGate> {
   bool _reevaluate = false;
   int _revision = 0;
   String? _lastSeenAccessToken;
+  _AuthFingerprint? _lastSeenAuth;
   String? _error;
 
   SupabaseSession? get _session => widget.session ?? supabaseSession;
@@ -62,6 +94,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
     final session = _session;
     _lastSeenAccessToken = session?.accessToken;
+    _lastSeenAuth = _fingerprint(session);
     if (session != null) {
       _subscription = session.authChanges.listen(_onAuthChange);
     }
@@ -69,31 +102,41 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _onAuthChange(AuthState change) {
-    final token = _session?.accessToken;
+    if (kDebugMode) {
+      debugPrint(
+        'AuthGate auth=${change.event.name} '
+        'signOutReason=${change.signOutReason?.name ?? 'none'}',
+      );
+    }
+    final session = _session;
+    final token = session?.accessToken;
     if (change.event == AuthChangeEvent.signedOut && token != null) return;
-    if ((change.event == AuthChangeEvent.signedIn ||
-            change.event == AuthChangeEvent.tokenRefreshed ||
-            change.event == AuthChangeEvent.initialSession) &&
+    if (change.event != AuthChangeEvent.signedOut &&
         change.session?.accessToken != token) {
       return;
     }
-    if ((change.event == AuthChangeEvent.signedIn ||
-            change.event == AuthChangeEvent.signedOut ||
-            change.event == AuthChangeEvent.tokenRefreshed ||
-            change.event == AuthChangeEvent.initialSession) &&
-        token == _lastSeenAccessToken) {
+    final auth = _fingerprint(session);
+    final sameAuth = auth == _lastSeenAuth;
+    final sameToken = token == _lastSeenAccessToken;
+    if (sameAuth &&
+        (sameToken ||
+            (change.event == AuthChangeEvent.tokenRefreshed &&
+                auth.aal != AuthenticatorAssuranceLevels.aal2))) {
+      _lastSeenAccessToken = token;
       return;
     }
     _lastSeenAccessToken = token;
-    _provisioning.observeAuthChange(_session, change);
-    if (change.event == AuthChangeEvent.tokenRefreshed && _evaluating) return;
+    _lastSeenAuth = auth;
+    _provisioning.observeAuthChange(session, change);
     _revision++;
+    if (change.event == AuthChangeEvent.signedOut) {
+      _publish(AuthGateState.signedOut, const []);
+    } else {
+      _publish(AuthGateState.loading, const []);
+    }
     if (_evaluating) {
       _reevaluate = true;
       return;
-    }
-    if (_session?.currentSession != null) {
-      _publish(AuthGateState.loading, const []);
     }
     unawaited(_evaluate());
   }
@@ -111,6 +154,7 @@ class _AuthGateState extends State<AuthGate> {
     );
     _revision++;
     _lastSeenAccessToken = _session?.accessToken;
+    _lastSeenAuth = _fingerprint(_session);
     _subscription = _session?.authChanges.listen(_onAuthChange);
     _publish(AuthGateState.loading, const []);
     unawaited(_evaluate());
@@ -120,7 +164,8 @@ class _AuthGateState extends State<AuthGate> {
       mounted &&
       _revision == revision &&
       identical(_session, session) &&
-      session.currentSession?.user.id == userId;
+      session.currentSession?.user.id == userId &&
+      _fingerprint(session) == _lastSeenAuth;
 
   Future<void> _evaluate() async {
     if (_evaluating) {

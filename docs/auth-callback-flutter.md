@@ -6,6 +6,13 @@ do Flutter Web (`https://app.example/#/auth/callback`). O servidor que hospeda
 o build precisa devolver `index.html` para `/auth/callback` quando usar o
 caminho direto. A estratégia hash existente continua funcionando.
 
+Na hospedagem embutida do Serverpod, o Flutter é servido em `/app` e não há
+rota `/auth/callback`. Para usar o `redirectTo` do formulário de recuperação,
+configure no host ou proxy um fallback que entregue o `index.html` do build
+Flutter também em `/auth/callback`, preservando a query string. O fragmento do
+link permanece no navegador. Sem esse fallback, o link abre uma rota não
+encontrada. Inclua a URL pública resultante nas Redirect URLs do Supabase.
+
 O callback aceita o formato padrão com `access_token` no fragmento, o código
 PKCE em `?code=...` e `token_hash` com `type=invite` ou `type=recovery`. O SDK
 Supabase troca ou valida o link e mantém a sessão; o app exige que a sessão
@@ -29,9 +36,8 @@ Configuração por ambiente:
   pública do callback do ambiente, por exemplo
   `https://app.example/auth/callback`. Nenhuma mudança no backend é necessária.
 - Supabase Auth: incluir exatamente as URLs de callback usadas pelo ambiente na
-  lista de Redirect URLs. O envio de recuperação, quando implementado, deverá
-  usar seu próprio `redirectTo` configurado por ambiente apontando para essa
-  mesma rota.
+  lista de Redirect URLs. O formulário "Esqueci minha senha" usa a origem atual
+  mais `/auth/callback` como `redirectTo` em `resetPasswordForEmail()`.
 
 Após um callback válido, a tela solicita senha e confirmação, valida os campos
 e chama `Supabase Auth.updateUser()`. Antes do envio, confirma novamente que a

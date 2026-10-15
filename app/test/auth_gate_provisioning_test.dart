@@ -10,6 +10,7 @@ import 'package:temdas/app/auth_gate.dart';
 import 'package:temdas/data/auth_provisioning.dart';
 import 'package:temdas/data/supabase_session.dart';
 import 'package:temdas/view/auth_pages.dart';
+import 'package:temdas/view/totp_enrollment_qr.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 void main() {
@@ -83,6 +84,83 @@ void main() {
     expect(find.byType(MfaChallengePage), findsOneWidget);
     expect(find.text('protected'), findsNothing);
     expect(calls, 1);
+  });
+
+  testWidgets('repeated AAL1 refresh keeps TOTP card and does not list again', (
+    tester,
+  ) async {
+    final server = _AuthServer()..verifiedTotp = true;
+    await server.signIn();
+    var provisionCalls = 0;
+    final provisioning = AuthProvisioning(
+      provisionar: () async {
+        provisionCalls++;
+        return _me(18, 'aal1');
+      },
+    );
+    await tester.pumpWidget(_app(server, provisioning));
+    await tester.pumpAndSettle();
+    expect(server.refreshCount, 1); // Initial listFactors call.
+    final card = tester.state(find.byType(MfaChallengePage));
+    await tester.enterText(find.byType(TextField), '123456');
+
+    for (var i = 0; i < 3; i++) {
+      await server.client.auth.refreshSession();
+      await tester.pump();
+      expect(find.byType(MfaChallengePage), findsOneWidget);
+      expect(tester.state(find.byType(MfaChallengePage)), same(card));
+      expect(find.text('Verificando sessão…'), findsNothing);
+      expect(find.text('123456'), findsOneWidget);
+      expect(server.refreshCount, i + 2);
+      expect(
+        server.session.currentSession?.refreshToken,
+        'refresh-user-1-${i + 2}',
+      );
+    }
+    expect(provisionCalls, 1);
+  });
+
+  testWidgets('normal refresh keeps an in-progress TOTP enrollment QR', (
+    tester,
+  ) async {
+    final server = _AuthServer();
+    await server.signIn();
+    await tester.pumpWidget(
+      _app(server, AuthProvisioning(provisionar: () async => _me(20, 'aal1'))),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cadastrar TOTP'));
+    await tester.pumpAndSettle();
+    final card = tester.state(find.byType(MfaEnrollPage));
+    expect(find.byType(TotpEnrollmentQr), findsOneWidget);
+
+    await server.client.auth.refreshSession();
+    await tester.pump();
+    expect(tester.state(find.byType(MfaEnrollPage)), same(card));
+    expect(find.byType(TotpEnrollmentQr), findsOneWidget);
+    expect(find.text('Verificando sessão…'), findsNothing);
+    expect(server.refreshCount, 2);
+  });
+
+  testWidgets('MFA factor changes reselect AAL1 card', (tester) async {
+    final server = _AuthServer();
+    await server.signIn();
+    final provisioning = AuthProvisioning(
+      provisionar: () async => _me(19, 'aal1'),
+    );
+    await tester.pumpWidget(_app(server, provisioning));
+    await tester.pumpAndSettle();
+    expect(find.byType(MfaEnrollPage), findsOneWidget);
+
+    server.verifiedTotp = true;
+    await server.client.auth.refreshSession();
+    await tester.pumpAndSettle();
+    expect(find.byType(MfaChallengePage), findsOneWidget);
+
+    server.verifiedTotp = false;
+    await server.client.auth.refreshSession();
+    await tester.pumpAndSettle();
+    expect(find.byType(MfaEnrollPage), findsOneWidget);
   });
 
   testWidgets('new AAL2 user waits for backend confirmation before app', (
@@ -249,6 +327,64 @@ void main() {
     expect(find.text('protected'), findsOneWidget);
     expect(provisionCalls, 1);
   });
+
+  testWidgets('old AAL2 response cannot unlock a rotated token', (
+    tester,
+  ) async {
+    final server = _AuthServer()..aal = 'aal2';
+    await server.signIn();
+    final first = Completer<backend.AuthMe>();
+    final second = Completer<backend.AuthMe>();
+    var meCalls = 0;
+    final provisioning = AuthProvisioning(
+      provisionar: () async => _me(74, 'aal2'),
+      me: () => ++meCalls == 1 ? first.future : second.future,
+    );
+    await tester.pumpWidget(_app(server, provisioning));
+    await tester.pump();
+    expect(meCalls, 1);
+
+    await server.client.auth.refreshSession();
+    first.complete(_me(74, 'aal2'));
+    await tester.pump();
+    expect(find.text('protected'), findsNothing);
+    expect(meCalls, 2);
+    second.complete(_me(74, 'aal2'));
+    await tester.pumpAndSettle();
+    expect(find.text('protected'), findsOneWidget);
+  });
+
+  testWidgets('AAL2 downgrade closes app and logout returns to login', (
+    tester,
+  ) async {
+    final server = _AuthServer()
+      ..aal = 'aal2'
+      ..verifiedTotp = true;
+    await server.signIn();
+    var meCalls = 0;
+    final provisioning = AuthProvisioning(
+      provisionar: () async => _me(73, 'aal2'),
+      me: () async {
+        meCalls++;
+        return _me(73, 'aal2');
+      },
+    );
+    await tester.pumpWidget(_app(server, provisioning));
+    await tester.pumpAndSettle();
+    expect(find.text('protected'), findsOneWidget);
+    expect(meCalls, 1);
+
+    server.aal = 'aal1';
+    await server.client.auth.refreshSession();
+    await tester.pumpAndSettle();
+    expect(find.text('protected'), findsNothing);
+    expect(find.byType(MfaChallengePage), findsOneWidget);
+
+    await server.session.signOut();
+    await tester.pump();
+    expect(find.text('Entrar no TEMDAS'), findsOneWidget);
+    expect(find.byType(MfaChallengePage), findsNothing);
+  });
 }
 
 Widget _app(
@@ -283,7 +419,7 @@ class _AuthServer {
         }
         return _json({
           'access_token': _jwt(userId, aal, refreshCount),
-          'refresh_token': 'refresh-$userId',
+          'refresh_token': 'refresh-$userId-$refreshCount',
           'token_type': 'bearer',
           'expires_in': 3600,
           'user': {
@@ -308,6 +444,18 @@ class _AuthServer {
       }
       if (request.url.path.endsWith('/logout')) {
         return http.Response('', 204);
+      }
+      if (request.url.path.endsWith('/factors') &&
+          request.method == 'POST') {
+        return _json({
+          'id': 'new-factor',
+          'type': 'totp',
+          'totp': {
+            'qr_code': '<svg/>',
+            'secret': 'test-secret',
+            'uri': 'otpauth://totp/TEMDAS:test?secret=test-secret',
+          },
+        });
       }
       return _json({'message': 'not found'}, statusCode: 404);
     }),
