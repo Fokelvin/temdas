@@ -40,8 +40,9 @@ COPY --from=build /runtime/ /
 # Copy compiled server executable
 COPY --from=build /app/temdas_backend_server/bin/server server
 
-# Copy configuration files and resources
-COPY --from=build /app/temdas_backend_server/config/ config/
+# Copy only the production configuration. Development, test, and local password
+# files are not part of the production image.
+COPY --from=build /app/temdas_backend_server/config/production.yaml config/production.yaml
 COPY --from=build /app/temdas_backend_server/web/ web/
 COPY --from=build /app/temdas_backend_server/migrations/ migrations/
 
@@ -53,5 +54,6 @@ EXPOSE 8080
 EXPOSE 8081
 EXPOSE 8082
 
-# Define the entrypoint command
-ENTRYPOINT ./server --mode=$runmode --server-id=$serverid --logging=$logging --role=$role
+# Keep the normal server process replaceable by Railway's pre-deploy command,
+# which runs one-off maintenance migrations before starting the API container.
+CMD ["sh", "-c", "exec ./server --mode=$runmode --server-id=$serverid --logging=$logging --role=$role"]
