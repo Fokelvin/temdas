@@ -1,0 +1,121 @@
+name: Deploy TEMDAS Flutter Web to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - app/**
+      - .github/workflows/deploy-pages.yml
+  workflow_dispatch:
+    inputs:
+      target:
+        description: GitHub Environment to use (production deploys only from main)
+        type: choice
+        required: true
+        default: development
+        options:
+          - development
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: temdas-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy Flutter Web
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'push' && 'production' || inputs.target }}
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      SERVERPOD_URL: ${{ vars.SERVERPOD_URL }}
+      CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+      DEPLOY_TARGET: ${{ github.event_name == 'push' && 'production' || inputs.target }}
+      DEPLOY_BRANCH: ${{ (github.event_name == 'push' || inputs.target == 'production') && 'main' || 'development' }}
+
+    steps:
+      - name: Reject production deploys from non-main refs
+        if: ${{ env.DEPLOY_TARGET == 'production' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Production deployment is allowed only from main."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.4
+          cache: true
+
+      - name: Validate environment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SERVERPOD_URL CLOUDFLARE_PAGES_PROJECT; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Configure $name as a variable in the selected GitHub Environment."
+              exit 1
+            fi
+          done
+          if [[ "$SUPABASE_URL" != https://*.supabase.co ]]; then
+            echo "::error::SUPABASE_URL must be an HTTPS Supabase project URL."
+            exit 1
+          fi
+          if [[ "$SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+            echo "::error::SUPABASE_PUBLISHABLE_KEY must use the Supabase publishable-key format."
+            exit 1
+          fi
+          if [[ "$SERVERPOD_URL" != https://* ]]; then
+            echo "::error::SERVERPOD_URL must use HTTPS."
+            exit 1
+          fi
+          case "$DEPLOY_TARGET" in
+            production)
+              if [[ "$SUPABASE_URL" != "https://vberbygddnootjcbkajc.supabase.co" ]]; then
+                echo "::error::Production builds must use the TEMDAS production Supabase project."
+                exit 1
+              fi
+              if [[ "$SERVERPOD_URL" != https://temdas-backend-production.up.railway.app/* ]]; then
+                echo "::error::Production builds must use the TEMDAS production Railway API."
+                exit 1
+              fi
+              ;;
+            development)
+              if [[ "$SUPABASE_URL" != "https://ddzwawlamjnzwjjxuava.supabase.co" ]]; then
+                echo "::error::Development builds must use the TEMDAS development Supabase project."
+                exit 1
+              fi
+              ;;
+          esac
+
+      - name: Install locked dependencies
+        working-directory: app
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build release web app
+        working-directory: app
+        run: >-
+          flutter build web --release --base-href=/
+          --dart-define=SUPABASE_URL="$SUPABASE_URL"
+          --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+          --dart-define=SERVERPOD_URL="$SERVERPOD_URL"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy app/build/web --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }} --branch=${{ env.DEPLOY_BRANCH }}
