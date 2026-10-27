@@ -78,16 +78,20 @@ de escopo.
   campo `sprint` em `Demanda`. As ações de associação e navegação respeitam as
   regras atuais de Sprint.
 
-### UX-P1-03 — Ações no popup expandido de Demanda
+### UX-P1-03 — Abertura da Demanda em popup e ações completas
 
-- **Descrição:** disponibilizar no popup expandido as mesmas ações disponíveis
-  no card de Demanda.
+- **Descrição:** ao clicar no corpo do card de uma Demanda, abrir sua visualização
+  em popup. O ícone de expandir do card deve manter exclusivamente o comportamento
+  atual de expansão/recolhimento inline, sem abrir o popup. O popup deve exibir de
+  forma visível todas as ações disponíveis para aquela Demanda e seu estado.
 - **Prioridade:** P1.
 - **Estado:** Aprovado / pendente.
-- **Dependências:** manter as permissões e regras de status e exclusão do fluxo
-  atual.
-- **Critérios de aceite:** o popup oferece as ações do card compatíveis com a
-  Demanda e seu estado, com os mesmos resultados e validações.
+- **Dependências:** preservar o comportamento atual de expansão do card, as
+  permissões e as regras de status, hierarquia, Sprint e exclusão já existentes.
+- **Critérios de aceite:** clicar no card abre o popup da Demanda; clicar no ícone
+  de expandir apenas expande ou recolhe o card; o popup apresenta todas as ações
+  aplicáveis à Demanda sem exigir que o usuário volte ao card para executá-las; as
+  ações produzem os mesmos resultados e validações já definidos no fluxo atual.
 
 ### UX-P1-04 — Ações contextuais nos popups de Sprint
 
