@@ -373,6 +373,59 @@ separadamente. Nenhuma tarefa desta seção autoriza implementação automática
   sem inconsistências visuais, e a escolha permanece após recarregar a
   aplicação.
 
+### UX-CONT-04 — Descrição no lançamento de Log Time
+
+- **Descrição:** permitir informar uma descrição opcional em cada lançamento de
+  Log Time, registrando de forma curta o que foi realizado naquele apontamento.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** definir limite e apresentação do texto sem prejudicar a
+  leitura da agenda e dos detalhes da Demanda.
+- **Critérios de aceite:** ao criar ou editar um lançamento, o usuário pode
+  registrar uma descrição; a descrição fica associada ao apontamento correto e
+  pode ser consultada posteriormente de forma clara.
+
+### UX-CONT-05 — Inclusão de Log Time diretamente pela agenda
+
+- **Descrição:** facilitar a criação de apontamentos a partir da própria agenda.
+  Ao passar o mouse sobre um horário disponível, exibir indicação visual
+  discreta, como ícone de `+` ou texto de ação, permitindo iniciar o cadastro
+  de Log Time naquele horário.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** preservar navegação, rolagem e interação com lançamentos já
+  existentes; definir comportamento equivalente para dispositivos de toque.
+- **Critérios de aceite:** em desktop, o horário oferece uma ação contextual
+  clara no hover; ao acioná-la, o formulário de Log Time é aberto com data e
+  horário correspondentes pré-preenchidos; a interação não interfere nos cards
+  existentes.
+
+### UX-CONT-06 — Melhor aproveitamento da tela pela agenda de Log Time
+
+- **Descrição:** ampliar a área útil destinada ao calendário/agenda de Log Time,
+  reduzindo, reorganizando ou tornando mais compactas informações secundárias
+  para priorizar a visualização temporal.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** preservar as informações necessárias ao uso diário e a
+  responsividade; avaliar separadamente desktop, tablet e celular.
+- **Critérios de aceite:** a agenda ocupa uma parcela maior e mais útil da tela,
+  com melhor leitura dos horários e lançamentos, sem remover informações
+  essenciais nem gerar sobreposição ou rolagem desnecessária.
+
+### UX-CONT-07 — Bordas sutis nos cards de Demandas e Log Time
+
+- **Descrição:** adicionar bordas discretas aos cards de Demandas e aos cards de
+  Log Time para reforçar a separação visual entre itens, mantendo o design
+  system e evitando aumento de ruído visual.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** reutilizar tokens, `ColorScheme` e temas existentes; validar
+  contraste nos temas claro e escuro e nas densidades normal e compacta.
+- **Critérios de aceite:** cards adjacentes são distinguíveis com mais clareza
+  sem depender de cores hardcoded; as bordas permanecem sutis, consistentes nos
+  temas claro/escuro e coerentes entre Demandas e Log Time.
+
 ### UX-FUT-06 — Página inicial de boas-vindas e login lateral
 
 - **Descrição:** ao final das melhorias de UX previstas, substituir a
