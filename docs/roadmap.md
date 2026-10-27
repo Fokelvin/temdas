@@ -315,3 +315,148 @@ de escopo.
 - `TEMDAS_HANDOFF_CODEX.md` e `prova-mfa-totp.md` são registros históricos;
   decisões antigas devem ser conferidas com a arquitetura, escopo e código
   atuais antes de virar trabalho pendente.
+
+
+## Adições aprovadas em 2026-10-27 — UX e pós-produção
+
+Esta seção é exclusivamente aditiva: mantém intactos os itens, estados,
+prioridades, critérios e IDs anteriores. O estado histórico de itens INF
+anteriores não é reescrito aqui; sua atualização poderá ser avaliada
+separadamente. Nenhuma tarefa desta seção autoriza implementação automática.
+
+### UX-P1-07 — Corrigir exibição e ocultação de senha no login
+
+- **Descrição:** corrigir o botão de mostrar/ocultar senha no campo de login,
+  atualmente sem funcionamento adequado.
+- **Prioridade:** P1 — correção de UX existente.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** preservar a autenticação, segurança e acessibilidade;
+  conferir componentes compartilhados antes de corrigir outras telas.
+- **Critérios de aceite:** o botão alterna entre senha visível e oculta sem
+  limpar ou modificar o valor digitado; funciona no Flutter Web e não
+  interfere no envio do formulário.
+
+### UX-CONT-01 — Responsividade real em smartphones e tablets
+
+- **Descrição:** adaptar navegação, Demandas, Sprints, cards, formulários,
+  modais e ações para smartphones e tablets, com layouts e interações
+  apropriados a toque; não apenas reduzir fontes.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** definir breakpoints e comportamentos por tela após
+  avaliação; preservar a experiência desktop.
+- **Critérios de aceite:** funções principais permanecem utilizáveis em
+  celular e tablet, sem cortes, sobreposições ou rolagem horizontal
+  desnecessária; botões e gestos são adequados ao toque.
+
+### UX-CONT-02 — Densidade efetiva do modo compacto
+
+- **Descrição:** evoluir o modo compacto, que hoje reduz principalmente o
+  tamanho da fonte, ajustando altura dos cards, espaçamentos, padding,
+  margens, disposição e hierarquia das informações.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** manter os estados, ações e a legibilidade do modo normal;
+  definir quais informações podem ser condensadas ou ocultadas.
+- **Critérios de aceite:** mais Demandas cabem na área visível sem perda de
+  ações essenciais, leitura ou consistência de componentes.
+
+### UX-CONT-03 — Controle manual de tema claro/escuro
+
+- **Descrição:** oferecer um botão acessível para alternar manualmente entre
+  os temas claro e escuro já existentes no TEMDAS.
+- **Prioridade:** Evolução contínua de UX/UI.
+- **Estado:** Aprovado / pendente.
+- **Dependências:** reaproveitar o sistema visual atual e decidir o escopo
+  de persistência da preferência.
+- **Critérios de aceite:** o controle altera o tema das telas principais,
+  sem inconsistências visuais, e a escolha permanece após recarregar a
+  aplicação.
+
+### UX-FUT-06 — Página inicial de boas-vindas e login lateral
+
+- **Descrição:** ao final das melhorias de UX previstas, substituir a
+  experiência de entrada atual por uma página inicial real, com apresentação
+  e boas-vindas ao TEMDAS na área central e formulário de login lateral.
+- **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
+- **Estado:** Aprovado / pendente de definição visual.
+- **Dependências:** evolução responsiva, temas e preservação do fluxo AuthGate,
+  senha, recuperação, convite, callback e MFA.
+- **Critérios de aceite:** visitante não autenticado vê a apresentação e o
+  login lateral em desktop; o layout se reorganiza em telas menores; o usuário
+  autenticado segue normalmente para o app; os fluxos de autenticação
+  existentes continuam funcionando.
+
+## Pós-produção — Estabilização do MVP
+
+Esta seção reúne as ações operacionais acordadas após a primeira publicação.
+Complementa os itens INF existentes, sem alterar seus critérios ou estados
+históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicial.
+
+### PROD-01 — Backup externo automatizado e teste de restauração
+
+- **Prioridade:** P0 — proteção dos dados.
+- **Estado:** Aprovado / pendente.
+- **Descrição:** automatizar cópias de segurança do PostgreSQL Supabase PROD,
+  definir retenção e destino seguro, e demonstrar restauração em ambiente
+  isolado, sem tocar no DEV nem sobrescrever PROD.
+- **Critérios de aceite:** execução recorrente verificada, cópias protegidas
+  e procedimento de restauração documentado e testado.
+
+### PROD-02 — Deploy seguro e controle de migrations
+
+- **Prioridade:** P0 — proteção dos dados.
+- **Estado:** Aprovado / pendente.
+- **Descrição:** validar migrations versionadas e compatibilidade antes de
+  cada release, realizar backup antes de mudanças estruturais e impedir deploy
+  em caso de falha; nenhuma limpeza ou recriação automática do banco PROD.
+- **Dependências:** preservar os cinco objetos SQL customizados de Sprint
+  conforme INF-06; definir procedimento de rollback e aprovação explícita
+  de alterações destrutivas.
+- **Critérios de aceite:** testes e verificações bloqueiam publicação
+  inconsistente; dados existentes são preservados; recuperação é testável.
+
+### PROD-03 — Domínio principal e redirects definitivos
+
+- **Prioridade:** P1 — conclusão da publicação.
+- **Estado:** Aprovado / pendente.
+- **Descrição:** associar o Flutter Web a https://temdas.com.br, sem o prefixo
+  app., e alinhar Site URL, redirects e callback do Supabase Auth PROD.
+- **Dependências:** INF-01 e INF-05; manter o endereço pages.dev enquanto
+  necessário para migração e testes.
+- **Critérios de aceite:** aplicação funciona no domínio principal e links
+  diretos de autenticação retornam corretamente à aplicação.
+
+### PROD-04 — Validação E2E de recuperação e convites em produção
+
+- **Prioridade:** P1 — conclusão da autenticação publicada.
+- **Estado:** Pendente de validação completa.
+- **Descrição:** testar entrega real pelo Resend, recuperação de senha,
+  callback, convite administrativo, aceite, provisionamento e MFA com
+  contas controladas, preservando a regra de que somente o administrador
+  autorizado envia convites.
+- **Dependências:** INF-02, INF-07 e PROD-03.
+- **Critérios de aceite:** fluxos completos funcionam, erros são tratados e
+  convidados permanecem sem privilégios de administrador.
+
+### PROD-05 — Monitoramento, custos e segurança operacional
+
+- **Prioridade:** P2 — operação contínua.
+- **Estado:** Aprovado / pendente de definição operacional.
+- **Descrição:** acompanhar disponibilidade, logs, falhas e custo Railway
+  dentro do orçamento planejado; revisar CORS e exposição pública; comprovar
+  requisitos já previstos de TLS PostgreSQL verify-full e secrets seguros
+  (INF-03 e INF-04), sem duplicar suas definições.
+- **Critérios de aceite:** saúde e gastos são verificáveis; configurações de
+  segurança e eventuais exceções ficam documentadas.
+
+### PROD-06 — Documentação e manutenção da publicação
+
+- **Prioridade:** P3 — manutenção.
+- **Estado:** Aprovado / pendente.
+- **Descrição:** documentar o estado real de Cloudflare Pages, Railway,
+  Supabase PROD e Resend; revisar os diretórios locais não rastreados
+  .wrangler/ e supabase/ antes de versionar ou excluir; avaliar o subdomínio
+  api.temdas.com.br e o aviso não bloqueante de Serverpod Insights.
+- **Critérios de aceite:** documentação reproduz a implantação real sem
+  divulgar credenciais, e pendências não bloqueantes têm decisão registrada.
