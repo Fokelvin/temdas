@@ -1,5 +1,9 @@
 # Callback de autenticação no Flutter Web
 
+Para novos templates de recovery/invite, consulte
+[Confirmação explícita](auth-confirmation.md). `/auth/callback` permanece como
+entrada legada; `/auth/confirm` exige clique antes de verificar o hash.
+
 O app recebe convites e recuperação em `/auth/callback`. A rota aceita tanto
 URL com caminho direto (`https://app.example/auth/callback`) quanto a rota hash
 do Flutter Web (`https://app.example/#/auth/callback`). O servidor que hospeda

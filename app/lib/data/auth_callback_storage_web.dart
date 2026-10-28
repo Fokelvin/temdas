@@ -1,7 +1,9 @@
 import 'dart:js_interop';
 
-import 'auth_callback_storage_stub.dart' show CallbackStorage;
-export 'auth_callback_storage_stub.dart' show CallbackStorage;
+import 'auth_callback_storage_stub.dart'
+    show CallbackStorage, sanitizedAuthEntryUri;
+export 'auth_callback_storage_stub.dart'
+    show CallbackStorage, sanitizedAuthEntryUri;
 
 @JS('window.sessionStorage.getItem')
 external JSString? _getItem(String key);
@@ -48,14 +50,7 @@ class _WebCallbackStorage implements CallbackStorage {
   void clearUrl() {
     try {
       final uri = Uri.base;
-      final fragment = uri.fragment.startsWith('/auth/callback')
-          ? '/auth/callback'
-          : '';
-      _replaceState(
-        _historyState,
-        '',
-        uri.replace(query: '', fragment: fragment).toString(),
-      );
+      _replaceState(_historyState, '', sanitizedAuthEntryUri(uri).toString());
     } catch (_) {}
   }
 
@@ -63,11 +58,11 @@ class _WebCallbackStorage implements CallbackStorage {
   void leaveCallback() {
     try {
       final uri = Uri.base;
-      if (uri.path != '/auth/callback') return;
+      if (!const {'/auth/callback', '/auth/confirm'}.contains(uri.path)) return;
       _replaceState(
         _historyState,
         '',
-        uri.replace(path: '/', query: '', fragment: '').toString(),
+        sanitizedAuthEntryUri(uri.replace(path: '/', fragment: '')).toString(),
       );
     } catch (_) {}
   }

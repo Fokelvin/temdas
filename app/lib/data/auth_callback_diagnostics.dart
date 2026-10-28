@@ -2,12 +2,22 @@ import 'dart:convert';
 
 // Temporary callback diagnostics. Remove this file and its call sites after
 // recovery has been diagnosed. Never accept arbitrary messages or field maps.
-enum CallbackDiagnosticStage { page, parameters, exchange, restore, session }
+enum CallbackDiagnosticStage {
+  page,
+  parameters,
+  exchange,
+  restore,
+  session,
+  confirmation,
+}
 
 enum CallbackDiagnosticReason {
   pageStarted,
   pageResult,
   pageSessionExpired,
+  confirmationReady,
+  confirmationSubmitted,
+  confirmationAlreadySubmitted,
   processorReentered,
   clientUnavailable,
   parametersInvalid,

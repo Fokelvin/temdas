@@ -11,6 +11,7 @@ import '../view/auth_callback_page.dart';
 abstract final class AppRoutes {
   static const demandas = '/demandas';
   static const authCallback = '/auth/callback';
+  static const authConfirm = '/auth/confirm';
   static const demandaDetalhe = '/demandas/detalhe';
   static const sprint = '/sprint';
   static const logTime = '/log-time';
@@ -42,6 +43,7 @@ abstract final class AppRoutes {
         : null;
     final page = switch (uri?.path) {
       authCallback => AuthCallbackPage(uri: callbackUri ?? Uri.base),
+      authConfirm => AuthCallbackPage.confirm(uri: callbackUri ?? Uri.base),
       demandaDetalhe => switch (demandaId) {
         final int id when id > 0 => DemandaDetalhePage(demandaId: id),
         _ => const _ArgumentoDetalheInvalidoPage(),

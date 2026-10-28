@@ -13,9 +13,14 @@ class TemdasApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final startupUri = initialUri ?? Uri.base;
     final isCallback = isAuthCallbackLocation(startupUri);
-    final initialRoute = isCallback
+    final authRoute = startupUri.path == AppRoutes.authCallback
         ? AppRoutes.authCallback
-        : AppRoutes.demandas;
+        : isAuthConfirmationLocation(startupUri)
+        ? AppRoutes.authConfirm
+        : isCallback
+        ? AppRoutes.authCallback
+        : null;
+    final initialRoute = authRoute ?? AppRoutes.demandas;
     return MaterialApp(
       title: 'TEMDAS',
       debugShowCheckedModeBanner: false,
@@ -25,8 +30,8 @@ class TemdasApp extends StatelessWidget {
       initialRoute: initialRoute,
       onGenerateInitialRoutes: (route) => [
         _onGenerateRoute(
-          RouteSettings(name: isCallback ? AppRoutes.authCallback : route),
-          callbackUri: isCallback ? startupUri : null,
+          RouteSettings(name: authRoute ?? route),
+          callbackUri: authRoute != null ? startupUri : null,
         ),
       ],
       onGenerateRoute: _onGenerateRoute,
@@ -35,7 +40,10 @@ class TemdasApp extends StatelessWidget {
 
   Route<dynamic> _onGenerateRoute(RouteSettings settings, {Uri? callbackUri}) {
     final route = AppRoutes.onGenerateRoute(settings, callbackUri: callbackUri);
-    if (Uri.tryParse(settings.name ?? '')?.path == AppRoutes.authCallback) {
+    if (const {
+      AppRoutes.authCallback,
+      AppRoutes.authConfirm,
+    }.contains(Uri.tryParse(settings.name ?? '')?.path)) {
       return route;
     }
     return MaterialPageRoute(
@@ -52,4 +60,9 @@ bool isAuthCallbackLocation(Uri uri) {
   if (uri.path == AppRoutes.authCallback) return true;
   final fragment = Uri.tryParse(uri.fragment);
   return fragment?.path == AppRoutes.authCallback;
+}
+
+bool isAuthConfirmationLocation(Uri uri) {
+  if (uri.path == AppRoutes.authConfirm) return true;
+  return Uri.tryParse(uri.fragment)?.path == AppRoutes.authConfirm;
 }

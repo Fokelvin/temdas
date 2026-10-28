@@ -1,0 +1,10 @@
+{
+  "captured_at_utc": "20261028T192706Z",
+  "project_ref": "vberbygddnootjcbkajc",
+  "auth_config_fields": {
+    "mailer_templates_recovery_content": "<h2>Reset your password</h2>\n\n<p>We received a request to reset your password. Follow the link below to choose a new one.</p>\n<p><a href=\"{{ .ConfirmationURL }}\">Reset password</a></p>\n\n<p>If you didn't request this, you can safely ignore this email.</p>",
+    "mailer_templates_invite_content": "<h2>You've been invited</h2>\n\n<p>You've been invited to create an account. Follow the link below to accept.</p>\n<p><a href=\"{{ .ConfirmationURL }}\">Accept invitation</a></p>",
+    "mailer_subjects_recovery": "Reset your password",
+    "mailer_subjects_invite": "You've been invited"
+  }
+}

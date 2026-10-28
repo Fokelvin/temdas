@@ -15,11 +15,22 @@ class AuthCallbackPage extends StatefulWidget {
     required this.uri,
     this.session,
     this.storage,
-  });
+    this.diagnostics = callbackDiagnostics,
+  }) : requireConfirmation = false;
+
+  const AuthCallbackPage.confirm({
+    super.key,
+    required this.uri,
+    this.session,
+    this.storage,
+    this.diagnostics = callbackDiagnostics,
+  }) : requireConfirmation = true;
 
   final Uri uri;
   final SupabaseSession? session;
   final CallbackStorage? storage;
+  final bool requireConfirmation;
+  final CallbackDiagnostics diagnostics;
 
   @override
   State<AuthCallbackPage> createState() => _AuthCallbackPageState();
@@ -34,16 +45,32 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   bool _passwordUpdated = false;
   bool _showPassword = false;
   bool _showConfirmation = false;
+  AuthConfirmationIntent? _pendingConfirmation;
 
   SupabaseSession? get _session => widget.session ?? supabaseSession;
   CallbackStorage get _storage => widget.storage ?? browserCallbackStorage;
-  AuthCallbackProcessor get _processor =>
-      AuthCallbackProcessor(_session, storage: _storage);
+  AuthCallbackProcessor get _processor => AuthCallbackProcessor(
+    _session,
+    storage: _storage,
+    diagnostics: widget.diagnostics,
+  );
 
   @override
   void initState() {
     super.initState();
-    unawaited(_process());
+    if (widget.requireConfirmation) {
+      _storage.clearUrl();
+      _processor.clear();
+      _pendingConfirmation = AuthConfirmationIntent.parse(
+        widget.uri,
+        diagnostics: widget.diagnostics,
+      );
+      if (_pendingConfirmation == null) {
+        _result = const CallbackResult(CallbackStatus.invalid);
+      }
+    } else {
+      unawaited(_process());
+    }
   }
 
   @override
@@ -54,7 +81,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   Future<void> _process() async {
-    callbackDiagnostics.emit(
+    widget.diagnostics.emit(
       CallbackDiagnosticStage.page,
       CallbackDiagnosticReason.pageStarted,
     );
@@ -62,7 +89,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     // one-time codes from the browser address bar and history immediately.
     _storage.clearUrl();
     final result = await _processor.process(widget.uri);
-    callbackDiagnostics.emit(
+    widget.diagnostics.emit(
       CallbackDiagnosticStage.page,
       CallbackDiagnosticReason.pageResult,
       accepted: result.status == CallbackStatus.valid,
@@ -73,8 +100,41 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     if (mounted) setState(() => _result = result);
   }
 
+  Future<void> _confirm() async {
+    final intent = _pendingConfirmation;
+    if (_submitting || intent == null) return;
+    setState(() {
+      _submitting = true;
+      _pendingConfirmation = null;
+    });
+    CallbackResult result;
+    try {
+      result = await intent.confirm(_processor);
+    } catch (_) {
+      widget.diagnostics.emit(
+        CallbackDiagnosticStage.confirmation,
+        CallbackDiagnosticReason.operationUnavailable,
+      );
+      result = const CallbackResult(CallbackStatus.unavailable);
+    }
+    widget.diagnostics.emit(
+      CallbackDiagnosticStage.page,
+      CallbackDiagnosticReason.pageResult,
+      accepted: result.status == CallbackStatus.valid,
+      invalid: result.status == CallbackStatus.invalid,
+      expired: result.status == CallbackStatus.expired,
+      unavailable: result.status == CallbackStatus.unavailable,
+    );
+    if (mounted) {
+      setState(() {
+        _result = result;
+        _submitting = false;
+      });
+    }
+  }
+
   void _expire(CallbackFlow? flow) {
-    callbackDiagnostics.emit(
+    widget.diagnostics.emit(
       CallbackDiagnosticStage.page,
       CallbackDiagnosticReason.pageSessionExpired,
     );
@@ -212,27 +272,34 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   Widget build(BuildContext context) {
     final result = _result;
     final valid = result?.status == CallbackStatus.valid;
-    final invite = result?.flow == CallbackFlow.invite;
-    final title = switch (result?.status) {
-      null => 'Validando link…',
-      CallbackStatus.valid when invite => 'Definir senha',
-      CallbackStatus.valid => 'Redefinir senha',
-      CallbackStatus.expired => 'Link ou sessão expirados',
-      CallbackStatus.invalid => 'Link inválido',
-      CallbackStatus.unavailable => 'Não foi possível validar o link',
-    };
-    final description = switch (result?.status) {
-      null => 'Aguarde enquanto verificamos o link com o Supabase.',
-      CallbackStatus.valid when invite =>
-        'Crie uma senha para concluir o acesso pelo convite.',
-      CallbackStatus.valid => 'Crie uma nova senha para sua conta.',
-      CallbackStatus.expired =>
-        'Solicite um novo link e abra o mais recente recebido por e-mail.',
-      CallbackStatus.invalid =>
-        'Confira se o link está completo ou solicite um novo link.',
-      CallbackStatus.unavailable =>
-        'Verifique a conexão e abra novamente o link recebido por e-mail.',
-    };
+    final pending = _pendingConfirmation;
+    final invite = (pending?.flow ?? result?.flow) == CallbackFlow.invite;
+    final title = pending != null
+        ? (invite ? 'Confirmar convite' : 'Confirmar recuperação de senha')
+        : switch (result?.status) {
+            null => 'Validando link…',
+            CallbackStatus.valid when invite => 'Definir senha',
+            CallbackStatus.valid => 'Redefinir senha',
+            CallbackStatus.expired => 'Link ou sessão expirados',
+            CallbackStatus.invalid => 'Link inválido',
+            CallbackStatus.unavailable => 'Não foi possível validar o link',
+          };
+    final description = pending != null
+        ? (invite
+              ? 'Confirme que deseja aceitar este convite e definir sua senha.'
+              : 'Confirme que deseja continuar e escolher uma nova senha.')
+        : switch (result?.status) {
+            null => 'Aguarde enquanto verificamos o link com o Supabase.',
+            CallbackStatus.valid when invite =>
+              'Crie uma senha para concluir o acesso pelo convite.',
+            CallbackStatus.valid => 'Crie uma nova senha para sua conta.',
+            CallbackStatus.expired =>
+              'Solicite um novo link e abra o mais recente recebido por e-mail.',
+            CallbackStatus.invalid =>
+              'Confira se o link está completo ou solicite um novo link.',
+            CallbackStatus.unavailable =>
+              'Verifique a conexão e abra novamente o link recebido por e-mail.',
+          };
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -247,7 +314,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (result == null) ...[
+                      if (result == null && pending == null) ...[
                         const Center(child: CircularProgressIndicator()),
                         const SizedBox(height: 16),
                       ],
@@ -257,6 +324,17 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(description),
+                      if (pending != null) ...[
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _submitting ? null : _confirm,
+                          child: Text(
+                            invite
+                                ? 'Aceitar convite'
+                                : 'Continuar recuperação',
+                          ),
+                        ),
+                      ],
                       if (valid) ...[
                         const SizedBox(height: 24),
                         if (!_passwordUpdated) ...[

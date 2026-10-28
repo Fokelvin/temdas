@@ -10,6 +10,85 @@ enum CallbackFlow { invite, recovery }
 
 enum CallbackStatus { valid, expired, invalid, unavailable }
 
+/// A new email link is only inspected here. Verification is a separate action.
+/// The credential stays in memory, never in callback/session storage or logs.
+class AuthConfirmationIntent {
+  AuthConfirmationIntent._(this._tokenHash, this.flow, this._diagnostics);
+
+  final String _tokenHash;
+  final CallbackFlow flow;
+  final CallbackDiagnostics _diagnostics;
+  bool _submitted = false;
+
+  static AuthConfirmationIntent? parse(
+    Uri uri, {
+    CallbackDiagnostics diagnostics = callbackDiagnostics,
+  }) {
+    final fragmentRoute = Uri.tryParse(uri.fragment);
+    final validLocation =
+        uri.path == '/auth/confirm' ||
+        ((uri.path == '/' || uri.path.isEmpty) &&
+            fragmentRoute?.path == '/auth/confirm');
+    if (!validLocation ||
+        (uri.scheme != 'https' && uri.scheme != 'http') ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
+      diagnostics.emit(
+        CallbackDiagnosticStage.confirmation,
+        CallbackDiagnosticReason.parametersInvalid,
+      );
+      return null;
+    }
+    final params = _parameters(uri, diagnostics, fragmentPath: '/auth/confirm');
+    if (params == null) return null;
+    final tokenHash = params['token_hash'];
+    final type = params['type'];
+    // Supabase Auth generates a SHA-224 hex hash, with an optional PKCE prefix.
+    if (params.length != 2 ||
+        !params.keys.every(const {'token_hash', 'type'}.contains) ||
+        tokenHash == null ||
+        !RegExp(r'^(?:pkce_)?[0-9a-f]{56}$').hasMatch(tokenHash) ||
+        (type != 'invite' && type != 'recovery')) {
+      diagnostics.emit(
+        CallbackDiagnosticStage.confirmation,
+        CallbackDiagnosticReason.parametersInvalid,
+      );
+      return null;
+    }
+    diagnostics.emit(
+      CallbackDiagnosticStage.confirmation,
+      CallbackDiagnosticReason.confirmationReady,
+    );
+    return AuthConfirmationIntent._(
+      tokenHash,
+      type == 'invite' ? CallbackFlow.invite : CallbackFlow.recovery,
+      diagnostics,
+    );
+  }
+
+  /// Called only by the explicit confirmation button. No automatic retry.
+  Future<CallbackResult> confirm(AuthCallbackProcessor processor) async {
+    if (_submitted) {
+      _diagnostics.emit(
+        CallbackDiagnosticStage.confirmation,
+        CallbackDiagnosticReason.confirmationAlreadySubmitted,
+      );
+      return const CallbackResult(CallbackStatus.invalid);
+    }
+    _submitted = true;
+    _diagnostics.emit(
+      CallbackDiagnosticStage.confirmation,
+      CallbackDiagnosticReason.confirmationSubmitted,
+    );
+    return processor.process(
+      Uri(
+        path: '/auth/callback',
+        queryParameters: {'token_hash': _tokenHash, 'type': flow.name},
+      ),
+    );
+  }
+}
+
 class CallbackResult {
   const CallbackResult(this.status, [this.flow, this.userId]);
 
@@ -400,7 +479,11 @@ bool _isExpired(AuthException error) {
       detail.contains('expirado');
 }
 
-Map<String, String>? _parameters(Uri uri, CallbackDiagnostics diagnostics) {
+Map<String, String>? _parameters(
+  Uri uri,
+  CallbackDiagnostics diagnostics, {
+  String fragmentPath = '/auth/callback',
+}) {
   Map<String, List<String>> decodeSource(String query) {
     // Validate encoding and UTF-8 before collecting decoded values. Retain
     // every occurrence of each key, without decoding the resulting values again.
@@ -413,11 +496,9 @@ Map<String, String>? _parameters(Uri uri, CallbackDiagnostics diagnostics) {
   try {
     query = decodeSource(uri.query);
     final fragment = uri.fragment;
-    if (fragment.startsWith('/auth/callback')) {
+    if (fragment.startsWith(fragmentPath)) {
       final route = Uri.tryParse(fragment);
-      if (route == null ||
-          route.path != '/auth/callback' ||
-          route.hasFragment) {
+      if (route == null || route.path != fragmentPath || route.hasFragment) {
         throw const FormatException();
       }
       // Inspect the original query before parsing can normalize its escapes.
