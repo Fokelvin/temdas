@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:temdas/data/auth_callback.dart';
-import 'package:temdas/data/auth_callback_diagnostics.dart';
 import 'package:temdas/data/auth_callback_storage.dart';
 import 'package:temdas/data/supabase_session.dart';
 
@@ -37,7 +35,6 @@ void main() {
       expect(result.status, CallbackStatus.valid);
       expect(result.flow, CallbackFlow.recovery);
       expect(h.requests.single.url.path, '/auth/v1/verify');
-      h.expectSafe();
     });
   }
 
@@ -51,7 +48,6 @@ void main() {
     expect(result.flow, CallbackFlow.recovery);
     expect(h.requests.where((r) => r.url.path.endsWith('/token')).length, 1);
     expect(h.pkce.values, isEmpty);
-    h.expectSafe();
   });
 
   test('PKCE query with a clean hash callback route remains valid', () async {
@@ -62,7 +58,6 @@ void main() {
       CallbackStatus.valid,
     );
     expect(h.requests.where((r) => r.url.path.endsWith('/token')).length, 1);
-    h.expectSafe();
   });
 
   test('mirrored invite fragment validates the session exactly once', () async {
@@ -73,7 +68,6 @@ void main() {
     expect(result.status, CallbackStatus.valid);
     expect(result.flow, CallbackFlow.invite);
     expect(h.requests.single.url.path, '/auth/v1/user');
-    h.expectSafe();
   });
 
   test(
@@ -86,11 +80,10 @@ void main() {
         CallbackStatus.valid,
       );
       expect(jsonDecode(h.requests.last.body)['auth_code'], 'A');
-      h.expectSafe();
     },
   );
 
-  for (final (name, suffix, reason) in [
+  for (final (name, suffix, _) in [
     (
       'conflicting codes',
       '?code=$_sensitive#/auth/callback?code=different',
@@ -184,8 +177,6 @@ void main() {
       final h = _Harness();
       expect((await h.process(suffix)).status, CallbackStatus.invalid);
       expect(h.requests, isEmpty);
-      expect(h.reasons, contains(reason));
-      h.expectSafe();
     });
   }
 
@@ -198,9 +189,8 @@ void main() {
         (await h.process('?$payload#/auth/callback?$payload')).status,
         CallbackStatus.expired,
       );
-      expect(h.reasons, contains('authExceptionExpired'));
+
       expect(h.requests, isEmpty);
-      h.expectSafe();
     },
   );
 
@@ -215,7 +205,6 @@ void main() {
       CallbackStatus.expired,
     );
     expect(h.requests.single.url.path, '/auth/v1/verify');
-    h.expectSafe();
   });
 
   for (final (suffix, reason) in [
@@ -232,8 +221,6 @@ void main() {
         final h = _Harness();
         final result = await h.process(suffix);
         expect(result.status, CallbackStatus.invalid);
-        expect(h.reasons, contains(reason));
-        h.expectSafe();
       },
     );
   }
@@ -252,8 +239,6 @@ void main() {
       ]);
       expect(h.requests.last.url.queryParameters['grant_type'], 'pkce');
       expect(h.pkce.values, isEmpty);
-      expect(h.reasons, ['exchangeStarted', 'callbackAccepted']);
-      h.expectSafe();
     },
   );
 
@@ -264,15 +249,6 @@ void main() {
       CallbackStatus.invalid,
     );
     expect(h.requests, isEmpty);
-    expect(
-      h.reasons,
-      containsAll([
-        'pkceExchangeFailed',
-        'pkceVerifierMissing',
-        'authExceptionInvalid',
-      ]),
-    );
-    h.expectSafe();
   });
 
   for (final (code, message, reason, status) in [
@@ -305,11 +281,6 @@ void main() {
       final h = _Harness(errorCode: code, errorMessage: message);
       await h.requestRecovery();
       expect((await h.process('?code=$_sensitive')).status, status);
-      expect(h.reasons, contains(reason));
-      if (code == 'otp_expired' || code == 'flow_state_not_found') {
-        expect(h.reasons, contains('callbackReuseOrExpiryReported'));
-      }
-      h.expectSafe();
     });
   }
 
@@ -321,10 +292,8 @@ void main() {
         '#error=access_denied&error_code=otp_expired&error_description=expired_$_sensitive',
       );
       expect(result.status, CallbackStatus.expired);
-      expect(h.reasons, contains('authExceptionExpired'));
-      expect(h.reasons, isNot(contains('pkceExchangeFailed')));
+
       expect(h.requests, isEmpty);
-      h.expectSafe();
     },
   );
 
@@ -334,8 +303,6 @@ void main() {
       (await h.process('?token_hash=$_sensitive&type=recovery')).status,
       CallbackStatus.invalid,
     );
-    expect(h.reasons, contains('sessionAbsentAfterExchange'));
-    h.expectSafe();
   });
 
   test('empty user is diagnosed without emitting its value', () async {
@@ -344,8 +311,6 @@ void main() {
       (await h.process('?token_hash=$_sensitive&type=recovery')).status,
       CallbackStatus.invalid,
     );
-    expect(h.reasons, contains('sessionUserEmpty'));
-    h.expectSafe();
   });
 
   test('current session belonging to another user is rejected', () async {
@@ -354,8 +319,6 @@ void main() {
       (await h.process('?token_hash=$_sensitive&type=recovery')).status,
       CallbackStatus.invalid,
     );
-    expect(h.reasons, contains('sessionUserMismatch'));
-    h.expectSafe();
   });
 
   test(
@@ -366,18 +329,6 @@ void main() {
         (await h.process('?token_hash=$_sensitive&type=recovery')).status,
         CallbackStatus.invalid,
       );
-      expect(h.reasons, contains('sessionAbsentAfterExchange'));
-      final event = h.lines
-          .map(
-            (line) =>
-                jsonDecode(line.substring('TEMDAS_AUTH_DIAG '.length)) as Map,
-          )
-          .singleWhere(
-            (event) => event['reason'] == 'sessionAbsentAfterExchange',
-          );
-      expect(event['hasSession'], true);
-      expect(event['hasCurrentSession'], false);
-      h.expectSafe();
     },
   );
 
@@ -391,8 +342,6 @@ void main() {
       (await h.process('?code=$_sensitive')).status,
       CallbackStatus.invalid,
     );
-    expect(h.reasons, contains('returnedFlowUnknown'));
-    h.expectSafe();
   });
 
   test(
@@ -404,8 +353,6 @@ void main() {
         (await h.process('?code=$_sensitive&type=invite')).status,
         CallbackStatus.invalid,
       );
-      expect(h.reasons, contains('flowsMismatch'));
-      h.expectSafe();
     },
   );
 
@@ -422,11 +369,6 @@ void main() {
         (await h.process('?code=$_sensitive')).status,
         CallbackStatus.invalid,
       );
-      expect(
-        h.reasons,
-        containsAll(['processorReentered', 'pkceVerifierMissing']),
-      );
-      h.expectSafe();
     },
   );
 
@@ -442,8 +384,6 @@ void main() {
       final h = _Harness();
       h.storage.values[_stateKey] = saved;
       expect((await h.process('')).status, CallbackStatus.invalid);
-      expect(h.reasons, containsAll(['payloadAbsent', reason]));
-      h.expectSafe();
     });
   }
 
@@ -455,8 +395,6 @@ void main() {
       'createdAt': DateTime.now().toUtc().millisecondsSinceEpoch,
     });
     expect((await h.process('')).status, CallbackStatus.expired);
-    expect(h.reasons, contains('sessionAbsent'));
-    h.expectSafe();
   });
 
   test(
@@ -469,8 +407,6 @@ void main() {
         await h.processor.verifyActiveSession('another-$_sensitive'),
         CallbackStatus.expired,
       );
-      expect(h.reasons, contains('sessionUserMismatch'));
-      h.expectSafe();
     },
   );
 
@@ -481,48 +417,6 @@ void main() {
       await h.requestRecovery();
       await h.process('?code=$_sensitive');
       expect((await h.process('')).status, CallbackStatus.valid);
-      expect(h.reasons, containsAll(['sessionVerified', 'callbackRestored']));
-      h.expectSafe();
-    },
-  );
-
-  test('default writer reaches console without a debug-mode guard', () {
-    final lines = <String>[];
-    runZoned(
-      () {
-        callbackDiagnostics.emit(
-          CallbackDiagnosticStage.page,
-          CallbackDiagnosticReason.pageResult,
-          accepted: false,
-          invalid: true,
-          expired: false,
-          unavailable: false,
-        );
-      },
-      zoneSpecification: ZoneSpecification(
-        print: (self, parent, zone, line) => lines.add(line),
-      ),
-    );
-    expect(lines.single, startsWith('TEMDAS_AUTH_DIAG '));
-    final event =
-        jsonDecode(lines.single.substring('TEMDAS_AUTH_DIAG '.length)) as Map;
-    expect(event['reason'], 'pageResult');
-    expect(event['invalid'], true);
-  });
-
-  test(
-    'throwing diagnostic sink cannot change authentication results',
-    () async {
-      final h = _Harness(output: (_) => throw StateError(_sensitive));
-      await h.requestRecovery();
-      expect(
-        (await h.process('?code=$_sensitive')).status,
-        CallbackStatus.valid,
-      );
-      expect(
-        (await h.process('?code=$_sensitive')).status,
-        CallbackStatus.invalid,
-      );
     },
   );
 }
@@ -535,7 +429,6 @@ class _Harness {
     String userId = _sensitive,
     bool divergentSession = false,
     bool missingCurrentSession = false,
-    void Function(String)? output,
   }) {
     client = SupabaseClient(
       'https://test.invalid',
@@ -578,14 +471,12 @@ class _Harness {
           ? _DivergentSession(client)
           : SupabaseSession(client),
       storage: storage,
-      diagnostics: CallbackDiagnostics(output ?? lines.add),
     );
   }
 
   final pkce = _PkceStorage();
   final storage = _MemoryStorage();
   final requests = <http.Request>[];
-  final lines = <String>[];
   late final SupabaseClient client;
   late final AuthCallbackProcessor processor;
 
@@ -596,41 +487,6 @@ class _Harness {
 
   Future<CallbackResult> process(String suffix) =>
       processor.process(Uri.parse('https://test.invalid/auth/callback$suffix'));
-
-  List<String> get reasons => lines
-      .map(
-        (line) =>
-            (jsonDecode(line.substring('TEMDAS_AUTH_DIAG '.length))
-                    as Map)['reason']
-                as String,
-      )
-      .toList();
-
-  void expectSafe() {
-    expect(lines, isNotEmpty);
-    for (final line in lines) {
-      expect(line, startsWith('TEMDAS_AUTH_DIAG '));
-      expect(line, isNot(contains(_sensitive)));
-      expect(line, isNot(contains('sensitive@example.invalid')));
-      expect(line, isNot(contains('https://')));
-      expect(line, isNot(contains('sb_publishable_test')));
-      final event =
-          jsonDecode(line.substring('TEMDAS_AUTH_DIAG '.length)) as Map;
-      expect(
-        CallbackDiagnosticStage.values.map((v) => v.name),
-        contains(event['stage']),
-      );
-      expect(
-        CallbackDiagnosticReason.values.map((v) => v.name),
-        contains(event['reason']),
-      );
-      for (final entry in event.entries) {
-        if (entry.key != 'stage' && entry.key != 'reason') {
-          expect(entry.value, isA<bool>());
-        }
-      }
-    }
-  }
 }
 
 Map<String, dynamic> _user(String id) => {

@@ -80,9 +80,8 @@ Para rollback, restaurar exclusivamente os dois HTMLs de `auth_config_fields` do
 backup. Nesta ativação, o rollback em caso de falha parcial está autorizado. Não retirar a rota nova enquanto houver links novos
 válidos. Nunca colar links reais, hashes ou sessões em logs, issues ou documentação.
 
-O logger temporário continua filtrável por `TEMDAS_AUTH_DIAG`, incluindo
-`confirmationReady`, `confirmationSubmitted` e `confirmationAlreadySubmitted`.
-Todos os campos permanecem categorizados ou booleanos.
+A instrumentação temporária foi removida após a homologação. O fluxo não registra
+hashes, códigos TOTP, credenciais ou sessões no console.
 
 Referências: [templates e proteção contra prefetch](https://supabase.com/docs/guides/auth/auth-email-templates),
 [verifyOTP no Dart](https://supabase.com/docs/reference/dart/auth-verifyotp),

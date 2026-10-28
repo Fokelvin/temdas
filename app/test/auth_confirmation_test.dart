@@ -10,7 +10,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:temdas/app/auth_gate.dart';
 import 'package:temdas/app/temdas_app.dart';
 import 'package:temdas/data/auth_callback.dart';
-import 'package:temdas/data/auth_callback_diagnostics.dart';
 import 'package:temdas/data/auth_callback_storage.dart';
 import 'package:temdas/data/supabase_session.dart';
 import 'package:temdas/view/auth_callback_page.dart';
@@ -28,12 +27,11 @@ void main() {
     ) async {
       final server = _Server();
       final storage = _Storage()..values[_stateKey] = 'old-state';
-      final lines = <String>[];
+
       final page = AuthCallbackPage.confirm(
         uri: _link(type),
         session: server.session,
         storage: storage,
-        diagnostics: CallbackDiagnostics(lines.add),
       );
       await tester.pumpWidget(_app(page, server.session));
       await tester.pumpAndSettle();
@@ -54,7 +52,6 @@ void main() {
       );
       expect(storage.clearCalls, 1);
       expect(storage.values, isEmpty);
-      _expectSafe(lines);
     });
 
     testWidgets(
@@ -62,14 +59,13 @@ void main() {
       (tester) async {
         final server = _Server();
         final storage = _Storage();
-        final lines = <String>[];
+
         await tester.pumpWidget(
           _app(
             AuthCallbackPage.confirm(
               uri: _link(type),
               session: server.session,
               storage: storage,
-              diagnostics: CallbackDiagnostics(lines.add),
             ),
             server.session,
           ),
@@ -114,7 +110,6 @@ void main() {
         expect(storage.leaveCalls, 1);
         expect(find.text('Entrar no TEMDAS'), findsOneWidget);
         expect(find.text('protected'), findsNothing);
-        _expectSafe(lines);
       },
     );
   }
@@ -154,14 +149,13 @@ void main() {
     ) async {
       final server = _Server()..errorCode = code;
       await server.client.auth.recoverSession(jsonEncode(_session('old-user')));
-      final lines = <String>[];
+
       await tester.pumpWidget(
         _app(
           AuthCallbackPage.confirm(
             uri: _link('invite'),
             session: server.session,
             storage: _Storage(),
-            diagnostics: CallbackDiagnostics(lines.add),
           ),
           server.session,
         ),
@@ -175,7 +169,6 @@ void main() {
       expect(server.client.auth.currentSession?.user.id, 'old-user');
       expect(server.verifyCalls, 1);
       expect(server.updateCalls, 0);
-      _expectSafe(lines);
     });
   }
 
@@ -211,26 +204,16 @@ void main() {
     'confirmation intent cannot verify twice, including after failure',
     () async {
       final server = _Server()..errorCode = 'otp_expired';
-      final lines = <String>[];
-      final diagnostics = CallbackDiagnostics(lines.add);
-      final intent = AuthConfirmationIntent.parse(
-        _link('recovery'),
-        diagnostics: diagnostics,
-      )!;
+
+      final intent = AuthConfirmationIntent.parse(_link('recovery'))!;
       final processor = AuthCallbackProcessor(
         server.session,
         storage: _Storage(),
-        diagnostics: diagnostics,
       );
       expect(server.requests, isEmpty);
       expect((await intent.confirm(processor)).status, CallbackStatus.expired);
       expect((await intent.confirm(processor)).status, CallbackStatus.invalid);
       expect(server.verifyCalls, 1);
-      expect(
-        lines.any((s) => s.contains('confirmationAlreadySubmitted')),
-        isTrue,
-      );
-      _expectSafe(lines);
     },
   );
 
@@ -412,39 +395,6 @@ Widget _app(Widget page, SupabaseSession session) => MaterialApp(
     ),
   ),
 );
-
-void _expectSafe(List<String> lines) {
-  expect(lines, isNotEmpty);
-  for (final line in lines) {
-    expect(line, startsWith('TEMDAS_AUTH_DIAG '));
-    for (final sensitive in [
-      _hash,
-      'fake-access-value',
-      'fake-refresh-value',
-      'confirmed-user',
-      'old-user',
-      'https://',
-      'token_hash=',
-    ]) {
-      expect(line, isNot(contains(sensitive)));
-    }
-    final fields =
-        jsonDecode(line.substring('TEMDAS_AUTH_DIAG '.length)) as Map;
-    expect(
-      CallbackDiagnosticStage.values.map((v) => v.name),
-      contains(fields['stage']),
-    );
-    expect(
-      CallbackDiagnosticReason.values.map((v) => v.name),
-      contains(fields['reason']),
-    );
-    for (final entry in fields.entries) {
-      if (entry.key != 'stage' && entry.key != 'reason') {
-        expect(entry.value, isA<bool>());
-      }
-    }
-  }
-}
 
 class _Server {
   _Server() {

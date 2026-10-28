@@ -23,11 +23,11 @@ function jwt(aal) { const enc = x => Buffer.from(JSON.stringify(x)).toString('ba
         try {
           const page = await context.newPage();
           let verifies = 0, challenges = 0, totpVerifies = 0;
-          const diagnostics = [];
+          const consoleMessages = [];
           const errors = [];
           page.on('pageerror', e => errors.push(e.name));
           page.on('console', m => {
-            if (m.text().startsWith('TEMDAS_AUTH_DIAG ')) diagnostics.push(m.text());
+            consoleMessages.push(m.text());
           });
           await context.route('**/*', async route => {
             const request = route.request();
@@ -114,9 +114,8 @@ function jwt(aal) { const enc = x => Buffer.from(JSON.stringify(x)).toString('ba
           await page.waitForTimeout(300);
           assert.equal(verifies, 1);
           assert.deepEqual(errors, []);
-          assert(diagnostics.some(s => s.includes('confirmationReady')));
-          assert(diagnostics.some(s => s.includes('confirmationSubmitted')));
-          assert(diagnostics.every(s => ![hash, 'fake-access-value', 'fake-refresh-value', 'browser-test-user', 'https://', 'http://', 'token_hash=', '123456'].some(secret => s.includes(secret))));
+          assert(consoleMessages.every(s => !s.includes('TEMDAS_AUTH_DIAG')));
+          assert(consoleMessages.every(s => ![hash, 'fake-access-value', 'fake-refresh-value', 'browser-test-user', 'token_hash=', '123456'].some(secret => s.includes(secret))));
           passed++;
           console.log(JSON.stringify({scenario: type + (fragment ? ' with default fragment' : ' direct'), passed: true, withMfa,
             autoVerify: false, sanitized: true, explicitVerifications: verifies}));

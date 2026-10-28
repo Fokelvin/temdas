@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app/app_routes.dart';
 import '../data/auth_callback.dart';
 import '../data/auth_callback_storage.dart';
-import '../data/auth_callback_diagnostics.dart';
 import '../data/supabase_session.dart';
 
 class AuthCallbackPage extends StatefulWidget {
@@ -15,7 +14,6 @@ class AuthCallbackPage extends StatefulWidget {
     required this.uri,
     this.session,
     this.storage,
-    this.diagnostics = callbackDiagnostics,
   }) : requireConfirmation = false;
 
   const AuthCallbackPage.confirm({
@@ -23,14 +21,12 @@ class AuthCallbackPage extends StatefulWidget {
     required this.uri,
     this.session,
     this.storage,
-    this.diagnostics = callbackDiagnostics,
   }) : requireConfirmation = true;
 
   final Uri uri;
   final SupabaseSession? session;
   final CallbackStorage? storage;
   final bool requireConfirmation;
-  final CallbackDiagnostics diagnostics;
 
   @override
   State<AuthCallbackPage> createState() => _AuthCallbackPageState();
@@ -54,11 +50,8 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 
   SupabaseSession? get _session => widget.session ?? supabaseSession;
   CallbackStorage get _storage => widget.storage ?? browserCallbackStorage;
-  AuthCallbackProcessor get _processor => AuthCallbackProcessor(
-    _session,
-    storage: _storage,
-    diagnostics: widget.diagnostics,
-  );
+  AuthCallbackProcessor get _processor =>
+      AuthCallbackProcessor(_session, storage: _storage);
 
   @override
   void initState() {
@@ -66,10 +59,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     if (widget.requireConfirmation) {
       _storage.clearUrl();
       _processor.clear();
-      _pendingConfirmation = AuthConfirmationIntent.parse(
-        widget.uri,
-        diagnostics: widget.diagnostics,
-      );
+      _pendingConfirmation = AuthConfirmationIntent.parse(widget.uri);
       if (_pendingConfirmation == null) {
         _result = const CallbackResult(CallbackStatus.invalid);
       }
@@ -87,22 +77,11 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   Future<void> _process() async {
-    widget.diagnostics.emit(
-      CallbackDiagnosticStage.page,
-      CallbackDiagnosticReason.pageStarted,
-    );
     // Keep the original URI in memory for the SDK, but remove credentials and
     // one-time codes from the browser address bar and history immediately.
     _storage.clearUrl();
     final result = await _processor.process(widget.uri);
-    widget.diagnostics.emit(
-      CallbackDiagnosticStage.page,
-      CallbackDiagnosticReason.pageResult,
-      accepted: result.status == CallbackStatus.valid,
-      invalid: result.status == CallbackStatus.invalid,
-      expired: result.status == CallbackStatus.expired,
-      unavailable: result.status == CallbackStatus.unavailable,
-    );
+
     await _acceptResult(result);
   }
 
@@ -117,20 +96,9 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     try {
       result = await intent.confirm(_processor);
     } catch (_) {
-      widget.diagnostics.emit(
-        CallbackDiagnosticStage.confirmation,
-        CallbackDiagnosticReason.operationUnavailable,
-      );
       result = const CallbackResult(CallbackStatus.unavailable);
     }
-    widget.diagnostics.emit(
-      CallbackDiagnosticStage.page,
-      CallbackDiagnosticReason.pageResult,
-      accepted: result.status == CallbackStatus.valid,
-      invalid: result.status == CallbackStatus.invalid,
-      expired: result.status == CallbackStatus.expired,
-      unavailable: result.status == CallbackStatus.unavailable,
-    );
+
     await _acceptResult(result);
     if (mounted) setState(() => _submitting = false);
   }
@@ -176,13 +144,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
         _confirmation.clear();
       }
     });
-    widget.diagnostics.emit(
-      CallbackDiagnosticStage.session,
-      allowed
-          ? CallbackDiagnosticReason.passwordAccessReady
-          : CallbackDiagnosticReason.passwordMfaRequired,
-      accepted: allowed,
-    );
+
     return allowed;
   }
 
@@ -285,10 +247,6 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   void _expire(CallbackFlow? flow) {
-    widget.diagnostics.emit(
-      CallbackDiagnosticStage.page,
-      CallbackDiagnosticReason.pageSessionExpired,
-    );
     _processor.clear();
     _totp.clear();
     _passwordAccessReady = false;

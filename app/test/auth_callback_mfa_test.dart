@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:temdas/data/auth_callback_diagnostics.dart';
 import 'package:temdas/data/auth_callback_storage.dart';
 import 'package:temdas/data/supabase_session.dart';
 import 'package:temdas/view/auth_callback_page.dart';
@@ -30,7 +29,6 @@ void main() {
         expect(f.logoutCalls, 1);
         expect(f.client.auth.currentSession, isNull);
         expect(find.text('login'), findsOneWidget);
-        _safe(f);
       },
     );
   }
@@ -86,7 +84,6 @@ void main() {
         expect(find.text('Link ou sessão expirados'), findsNothing);
         expect(find.text('Confirmar MFA'), findsOneWidget);
       }
-      _safe(f);
     });
   }
   testWidgets('verify response still AAL1 cannot open password form', (
@@ -138,7 +135,6 @@ void main() {
       findsOneWidget,
     );
     expect(f.logoutCalls, 0);
-    _safe(f);
   });
   testWidgets('new verified factor before save cannot bypass MFA', (
     tester,
@@ -182,7 +178,6 @@ Future<void> _open(WidgetTester tester, _Fixture f, String flow) async {
         ),
         session: SupabaseSession(f.client),
         storage: _Storage(),
-        diagnostics: CallbackDiagnostics(f.logs.add),
       ),
       onGenerateRoute: (_) => MaterialPageRoute<void>(
         builder: (_) => const Scaffold(body: Text('login')),
@@ -209,22 +204,6 @@ Future<void> _save(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-void _safe(_Fixture f) {
-  for (final line in f.logs) {
-    for (final secret in [
-      '123456',
-      'Fixture-password-123',
-      'unsafe-private-detail',
-      'fixture-user',
-      'https://',
-      'token_hash=',
-      'a' * 56,
-    ]) {
-      expect(line, isNot(contains(secret)));
-    }
-  }
-}
-
 class _Fixture {
   String aal = 'aal1';
   bool hasFactor = true,
@@ -236,7 +215,6 @@ class _Fixture {
   Completer<void>? hold;
   int writes = 0, challengeCalls = 0, verifyCalls = 0, logoutCalls = 0;
   final writeAals = <String>[];
-  final logs = <String>[];
   Map<String, dynamic> user({bool original = false}) => {
     'id': differentUser && !original ? 'other-fixture-user' : 'fixture-user',
     'aud': 'authenticated',
