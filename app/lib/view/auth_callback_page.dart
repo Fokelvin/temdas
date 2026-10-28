@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app/app_routes.dart';
 import '../data/auth_callback.dart';
 import '../data/auth_callback_storage.dart';
+import '../data/auth_callback_diagnostics.dart';
 import '../data/supabase_session.dart';
 
 class AuthCallbackPage extends StatefulWidget {
@@ -53,14 +54,30 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   Future<void> _process() async {
+    callbackDiagnostics.emit(
+      CallbackDiagnosticStage.page,
+      CallbackDiagnosticReason.pageStarted,
+    );
     // Keep the original URI in memory for the SDK, but remove credentials and
     // one-time codes from the browser address bar and history immediately.
     _storage.clearUrl();
     final result = await _processor.process(widget.uri);
+    callbackDiagnostics.emit(
+      CallbackDiagnosticStage.page,
+      CallbackDiagnosticReason.pageResult,
+      accepted: result.status == CallbackStatus.valid,
+      invalid: result.status == CallbackStatus.invalid,
+      expired: result.status == CallbackStatus.expired,
+      unavailable: result.status == CallbackStatus.unavailable,
+    );
     if (mounted) setState(() => _result = result);
   }
 
   void _expire(CallbackFlow? flow) {
+    callbackDiagnostics.emit(
+      CallbackDiagnosticStage.page,
+      CallbackDiagnosticReason.pageSessionExpired,
+    );
     _processor.clear();
     _password.clear();
     _confirmation.clear();
