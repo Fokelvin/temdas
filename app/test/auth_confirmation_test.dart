@@ -248,6 +248,18 @@ void main() {
       '?token_hash=$_hash&type=recovery#/auth/confirm?type=invite',
     ),
     ('wrong fragment route', '?token_hash=$_hash&type=recovery#/auth/callback'),
+    (
+      'default route with credential parameters',
+      '?token_hash=$_hash&type=recovery#/demandas?type=invite',
+    ),
+    (
+      'default route with extra parameters',
+      '?token_hash=$_hash&type=recovery#/demandas?extra=value',
+    ),
+    (
+      'default route with nested fragment',
+      '?token_hash=$_hash&type=recovery#/demandas#nested',
+    ),
     ('malformed UTF8', '?token_hash=%FF&type=recovery'),
     ('empty parameter name', '?token_hash=$_hash&type=recovery&=value'),
   ]) {
@@ -287,6 +299,14 @@ void main() {
       'prefixed hash',
       'https://app.example/auth/confirm?token_hash=pkce_$_hash&type=recovery',
     ),
+    (
+      'direct recovery with default navigation fragment',
+      'https://app.example/auth/confirm?token_hash=$_hash&type=recovery#/demandas',
+    ),
+    (
+      'direct invite with default navigation fragment',
+      'https://app.example/auth/confirm?token_hash=$_hash&type=invite#/demandas',
+    ),
   ]) {
     testWidgets('$name routes outside AuthGate and waits for confirmation', (
       tester,
@@ -307,6 +327,14 @@ void main() {
       expect(find.byType(AuthGate), findsNothing);
       expect(find.byType(TextField), findsNothing);
       expect(server.requests, isEmpty);
+      expect(
+        find.text(
+          uri.queryParameters['type'] == 'recovery' || name == 'prefixed hash'
+              ? 'Confirmar recuperação de senha'
+              : 'Confirmar convite',
+        ),
+        findsOneWidget,
+      );
       if (name == 'prefixed hash') {
         await tester.tap(find.text('Continuar recuperação'));
         await tester.pumpAndSettle();

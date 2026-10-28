@@ -39,7 +39,18 @@ class AuthConfirmationIntent {
       );
       return null;
     }
-    final params = _parameters(uri, diagnostics, fragmentPath: '/auth/confirm');
+    // A direct email entry takes precedence over Flutter's default hash route.
+    // Ignore only that exact, parameter-free navigation marker: credentials or
+    // any other fragment still go through the strict parser unchanged.
+    final parameterUri =
+        uri.path == '/auth/confirm' && uri.fragment == '/demandas'
+        ? uri.replace(fragment: '')
+        : uri;
+    final params = _parameters(
+      parameterUri,
+      diagnostics,
+      fragmentPath: '/auth/confirm',
+    );
     if (params == null) return null;
     final tokenHash = params['token_hash'];
     final type = params['type'];
