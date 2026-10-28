@@ -16,6 +16,19 @@ class SupabaseSession implements ClientAuthKeyProvider {
 
   Future<void> signOut() => client.auth.signOut();
 
+  /// Shared TOTP challenge; callers keep their own identity/AAL requirements.
+  Future<void> verifyTotp({
+    required String factorId,
+    required String code,
+  }) async {
+    final challenge = await client.auth.mfa.challenge(factorId: factorId);
+    await client.auth.mfa.verify(
+      factorId: factorId,
+      challengeId: challenge.id,
+      code: code,
+    );
+  }
+
   @override
   Future<String?> get authHeaderValue async {
     final session = currentSession;

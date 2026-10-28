@@ -269,7 +269,14 @@ void main() {
       expect(find.byType(AuthCallbackPage), findsOneWidget);
       expect(find.byType(AuthGate), findsNothing);
       expect(find.text('Redefinir senha'), findsOneWidget);
-      expect(requests.single.url.queryParameters['grant_type'], 'pkce');
+      expect(
+        requests
+            .where((r) => r.url.path.endsWith('/token'))
+            .single
+            .url
+            .queryParameters['grant_type'],
+        'pkce',
+      );
       expect(pkce.values, isEmpty);
     },
   );

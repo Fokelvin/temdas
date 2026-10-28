@@ -8,19 +8,21 @@ const hash = 'a'.repeat(56);
 const user = { id: 'browser-test-user', aud: 'authenticated', app_metadata: {},
   user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 let stage = 'launch';
-const session = { access_token: 'fake-access-value', refresh_token: 'fake-refresh-value',
-  expires_in: 3600, token_type: 'bearer', user };
+function jwt(aal) { const enc = x => Buffer.from(JSON.stringify(x)).toString('base64url'); return enc({alg:'HS256'})+'.'+enc({aal,exp:Math.floor(Date.now()/1000)+3600})+'.fixture'; }
 (async () => {
   const browser = await chromium.launch({headless: true,
     ...(process.env.TEMDAS_BROWSER_EXECUTABLE ? {executablePath: process.env.TEMDAS_BROWSER_EXECUTABLE} : {})});
   let passed = 0;
   try {
     for (const type of ['recovery', 'invite']) {
-      for (const fragment of ['', '#/demandas']) {
+      for (const fragment of ['', '#/demandas']) for (const withMfa of [false, true]) {
+        let aal = 'aal1';
+        const account = {...user, factors: withMfa ? [{id:'browser-factor', factor_type:'totp', status:'verified', created_at:'2026-01-01T00:00:00Z', updated_at:'2026-01-01T00:00:00Z'}] : []};
+        const session = () => ({access_token:jwt(aal),refresh_token:'fake-refresh-value',expires_in:3600,token_type:'bearer',user:account});
         const context = await browser.newContext({serviceWorkers: 'block'});
         try {
           const page = await context.newPage();
-          let verifies = 0;
+          let verifies = 0, challenges = 0, totpVerifies = 0;
           const diagnostics = [];
           const errors = [];
           page.on('pageerror', e => errors.push(e.name));
@@ -34,15 +36,22 @@ const session = { access_token: 'fake-access-value', refresh_token: 'fake-refres
               // The build must use the local fake Auth service, never production.
               assert(['localhost', '127.0.0.1'].includes(url.hostname));
               let body;
-              if (url.pathname.endsWith('/verify')) {
+              if (url.pathname.endsWith('/factors/browser-factor/challenge')) {
+                challenges++;
+                body = {id:'browser-challenge',expires_at:Math.floor(Date.now()/1000)+300};
+              } else if (url.pathname.endsWith('/factors/browser-factor/verify')) {
+                totpVerifies++;
+                assert.equal(request.postDataJSON().code,'123456');
+                aal='aal2'; body=session();
+              } else if (url.pathname.endsWith('/verify')) {
                 verifies++;
                 assert.equal(request.method(), 'POST');
                 const payload = request.postDataJSON();
                 assert.equal(payload.token_hash, hash);
                 assert.equal(payload.type, type);
-                body = session;
+                body = session();
               } else if (url.pathname.endsWith('/user')) {
-                body = user;
+                body = account;
               } else {
                 throw new Error('Unexpected Auth operation');
               }
@@ -91,17 +100,25 @@ const session = { access_token: 'fake-access-value', refresh_token: 'fake-refres
           assert.deepEqual(clean, {path: '/auth/confirm', hasQuery: false, hasHashCredential: false, sensitiveHistory: false});
           const button = page.getByRole('button', {name: type === 'invite' ? 'Aceitar convite' : 'Continuar recuperação', exact: true});
           await button.click();
+          if (withMfa) {
+            await page.getByLabel('Confirme o MFA para definir a senha',{exact:false}).waitFor();
+            assert.equal(await page.getByRole('button',{name:'Salvar senha',exact:true}).count(),0);
+            assert.equal(challenges,0); assert.equal(totpVerifies,0);
+            await page.getByRole('textbox').fill('123456');
+            await page.getByRole('button',{name:'Confirmar MFA',exact:true}).click();
+          }
           stage = 'password-title';
           await page.getByLabel(type === 'invite' ? 'Definir senha' : 'Redefinir senha', {exact: false}).waitFor();
           assert.equal(verifies, 1);
+          assert.equal(challenges,withMfa?1:0); assert.equal(totpVerifies,withMfa?1:0);
           await page.waitForTimeout(300);
           assert.equal(verifies, 1);
           assert.deepEqual(errors, []);
           assert(diagnostics.some(s => s.includes('confirmationReady')));
           assert(diagnostics.some(s => s.includes('confirmationSubmitted')));
-          assert(diagnostics.every(s => ![hash, 'fake-access-value', 'fake-refresh-value', 'browser-test-user', 'https://', 'http://', 'token_hash='].some(secret => s.includes(secret))));
+          assert(diagnostics.every(s => ![hash, 'fake-access-value', 'fake-refresh-value', 'browser-test-user', 'https://', 'http://', 'token_hash=', '123456'].some(secret => s.includes(secret))));
           passed++;
-          console.log(JSON.stringify({scenario: type + (fragment ? ' with default fragment' : ' direct'), passed: true,
+          console.log(JSON.stringify({scenario: type + (fragment ? ' with default fragment' : ' direct'), passed: true, withMfa,
             autoVerify: false, sanitized: true, explicitVerifications: verifies}));
         } finally { await context.close(); }
       }

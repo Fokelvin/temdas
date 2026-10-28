@@ -521,14 +521,7 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
       throw StateError('Não há fator TOTP verificado.');
     }
 
-    final challenge = await widget.session.client.auth.mfa.challenge(
-      factorId: factor.id,
-    );
-    await widget.session.client.auth.mfa.verify(
-      factorId: factor.id,
-      challengeId: challenge.id,
-      code: code,
-    );
+    await widget.session.verifyTotp(factorId: factor.id, code: code);
     _code.clear();
   }
 

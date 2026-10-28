@@ -84,8 +84,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(server.verifyCalls, 1);
         expect(server.verificationTypes, [type]);
-        expect(server.requests.single.method, 'POST');
-        expect(server.requests.single.url.path, '/auth/v1/verify');
+        expect(
+          server.requests
+              .where((r) => r.url.path.endsWith('/verify'))
+              .single
+              .method,
+          'POST',
+        );
+        expect(server.verifyCalls, 1);
         expect(
           find.text(type == 'invite' ? 'Definir senha' : 'Redefinir senha'),
           findsOneWidget,

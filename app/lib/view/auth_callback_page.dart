@@ -37,12 +37,17 @@ class AuthCallbackPage extends StatefulWidget {
 }
 
 class _AuthCallbackPageState extends State<AuthCallbackPage> {
+  final _totp = TextEditingController();
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   CallbackResult? _result;
   String? _error;
   bool _submitting = false;
   bool _passwordUpdated = false;
+  bool _passwordAccessReady = false;
+  bool _checkingAccess = false;
+  bool _requireAal2 = false;
+  Factor? _totpFactor;
   bool _showPassword = false;
   bool _showConfirmation = false;
   AuthConfirmationIntent? _pendingConfirmation;
@@ -75,6 +80,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 
   @override
   void dispose() {
+    _totp.dispose();
     _password.dispose();
     _confirmation.dispose();
     super.dispose();
@@ -97,7 +103,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       expired: result.status == CallbackStatus.expired,
       unavailable: result.status == CallbackStatus.unavailable,
     );
-    if (mounted) setState(() => _result = result);
+    await _acceptResult(result);
   }
 
   Future<void> _confirm() async {
@@ -125,11 +131,156 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       expired: result.status == CallbackStatus.expired,
       unavailable: result.status == CallbackStatus.unavailable,
     );
-    if (mounted) {
-      setState(() {
-        _result = result;
-        _submitting = false;
-      });
+    await _acceptResult(result);
+    if (mounted) setState(() => _submitting = false);
+  }
+
+  Future<void> _acceptResult(CallbackResult result) async {
+    if (!mounted) return;
+    setState(() => _result = result);
+    if (result.status != CallbackStatus.valid) return;
+    await _preparePasswordAccess();
+  }
+
+  Future<bool> _checkPasswordAccess() async {
+    final expected = _result?.userId;
+    final session = _session;
+    if (expected == null || session?.currentSession?.user.id != expected) {
+      _expire(_result?.flow);
+      return false;
+    }
+    final user = (await session!.client.auth.getUser()).user;
+    if (!mounted) return false;
+    if (user?.id != expected || session.currentSession?.user.id != expected) {
+      _expire(_result?.flow);
+      return false;
+    }
+    // Read factors from Auth, not just a potentially stale local user snapshot.
+    // Once MFA is known to be required it remains required for this callback.
+    final verified = [
+      ...?user?.factors,
+      ...?session.currentSession?.user.factors,
+    ].where((factor) => factor.status == FactorStatus.verified).toList();
+    _requireAal2 = _requireAal2 || verified.isNotEmpty;
+    _totpFactor = verified
+        .where((f) => f.factorType == FactorType.totp)
+        .firstOrNull;
+    final allowed =
+        !_requireAal2 ||
+        session.client.auth.mfa.getAuthenticatorAssuranceLevel().currentLevel ==
+            AuthenticatorAssuranceLevels.aal2;
+    setState(() {
+      _passwordAccessReady = allowed;
+      if (!allowed) {
+        _password.clear();
+        _confirmation.clear();
+      }
+    });
+    widget.diagnostics.emit(
+      CallbackDiagnosticStage.session,
+      allowed
+          ? CallbackDiagnosticReason.passwordAccessReady
+          : CallbackDiagnosticReason.passwordMfaRequired,
+      accepted: allowed,
+    );
+    return allowed;
+  }
+
+  Future<void> _preparePasswordAccess() async {
+    if (_checkingAccess || !mounted) return;
+    setState(() {
+      _checkingAccess = true;
+      _passwordAccessReady = false;
+      _error = null;
+    });
+    try {
+      await _checkPasswordAccess();
+    } on AuthException catch (error) {
+      if (mounted) {
+        if (_expiredSessionError(error)) {
+          _expire(_result?.flow);
+        } else {
+          setState(
+            () => _error =
+                'Não foi possível verificar sua sessão. Tente novamente.',
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Não foi possível verificar sua sessão. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingAccess = false);
+    }
+  }
+
+  Future<void> _confirmTotp() async {
+    if (_submitting ||
+        _checkingAccess ||
+        _result?.status != CallbackStatus.valid) {
+      return;
+    }
+    final code = _totp.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      setState(() => _error = 'Informe um código válido de 6 dígitos.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      if (await _checkPasswordAccess()) return;
+      if (_result?.status != CallbackStatus.valid) return;
+      final factor = _totpFactor;
+      if (factor == null) {
+        setState(
+          () => _error =
+              'Não há fator TOTP disponível para confirmar esta sessão.',
+        );
+        return;
+      }
+      await _session!.verifyTotp(factorId: factor.id, code: code);
+      if (!mounted) return;
+      _totp.clear();
+      if (!await _checkPasswordAccess() &&
+          _result?.status == CallbackStatus.valid) {
+        setState(
+          () => _error =
+              'Não foi possível elevar a sessão para AAL2. Tente novamente.',
+        );
+      }
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      if (_expiredSessionError(error)) {
+        _expire(_result?.flow);
+      } else {
+        setState(
+          () => _error = switch (error.code) {
+            'mfa_verification_failed' =>
+              'Código inválido. Confira o aplicativo autenticador e tente novamente.',
+            'mfa_challenge_expired' || 'mfa_challenge_not_found' =>
+              'Confirmação expirada. Tente novamente com um novo código.',
+            _ => 'Não foi possível confirmar sua identidade. Tente novamente.',
+          },
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Não foi possível confirmar sua identidade. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        _totp.clear();
+        setState(() => _submitting = false);
+      }
     }
   }
 
@@ -139,6 +290,8 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       CallbackDiagnosticReason.pageSessionExpired,
     );
     _processor.clear();
+    _totp.clear();
+    _passwordAccessReady = false;
     _password.clear();
     _confirmation.clear();
     setState(() => _result = CallbackResult(CallbackStatus.expired, flow));
@@ -147,6 +300,8 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   Future<void> _submit() async {
     final result = _result;
     if (_submitting ||
+        _checkingAccess ||
+        (!_passwordUpdated && !_passwordAccessReady) ||
         result?.status != CallbackStatus.valid ||
         result?.userId == null) {
       return;
@@ -179,19 +334,8 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       }
       if (!_passwordUpdated) {
         final newPassword = _password.text;
-        final status = await _processor.verifyActiveSession(result!.userId!);
+        if (!await _checkPasswordAccess()) return;
         if (!mounted) return;
-        if (status == CallbackStatus.expired) {
-          _expire(result.flow);
-          return;
-        }
-        if (status != CallbackStatus.valid) {
-          setState(
-            () => _error =
-                'Não foi possível verificar sua sessão. Tente novamente.',
-          );
-          return;
-        }
         await session.client.auth.updateUser(
           UserAttributes(password: newPassword),
         );
@@ -226,7 +370,13 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       );
     } on AuthException catch (error) {
       if (!mounted) return;
-      if (_expiredSessionError(error)) {
+      if (error.code == 'insufficient_aal') {
+        _requireAal2 = true;
+        await _preparePasswordAccess();
+        if (mounted && _result?.status == CallbackStatus.valid) {
+          setState(() => _error = 'Confirme o MFA antes de salvar a senha.');
+        }
+      } else if (_expiredSessionError(error)) {
         _expire(result?.flow);
       } else {
         setState(() => _error = _passwordError(error));
@@ -272,9 +422,15 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   Widget build(BuildContext context) {
     final result = _result;
     final valid = result?.status == CallbackStatus.valid;
+    final needsMfa =
+        valid && !_checkingAccess && !_passwordAccessReady && _requireAal2;
     final pending = _pendingConfirmation;
     final invite = (pending?.flow ?? result?.flow) == CallbackFlow.invite;
-    final title = pending != null
+    final title = _checkingAccess
+        ? 'Verificando segurança da sessão…'
+        : needsMfa
+        ? 'Confirme o MFA para definir a senha'
+        : pending != null
         ? (invite ? 'Confirmar convite' : 'Confirmar recuperação de senha')
         : switch (result?.status) {
             null => 'Validando link…',
@@ -284,7 +440,9 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
             CallbackStatus.invalid => 'Link inválido',
             CallbackStatus.unavailable => 'Não foi possível validar o link',
           };
-    final description = pending != null
+    final description = needsMfa
+        ? 'Informe o código do seu aplicativo autenticador para continuar.'
+        : pending != null
         ? (invite
               ? 'Confirme que deseja aceitar este convite e definir sua senha.'
               : 'Confirme que deseja continuar e escolher uma nova senha.')
@@ -335,7 +493,42 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
                           ),
                         ),
                       ],
-                      if (valid) ...[
+                      if (valid &&
+                          !_passwordAccessReady &&
+                          !_passwordUpdated) ...[
+                        const SizedBox(height: 24),
+                        if (_checkingAccess)
+                          const Center(child: CircularProgressIndicator())
+                        else if (needsMfa && _totpFactor != null) ...[
+                          TextField(
+                            controller: _totp,
+                            enabled: !_submitting,
+                            keyboardType: TextInputType.number,
+                            autofillHints: const [AutofillHints.oneTimeCode],
+                            decoration: const InputDecoration(
+                              labelText: 'Código de 6 dígitos',
+                            ),
+                            onSubmitted: (_) => _confirmTotp(),
+                          ),
+                          FilledButton(
+                            onPressed: _submitting ? null : _confirmTotp,
+                            child: const Text('Confirmar MFA'),
+                          ),
+                        ] else
+                          FilledButton(
+                            onPressed: _submitting
+                                ? null
+                                : _preparePasswordAccess,
+                            child: const Text('Verificar sessão novamente'),
+                          ),
+                        if (_error != null)
+                          Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                      ] else if (valid) ...[
                         const SizedBox(height: 24),
                         if (!_passwordUpdated) ...[
                           TextField(
@@ -447,7 +640,6 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 bool _expiredSessionError(AuthException error) {
   final code = error.code?.toLowerCase();
   return error is AuthSessionMissingException ||
-      error.statusCode == '401' ||
       code == 'session_not_found' ||
       code == 'jwt_expired' ||
       code == 'bad_jwt';

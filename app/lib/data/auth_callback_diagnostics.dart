@@ -15,6 +15,8 @@ enum CallbackDiagnosticReason {
   pageStarted,
   pageResult,
   pageSessionExpired,
+  passwordAccessReady,
+  passwordMfaRequired,
   confirmationReady,
   confirmationSubmitted,
   confirmationAlreadySubmitted,

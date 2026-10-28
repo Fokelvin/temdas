@@ -24,8 +24,9 @@ por caso, bloqueiam serviços externos e simulam a API Auth localmente.
    `TEMDAS_BROWSER_EXECUTABLE` como caminho do navegador. Para WSL + navegador
    Windows, executar com Node Windows e usar seus caminhos correspondentes.
 
-Os quatro casos exercitam o `main.dart` real compilado: recovery e invite, com e
-sem `#/demandas`. Conferem a tela de confirmação, ausência de consumo no
+Os oito casos exercitam o `main.dart` real compilado: recovery e invite, com e
+sem `#/demandas`, com e sem TOTP verificado. Quando há MFA, exigem uma confirmação
+TOTP simulada e AAL2 antes do formulário de senha. Conferem a tela de confirmação, ausência de consumo no
 carregamento, limpeza da URL e das entradas de histórico criadas pelo Flutter,
 uma verificação explícita e formulário de senha. Logs são inspecionados para
 impedir exposição das credenciais fictícias. Nenhuma senha é alterada.

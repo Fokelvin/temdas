@@ -18,6 +18,14 @@ obtém a sessão. O fluxo existente verifica a identidade, permite definir/redef
 a senha, encerra a sessão e retorna ao login. MFA e provisioning continuam sob os
 controles existentes; o link não concede AAL2 nem acesso às telas de negócio.
 
+Antes de mostrar o formulário, o callback consulta o usuário autenticado e seus
+fatores. Havendo fator verificado, a sessão precisa de AAL2. Se estiver em AAL1,
+o usuário confirma TOTP na própria página, com challenge/verify, antes de definir
+a senha. A identidade deve continuar igual à validada pelo link. A checagem se
+repete antes de salvar; `insufficient_aal` exige MFA, não indica expiração.
+Convites iniciais sem fator verificado continuam permitindo definir senha e
+encerrar a sessão; o login convencional mantém o cadastro obrigatório de MFA.
+
 Uma sessão antiga nunca substitui a validação do novo hash. Um link inválido,
 expirado ou reutilizado não abre o formulário, mesmo que já exista outra sessão.
 Não há retry automático após a confirmação. Recarregar a URL já limpa não restaura
