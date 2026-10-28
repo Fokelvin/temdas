@@ -12,6 +12,8 @@ enum CallbackDiagnosticReason {
   clientUnavailable,
   parametersInvalid,
   parametersDuplicate,
+  parametersConflicting,
+  parametersAmbiguous,
   payloadAbsent,
   parameterEmpty,
   requestedFlowUnknown,

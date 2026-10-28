@@ -14,6 +14,210 @@ const _stateKey = 'temdas.auth.callback.v1';
 const _sensitive = 'DO_NOT_LOG_sensitive_value_927135';
 
 void main() {
+  for (final (name, suffix) in [
+    ('main query', '?token_hash=$_sensitive&type=recovery'),
+    ('route fragment', '#/auth/callback?token_hash=$_sensitive&type=recovery'),
+    ('raw fragment', '#token_hash=$_sensitive&type=recovery'),
+    (
+      'mirrored sources',
+      '?token_hash=$_sensitive&type=recovery#/auth/callback?token_hash=$_sensitive&type=recovery',
+    ),
+    (
+      'mirrored raw fragment',
+      '?token_hash=$_sensitive&type=recovery#token_hash=$_sensitive&type=recovery',
+    ),
+    (
+      'complementary sources',
+      '?token_hash=$_sensitive#/auth/callback?type=recovery',
+    ),
+  ]) {
+    test('recovery OTP accepts $name exactly once', () async {
+      final h = _Harness();
+      final result = await h.process(suffix);
+      expect(result.status, CallbackStatus.valid);
+      expect(result.flow, CallbackFlow.recovery);
+      expect(h.requests.single.url.path, '/auth/v1/verify');
+      h.expectSafe();
+    });
+  }
+
+  test('mirrored PKCE recovery exchanges the code exactly once', () async {
+    final h = _Harness();
+    await h.requestRecovery();
+    final result = await h.process(
+      '?code=$_sensitive#/auth/callback?code=$_sensitive',
+    );
+    expect(result.status, CallbackStatus.valid);
+    expect(result.flow, CallbackFlow.recovery);
+    expect(h.requests.where((r) => r.url.path.endsWith('/token')).length, 1);
+    expect(h.pkce.values, isEmpty);
+    h.expectSafe();
+  });
+
+  test('PKCE query with a clean hash callback route remains valid', () async {
+    final h = _Harness();
+    await h.requestRecovery();
+    expect(
+      (await h.process('?code=$_sensitive#/auth/callback')).status,
+      CallbackStatus.valid,
+    );
+    expect(h.requests.where((r) => r.url.path.endsWith('/token')).length, 1);
+    h.expectSafe();
+  });
+
+  test('mirrored invite fragment validates the session exactly once', () async {
+    final h = _Harness();
+    const payload =
+        'access_token=$_sensitive&refresh_token=$_sensitive&expires_in=3600&token_type=bearer&type=invite';
+    final result = await h.process('?$payload#/auth/callback?$payload');
+    expect(result.status, CallbackStatus.valid);
+    expect(result.flow, CallbackFlow.invite);
+    expect(h.requests.single.url.path, '/auth/v1/user');
+    h.expectSafe();
+  });
+
+  test(
+    'mirrors compare decoded values once without normalizing them',
+    () async {
+      final h = _Harness();
+      await h.requestRecovery();
+      expect(
+        (await h.process('?code=%41#/auth/callback?code=A')).status,
+        CallbackStatus.valid,
+      );
+      expect(jsonDecode(h.requests.last.body)['auth_code'], 'A');
+      h.expectSafe();
+    },
+  );
+
+  for (final (name, suffix, reason) in [
+    (
+      'conflicting codes',
+      '?code=$_sensitive#/auth/callback?code=different',
+      'parametersConflicting',
+    ),
+    (
+      'conflicting types',
+      '?token_hash=$_sensitive&type=recovery#/auth/callback?type=invite',
+      'parametersConflicting',
+    ),
+    (
+      'plus versus space',
+      '?code=%2B#/auth/callback?code=+',
+      'parametersConflicting',
+    ),
+    (
+      'no double decoding',
+      '?code=%2541#/auth/callback?code=A',
+      'parametersConflicting',
+    ),
+    (
+      'query duplicates',
+      '?code=$_sensitive&code=$_sensitive',
+      'parametersDuplicate',
+    ),
+    (
+      'encoded key duplicates',
+      '?code=$_sensitive&c%6Fde=$_sensitive',
+      'parametersDuplicate',
+    ),
+    (
+      'route fragment duplicates',
+      '#/auth/callback?code=$_sensitive&code=$_sensitive',
+      'parametersDuplicate',
+    ),
+    (
+      'raw fragment duplicates',
+      '#code=$_sensitive&code=$_sensitive',
+      'parametersDuplicate',
+    ),
+    (
+      'duplicate inside mirrored source',
+      '?code=$_sensitive#/auth/callback?code=$_sensitive&code=$_sensitive',
+      'parametersDuplicate',
+    ),
+    (
+      'split credentials',
+      '?code=$_sensitive#/auth/callback?token_hash=$_sensitive&type=recovery',
+      'parametersAmbiguous',
+    ),
+    (
+      'combined credentials',
+      '?code=$_sensitive&access_token=$_sensitive',
+      'parametersAmbiguous',
+    ),
+    (
+      'PKCE with refresh token',
+      '?code=$_sensitive#refresh_token=$_sensitive',
+      'parametersAmbiguous',
+    ),
+    (
+      'OTP with session fields',
+      '?token_hash=$_sensitive&type=recovery#token_type=bearer',
+      'parametersAmbiguous',
+    ),
+    (
+      'OTP and session credentials',
+      '?token_hash=$_sensitive&type=recovery#access_token=$_sensitive',
+      'parametersAmbiguous',
+    ),
+    (
+      'provider error with code',
+      '?code=$_sensitive#/auth/callback?error=access_denied',
+      'parametersAmbiguous',
+    ),
+    (
+      'invalid callback route suffix',
+      '#/auth/callback/extra?code=$_sensitive',
+      'parametersInvalid',
+    ),
+    (
+      'unrelated route fragment',
+      '#/other?code=$_sensitive',
+      'parametersInvalid',
+    ),
+    ('malformed query UTF8', '?code=%FF', 'parametersInvalid'),
+    ('malformed fragment UTF8', '#code=%FF', 'parametersInvalid'),
+    ('empty parameter name', '?=value&code=$_sensitive', 'parametersInvalid'),
+  ]) {
+    test('rejects $name before any token request', () async {
+      final h = _Harness();
+      expect((await h.process(suffix)).status, CallbackStatus.invalid);
+      expect(h.requests, isEmpty);
+      expect(h.reasons, contains(reason));
+      h.expectSafe();
+    });
+  }
+
+  test(
+    'mirrored provider expiration remains expired without an exchange',
+    () async {
+      final h = _Harness();
+      const payload = 'error=access_denied&error_code=otp_expired';
+      expect(
+        (await h.process('?$payload#/auth/callback?$payload')).status,
+        CallbackStatus.expired,
+      );
+      expect(h.reasons, contains('authExceptionExpired'));
+      expect(h.requests, isEmpty);
+      h.expectSafe();
+    },
+  );
+
+  test('mirrored expired recovery OTP is verified only once', () async {
+    final h = _Harness(
+      errorCode: 'otp_expired',
+      errorMessage: 'Token expired $_sensitive',
+    );
+    const payload = 'token_hash=$_sensitive&type=recovery';
+    expect(
+      (await h.process('?$payload#/auth/callback?$payload')).status,
+      CallbackStatus.expired,
+    );
+    expect(h.requests.single.url.path, '/auth/v1/verify');
+    h.expectSafe();
+  });
+
   for (final (suffix, reason) in [
     ('?code=$_sensitive&code=other', 'parametersDuplicate'),
     ('#/auth/callback/extra?code=$_sensitive', 'parametersInvalid'),

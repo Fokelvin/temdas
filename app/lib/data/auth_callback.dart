@@ -401,46 +401,108 @@ bool _isExpired(AuthException error) {
 }
 
 Map<String, String>? _parameters(Uri uri, CallbackDiagnostics diagnostics) {
-  final all = <String, List<String>>{};
-  void add(Map<String, List<String>> source) {
-    for (final entry in source.entries) {
-      all.putIfAbsent(entry.key, () => []).addAll(entry.value);
-    }
+  Map<String, List<String>> decodeSource(String query) {
+    // Validate encoding and UTF-8 before collecting decoded values. Retain
+    // every occurrence of each key, without decoding the resulting values again.
+    Uri.decodeQueryComponent(query);
+    return Uri(query: query).queryParametersAll;
   }
 
-  add(uri.queryParametersAll);
-  final fragment = uri.fragment;
-  if (fragment.startsWith('/auth/callback')) {
-    final route = Uri.tryParse(fragment);
-    if (route == null || route.path != '/auth/callback') {
-      diagnostics.emit(
-        CallbackDiagnosticStage.parameters,
-        CallbackDiagnosticReason.parametersInvalid,
+  final Map<String, List<String>> query;
+  var fragmentParameters = <String, List<String>>{};
+  try {
+    query = decodeSource(uri.query);
+    final fragment = uri.fragment;
+    if (fragment.startsWith('/auth/callback')) {
+      final route = Uri.tryParse(fragment);
+      if (route == null ||
+          route.path != '/auth/callback' ||
+          route.hasFragment) {
+        throw const FormatException();
+      }
+      // Inspect the original query before parsing can normalize its escapes.
+      final separator = fragment.indexOf('?');
+      fragmentParameters = decodeSource(
+        separator < 0 ? '' : fragment.substring(separator + 1),
       );
-      return null;
+    } else if (fragment.isNotEmpty) {
+      if (!fragment.contains('=') ||
+          fragment.startsWith('/') ||
+          fragment.startsWith('?') ||
+          fragment.contains('#') ||
+          Uri.tryParse(fragment)?.hasScheme == true) {
+        throw const FormatException();
+      }
+      fragmentParameters = decodeSource(fragment);
     }
-    add(route.queryParametersAll);
-  } else if (fragment.contains('=')) {
-    try {
-      add(
-        Uri.splitQueryString(
-          fragment,
-        ).map((key, value) => MapEntry(key, [value])),
-      );
-    } on FormatException {
-      diagnostics.emit(
-        CallbackDiagnosticStage.parameters,
-        CallbackDiagnosticReason.parametersInvalid,
-      );
-      return null;
+    if ([query, fragmentParameters].any((source) => source.containsKey(''))) {
+      throw const FormatException();
     }
+  } on FormatException {
+    diagnostics.emit(
+      CallbackDiagnosticStage.parameters,
+      CallbackDiagnosticReason.parametersInvalid,
+    );
+    return null;
   }
-  if (all.values.any((values) => values.length != 1)) {
+
+  // Repetitions within either source are invalid even if their values match.
+  if ([
+    query,
+    fragmentParameters,
+  ].any((source) => source.values.any((values) => values.length != 1))) {
     diagnostics.emit(
       CallbackDiagnosticStage.parameters,
       CallbackDiagnosticReason.parametersDuplicate,
     );
     return null;
   }
-  return all.map((key, values) => MapEntry(key, values.single));
+
+  final merged = query.map((key, values) => MapEntry(key, values.single));
+  for (final entry in fragmentParameters.entries) {
+    final value = entry.value.single;
+    if (merged.containsKey(entry.key) && merged[entry.key] != value) {
+      diagnostics.emit(
+        CallbackDiagnosticStage.parameters,
+        CallbackDiagnosticReason.parametersConflicting,
+      );
+      return null;
+    }
+    // Flutter Web can mirror the main query into its hash route. Equal decoded
+    // values represent one parameter, not two independent credential sources.
+    merged[entry.key] = value;
+  }
+
+  final credentialCount = [
+    'code',
+    'token_hash',
+    'access_token',
+  ].where(merged.containsKey).length;
+  final hasProviderError = [
+    'error',
+    'error_code',
+    'error_description',
+  ].any(merged.containsKey);
+  final hasSessionParameters = [
+    'access_token',
+    'refresh_token',
+    'expires_in',
+    'expires_at',
+    'token_type',
+    'provider_token',
+    'provider_refresh_token',
+  ].any(merged.containsKey);
+  final mixesSessionAndExchange =
+      hasSessionParameters &&
+      (merged.containsKey('code') || merged.containsKey('token_hash'));
+  if (credentialCount > 1 ||
+      mixesSessionAndExchange ||
+      ((credentialCount > 0 || hasSessionParameters) && hasProviderError)) {
+    diagnostics.emit(
+      CallbackDiagnosticStage.parameters,
+      CallbackDiagnosticReason.parametersAmbiguous,
+    );
+    return null;
+  }
+  return merged;
 }

@@ -240,6 +240,40 @@ void main() {
     expect(pkce.values, isEmpty);
   });
 
+  testWidgets(
+    'mirrored recovery callback opens once with the Flutter hash route',
+    (tester) async {
+      final pkce = _PkceStorage();
+      await pkce.setItem(
+        key: 'supabase.auth.token-code-verifier',
+        value: 'verifier/passwordRecovery',
+      );
+      final requests = <http.Request>[];
+      final client = _client(requests: requests, pkce: pkce);
+      addTearDown(client.auth.dispose);
+      final previousSession = supabaseSession;
+      supabaseSession = SupabaseSession(client);
+      addTearDown(() => supabaseSession = previousSession);
+      final uri = Uri.parse(
+        'https://app.example/auth/callback?code=one-time-code#/auth/callback?code=one-time-code',
+      );
+      tester.binding.platformDispatcher.defaultRouteNameTestValue =
+          uri.fragment;
+      addTearDown(
+        tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
+      );
+
+      await tester.pumpWidget(TemdasApp(initialUri: uri));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AuthCallbackPage), findsOneWidget);
+      expect(find.byType(AuthGate), findsNothing);
+      expect(find.text('Redefinir senha'), findsOneWidget);
+      expect(requests.single.url.queryParameters['grant_type'], 'pkce');
+      expect(pkce.values, isEmpty);
+    },
+  );
+
   test('expired token hash is classified from the SDK error', () async {
     final client = _client(expiredOtp: true);
     addTearDown(client.dispose);
