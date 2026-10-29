@@ -347,6 +347,14 @@ o novo histórico/objetos, com verificação da cópia F:. Não foi disparado ba
 adicional nesta tarefa. Antes de qualquer nova migration, exigir backup atualizado
 e ensaio correspondente ao schema então vigente.
 
+**Encerramento posterior, 29/10/2026:** a pendência do restaurador foi resolvida
+na etapa específica autorizada. Cópia instalada sincronizada, coleta manual
+posterior à migration e restauração isolada diretamente do F: aprovadas, com
+histórico e dois objetos Sprint corretos, além de `btree_gist` 1.7. Configuração,
+credenciais, chave e definição do agendamento preservadas. Evidências no
+[encerramento PROD-01](backup-restauracao-prod.md#encerramento-operacional--29102026).
+Esse encerramento não executou migrations nem alterou PROD/DEV.
+
 O `pubspec.yaml` do servidor ainda contém um atalho local `serverpod run start`
 com `--apply-migrations`. Ele não foi executado nem alterado nesta tarefa e não é
 usado pelo processo PROD-02. Não utilizá-lo com credenciais ou configuração PROD;

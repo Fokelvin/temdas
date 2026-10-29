@@ -68,9 +68,42 @@ restore. Nenhum SQL arbitrário extraído dessa entrada é executado.
 Usar `python3 scripts/backup/backup.py restore-check` a partir do checkout
 atualizado para validar esses backups, inclusive com `--from-external` quando
 aplicável. O ensaio PROD-02 usa o mesmo suporte em Docker e validou uma restauração
-real de dump local com as duas proteções. A coleta diária instalada e seu
-agendamento permanecem iguais; a cópia antiga instalada do script não incorpora
-esse suporte de restauração. Isso não autoriza restaurar sobre PROD ou DEV.
+real de dump local com as duas proteções. Em 29/10/2026 a cópia instalada foi
+sincronizada e também passou no teste real descrito abaixo. Coleta diária e
+agendamento permanecem iguais. Isso não autoriza restaurar sobre PROD ou DEV.
+
+### Encerramento operacional — 29/10/2026
+
+`~/.local/share/temdas-backup/bin/backup.py` foi sincronizado atomicamente com a
+versão validada do repositório, com modo 0700 e igualdade de SHA-256. O módulo
+`secondary.py` instalado já era idêntico e foi preservado. A comparação AST
+confirmou que as diferenças anteriores eram somente `restore_check` e o helper
+`restore_extension_sql`; o comportamento da coleta diária não mudou.
+
+Como o último backup antecedia a migration, foi executada uma coleta manual
+`run --force` pela mesma rotina instalada, com origem PROD somente leitura e TLS
+`verify-full`. Backup de `2026-10-29T12:57:32.650557+00:00`, criptografado, copiado
+para F: e com SHA-256 igual nos dois destinos:
+
+```text
+c45e0461b63a42b5aedfd4ef5a2249aca0028d5a112992c89ab0888fbbe5fed9
+```
+
+O restaurador instalado leu diretamente a cópia F: e criou um cluster temporário
+PG17 com TCP desabilitado e socket privado. Foram restauradas 54 tabelas com
+contagens/hashes e schema iguais ao manifesto. Consultas adicionais no banco
+descartável confirmaram histórico `sprint-integrity`, `btree_gist` 1.7 em
+`extensions`, índice único parcial de Sprint ativa e exclusion constraint com
+predicados/propriedades exatos. Nenhuma migration foi executada no restore.
+O cluster foi parado e removido ao final. Evidência sanitizada em
+`restore-external-evidence.json`, fora do Git.
+
+Configuração privada, credencial de origem, CA, certificado e chave de recuperação
+mantiveram conteúdo/permissões/proprietário. A definição exportada da tarefa
+Windows `TEMDAS-PROD-Backup` permaneceu idêntica antes/depois. Nenhum agendamento,
+credencial ou serviço foi criado/alterado. Os 26 testes de backup passaram.
+Offsite e proteção adicional da chave fora do PC continuam pendentes, sem
+implementação; duas cópias no mesmo computador não cobrem a perda do equipamento.
 
 ### Comandos existentes
 

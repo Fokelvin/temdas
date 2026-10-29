@@ -33,8 +33,14 @@ usa prioridade operacional, conforme sua relação com homologação e produçã
   por `SprintDemanda`.
 - Autenticação Supabase integrada ao app, provisionamento de usuário interno,
   exigência AAL2 nas rotas funcionais, MFA TOTP, recuperação de senha e fluxo de
-  convite de administrador documentados/implementados.
+  convite de administrador implementados e homologados em PROD. Recovery exige
+  confirmação explícita do link e TOTP quando há fator verificado; convites
+  preservam o onboarding sem privilégio administrativo automático.
 - Interface com sistema visual, temas claro/escuro e densidade de cards.
+- Publicação em `https://temdas.com.br` (Cloudflare Pages), backend Railway e
+  Supabase PROD; SMTP Resend e callbacks alinhados ao domínio oficial.
+- Backup PROD automático criptografado no WSL e F:, restauração SQL isolada
+  comprovada e controle semiautomatizado de migrations com aprovação separada.
 
 ### Melhorias aprovadas
 
@@ -220,7 +226,8 @@ de escopo.
 
 - **Descrição:** definir domínio próprio e hospedar Flutter Web e Serverpod.
 - **Prioridade:** Pré-produção.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído — Flutter Web na Cloudflare Pages em
+  `https://temdas.com.br`, backend Serverpod no Railway e Supabase PROD operacionais.
 - **Dependências:** escolha do provedor, ambientes e estratégia de publicação.
 - **Critérios de aceite:** app e backend acessíveis pelo domínio público com
   configuração correspondente de autenticação e callback.
@@ -229,7 +236,8 @@ de escopo.
 
 - **Descrição:** configurar SMTP próprio para as mensagens de autenticação.
 - **Prioridade:** Pré-produção.
-- **Estado:** Aprovado / pendente de configuração e validação.
+- **Estado:** Concluído — SMTP Resend configurado; entrega de convites e
+  recuperação confirmada na homologação PROD.
 - **Dependências:** domínio e serviço SMTP escolhidos; configuração no Supabase
   Auth.
 - **Critérios de aceite:** mensagens de convite e recuperação são entregues
@@ -240,8 +248,10 @@ de escopo.
 - **Descrição:** confirmar e exigir validação completa de certificado e nome do
   host na conexão PostgreSQL antes de produção.
 - **Prioridade:** Bloqueador de produção.
-- **Estado:** Pendente de comprovação no ambiente de produção; requisitos de
-  SSL já aparecem na configuração de ambientes.
+- **Estado:** Parcial — IPv6/TLS de produção comprovados; `verify-full`
+  comprovado nos clientes de backup e aplicação controlada de migration.
+  A validação negativa de certificado/hostname pelo cliente Serverpod não foi
+  repetida nem declarada homologada neste encerramento.
 - **Dependências:** certificado confiável, hostname correto e configuração do
   cliente PostgreSQL.
 - **Critérios de aceite:** conexão de produção valida cadeia do certificado e
@@ -252,7 +262,10 @@ de escopo.
 - **Descrição:** definir armazenamento e injeção seguros e persistentes de
   secrets necessários a Serverpod, Supabase, banco e serviços de e-mail.
 - **Prioridade:** Pré-produção.
-- **Estado:** Pendente de validação operacional por ambiente.
+- **Estado:** Concluído na implantação atual — credenciais injetadas no backend,
+  configuração privada de backup fora do Git e chave de recuperação preservadas.
+  Este estado não declara rotação de todas as credenciais; revisões de segurança
+  permanecem pontuais e não foram reabertas neste encerramento.
 - **Dependências:** provedor de hospedagem e mecanismo de secrets escolhidos.
 - **Critérios de aceite:** secrets não são versionados nem expostos em logs;
   permanecem disponíveis após reinício e rotação conforme a configuração do
@@ -263,8 +276,9 @@ de escopo.
 - **Descrição:** configurar no host ou proxy o fallback para entregar o app
   Flutter em `/auth/callback`, preservando query e fragmento do fluxo.
 - **Prioridade:** Pré-produção.
-- **Estado:** Pendente de configuração da hospedagem; procedimento está em
-  `auth-callback-flutter.md`.
+- **Estado:** Concluído — fallback SPA publicado para `/auth/callback` e
+  `/auth/confirm`, com roteamento, sanitização e confirmação explícita validados.
+  Procedimentos em `auth-callback-flutter.md` e `auth-confirmation.md`.
 - **Dependências:** INF-01 e URLs de redirect aprovadas no Supabase Auth.
 - **Critérios de aceite:** links diretos de convite e recuperação abrem o app
   no callback público configurado.
@@ -274,13 +288,17 @@ de escopo.
 - **Descrição:** revisar `definition.sql` e os objetos customizados de Sprint
   em instalações novas e ao preparar cada migração futura.
 - **Prioridade:** Recorrente — migrações e releases.
-- **Estado:** Recorrente; os objetos e a migração aplicada estão documentados
-  em `schema-sprints-serverpod.md`.
+- **Estado:** Correção PROD concluída em 29/10/2026; verificação recorrente a cada
+  nova migration. `sprint-integrity` aplicada, objetos/histórico/dados conferidos
+  e restaurados a partir de backup posterior. Evidências em
+  `schema-sprints-serverpod.md` e `migrations-prod.md`.
 - **Dependências:** qualquer alteração de schema de Sprint ou geração de
   `definition.sql`.
-- **Critérios de aceite:** os cinco objetos SQL customizados documentados são
-  preservados onde necessários; os arquivos de definição gerados e o schema
-  usado em runtime permanecem coerentes.
+- **Critérios de aceite:** preservar os dois objetos customizados atuais:
+  índice de uma Sprint ativa por proprietário e exclusion constraint de períodos.
+  Os três objetos legados do proprietário nulo foram retirados em
+  `ownership-required` e não devem ser recriados. Definição completa e target
+  de runtime permanecem coerentes.
 
 ### INF-07 — Prova de autenticação real nos ambientes
 
@@ -288,8 +306,9 @@ de escopo.
   integração publicada com Supabase, incluindo sessão, AAL2,
   `auth.provisionar()` e `auth.me()`.
 - **Prioridade:** Pré-produção.
-- **Estado:** Parcial; E2E local validado manualmente, homologação em ambiente
-  publicado pendente.
+- **Estado:** Concluído — login, recovery e convites com MFA homologados em PROD,
+  conforme confirmação do responsável na sessão de encerramento. A homologação
+  manual anterior não foi repetida nem substituída por mocks nesta tarefa.
 - **Dependências:** INF-04, configuração de Supabase e usuários/fatores de
   teste controlados.
 - **Critérios de aceite:** provisionamento autorizado e consulta de perfil
@@ -323,10 +342,10 @@ de escopo.
 
 ## Adições aprovadas em 2026-10-27 — UX e pós-produção
 
-Esta seção é exclusivamente aditiva: mantém intactos os itens, estados,
-prioridades, critérios e IDs anteriores. O estado histórico de itens INF
-anteriores não é reescrito aqui; sua atualização poderá ser avaliada
-separadamente. Nenhuma tarefa desta seção autoriza implementação automática.
+Esta seção foi incluída de forma aditiva em 27/10. No encerramento de 29/10, os
+estados operacionais INF/PROD foram atualizados com as entregas comprovadas,
+preservando o escopo e a prioridade dos itens de produto. Nenhuma tarefa pendente
+desta seção autoriza implementação automática.
 
 ### UX-P1-07 — Corrigir exibição e ocultação de senha no login
 
@@ -447,13 +466,19 @@ separadamente. Nenhuma tarefa desta seção autoriza implementação automática
 ## Pós-produção — Estabilização do MVP
 
 Esta seção reúne as ações operacionais acordadas após a primeira publicação.
-Complementa os itens INF existentes, sem alterar seus critérios ou estados
-históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicial.
+Complementa os itens INF existentes. Estados atualizados no encerramento de
+29/10/2026, com base nas evidências dos runbooks e na homologação manual de
+autenticação confirmada pelo responsável. O objetivo é manter o MVP confiável e
+dentro do orçamento inicial; nenhum item pendente foi iniciado neste encerramento.
 
 ### PROD-01 — Backup externo automatizado e teste de restauração
 
 - **Prioridade:** P0 — proteção dos dados.
-- **Estado:** Em andamento — backup WSL, segunda cópia no F: e restore SQL local validados; offsite e recuperação da chave fora do PC pendentes.
+- **Estado:** Concluído no escopo operacional WSL + F: — coleta automática,
+  criptografia, cópia SHA-256 e restauração isolada comprovadas. Restaurador
+  instalado sincronizado em 29/10; backup posterior à `sprint-integrity`
+  restaurado diretamente do F:, com 54 tabelas, dados/schema e os três objetos
+  esperados (`btree_gist` e duas proteções de Sprint) conferidos.
 - **Descrição:** automatizar cópias de segurança do PostgreSQL Supabase PROD,
   definir retenção e destino seguro, e demonstrar restauração em ambiente
   isolado, sem tocar no DEV nem sobrescrever PROD.
@@ -461,24 +486,34 @@ históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicia
   e procedimento de restauração documentado e testado.
 
 - **Evidências e limites:** [Backup e restauração PROD](backup-restauracao-prod.md).
+- **Pendências registradas, não implementadas:** cópia offsite e proteção/cópia
+  de recuperação da chave fora deste computador. WSL e F: no mesmo PC não
+  protegem contra perda de todo o equipamento nem contra comprometimento da
+  conta. Configuração privada, chave e agendamento foram preservados.
 
 ### PROD-02 — Deploy seguro e controle de migrations
 
 - **Prioridade:** P0 — proteção dos dados.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado operacionalmente — ensaio PG17.11 isolado,
+  gates de backup/F:, análise SQL, integridade e aprovação humana separados.
+  `sprint-integrity` aplicada em PROD uma única vez, com COMMIT e verificações
+  posteriores aprovados. Migrations automáticas permanecem desabilitadas.
 - **Descrição:** validar migrations versionadas e compatibilidade antes de
   cada release, realizar backup antes de mudanças estruturais e impedir deploy
   em caso de falha; nenhuma limpeza ou recriação automática do banco PROD.
-- **Dependências:** preservar os cinco objetos SQL customizados de Sprint
-  conforme INF-06; definir procedimento de rollback e aprovação explícita
-  de alterações destrutivas.
+- **Dependências:** preservar os dois objetos atuais de Sprint conforme INF-06;
+  seguir recuperação documentada e obter aprovação específica para **toda**
+  migration real. `production_authorized=false` permanece no validador;
+  sucesso de ensaio não autoriza aplicação.
 - **Critérios de aceite:** testes e verificações bloqueiam publicação
   inconsistente; dados existentes são preservados; recuperação é testável.
+- **Evidências:** [Runbook e aplicação PROD-02](migrations-prod.md).
 
 ### PROD-03 — Domínio principal e redirects definitivos
 
 - **Prioridade:** P1 — conclusão da publicação.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído — domínio raiz publicado, Site URL e callbacks de
+  `temdas.com.br` alinhados; endereço `temdas-web.pages.dev` preservado.
 - **Descrição:** associar o Flutter Web a https://temdas.com.br, sem o prefixo
   app., e alinhar Site URL, redirects e callback do Supabase Auth PROD.
 - **Dependências:** INF-01 e INF-05; manter o endereço pages.dev enquanto
@@ -489,7 +524,11 @@ históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicia
 ### PROD-04 — Validação E2E de recuperação e convites em produção
 
 - **Prioridade:** P1 — conclusão da autenticação publicada.
-- **Estado:** Pendente de validação completa.
+- **Estado:** Concluído — recovery, convites e login com MFA homologados em PROD,
+  conforme confirmação do responsável. Inclui confirmação explícita do link,
+  correção de hash routing, elevação TOTP antes de atualizar senha quando exigida
+  e remoção da instrumentação temporária. Não foram enviados novos links ou
+  convites para repetir a homologação neste encerramento.
 - **Descrição:** testar entrega real pelo Resend, recuperação de senha,
   callback, convite administrativo, aceite, provisionamento e MFA com
   contas controladas, preservando a regra de que somente o administrador
@@ -512,7 +551,10 @@ históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicia
 ### PROD-06 — Documentação e manutenção da publicação
 
 - **Prioridade:** P3 — manutenção.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Parcial — estado de autenticação, hospedagem, backups e migrations
+  atualizado neste encerramento. Diretórios locais `.wrangler/` e `supabase/`,
+  eventual domínio `api.temdas.com.br` e aviso não bloqueante de Insights seguem
+  somente registrados, sem implementação ou limpeza automática.
 - **Descrição:** documentar o estado real de Cloudflare Pages, Railway,
   Supabase PROD e Resend; revisar os diretórios locais não rastreados
   .wrangler/ e supabase/ antes de versionar ou excluir; avaliar o subdomínio
