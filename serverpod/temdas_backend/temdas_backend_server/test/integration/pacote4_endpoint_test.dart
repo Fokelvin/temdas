@@ -272,9 +272,14 @@ void main() {
             .listarRegistrosTempoDaDemanda(builder, demanda.id!);
         expect(registros, hasLength(1));
         expect(resultado.duracaoMinutos, 90);
-        expect(resultado.observacao, contains('\nA'));
-        expect(resultado.observacao, contains('\nB'));
-        expect(resultado.observacao, contains('\nC'));
+        expect(resultado.observacao, contains('A'));
+        expect(resultado.observacoesOriginais!.map((o) => o.texto), [
+          'A',
+          'B',
+          'C',
+        ]);
+        expect(resultado.observacao, contains('B'));
+        expect(resultado.observacao, contains('C'));
         expect(await RegistroTempo.db.findById(builder.build(), b.id!), isNull);
         expect(
           (await endpoints.demanda.buscarDemandaPorId(
@@ -371,6 +376,86 @@ void main() {
             ),
           ),
           throwsException,
+        );
+      },
+    );
+    test(
+      'projeção de origens persiste após reconsulta sem expor identidade interna',
+      () async {
+        final demanda = await criar();
+        await tempo(demanda.id!, 0, 'mesmo texto');
+        final unida = await tempo(demanda.id!, 0, 'mesmo texto');
+        expect(unida.observacoesOriginais, hasLength(2));
+        expect(unida.observacao, 'mesmo texto\n\nmesmo texto');
+        final semAlteracao = await endpoints.registroTempo.atualizarObservacao(
+          builder,
+          unida.id!,
+          unida.observacao,
+        );
+        expect(semAlteracao.observacoesOriginais, hasLength(2));
+        final movida = await endpoints.registroTempo.editarRegistroTempo(
+          builder,
+          RegistroTempoUpdateRequest(
+            id: unida.id!,
+            inicioEm: DateTime.utc(2026, 10, 1, 10),
+            duracaoMinutos: 30,
+          ),
+        );
+        expect(movida.inicioEm, DateTime.utc(2026, 10, 1, 10));
+        expect(
+          movida.observacoesOriginais!.first.inicioEm,
+          DateTime.utc(2026, 10, 1, 9),
+        );
+        final carregada =
+            (await endpoints.registroTempo.listarRegistrosTempoDaDemanda(
+              builder,
+              demanda.id!,
+            )).single;
+        expect(carregada.observacoesOriginais!.map((o) => o.texto), [
+          'mesmo texto',
+          'mesmo texto',
+        ]);
+        expect(
+          carregada.observacoesOriginais!.map((o) => o.inicioEm).toSet(),
+          hasLength(1),
+        );
+        final periodo = await endpoints.registroTempo
+            .listarRegistrosTempoPorPeriodo(
+              builder,
+              DateTime.utc(2026, 10, 1),
+              DateTime.utc(2026, 10, 2),
+            );
+        expect(periodo.single.observacoesOriginais, hasLength(2));
+        final seguinte = await tempo(demanda.id!, 30, 'seguinte');
+        expect(seguinte.observacoesOriginais, hasLength(3));
+      },
+    );
+    test(
+      'editar horário sem alterar texto preserva o intervalo original anterior à união',
+      () async {
+        final demanda = await criar();
+        await tempo(demanda.id!, 0, 'primeira');
+        final outra = await tempo(demanda.id!, 60, 'segunda');
+        final editada = await endpoints.registroTempo.editarRegistroTempo(
+          builder,
+          RegistroTempoUpdateRequest(
+            id: outra.id!,
+            inicioEm: DateTime.utc(2026, 10, 1, 9, 30),
+            duracaoMinutos: 30,
+          ),
+        );
+        expect(editada.duracaoMinutos, 60);
+        expect(editada.observacoesOriginais!.map((o) => o.texto), [
+          'primeira',
+          'segunda',
+        ]);
+        expect(
+          editada.observacoesOriginais!.last.inicioEm,
+          DateTime.utc(2026, 10, 1, 10),
+        );
+        expect(
+          editada.observacoesOriginais!.last.fimEm,
+          DateTime.utc(2026, 10, 1, 10, 30),
         );
       },
     );

@@ -214,13 +214,16 @@ class _LogTimePageState extends State<LogTimePage> {
         horaInicial: TimeOfDay.fromDateTime(inicioLocal),
         duracaoInicialMinutos: registro.duracaoMinutos,
         observacaoInicial: registro.observacao,
+        observacoesOriginais: registro.observacoesOriginais,
         onSalvar: (dados) async {
           final salvo = await _viewModel.editarRegistroTempo(
             id: id,
             data: dados.data,
             hora: dados.hora,
             duracaoHoras: dados.duracaoHoras,
-            observacao: dados.observacao,
+            observacao: (dados.observacao ?? '') == (registro.observacao ?? '')
+                ? null
+                : dados.observacao,
           );
           return salvo
               ? null

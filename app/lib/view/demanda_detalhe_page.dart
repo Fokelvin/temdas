@@ -10,6 +10,7 @@ import 'widgets/app_drawer.dart';
 import 'widgets/tempo_comparacao.dart';
 import 'widgets/demanda_painel_acoes.dart';
 import 'widgets/demanda_texto_dialog.dart';
+import 'widgets/registro_tempo_observacoes.dart';
 
 class DemandaDetalhePage extends StatelessWidget {
   const DemandaDetalhePage({
@@ -440,7 +441,13 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
           context,
           titulo: 'Editar observação',
           texto: registro.observacao,
-          salvar: (texto) => _viewModel.salvarObservacao(registro.id!, texto),
+          complemento: RegistroTempoObservacoes(
+            originais: registro.observacoesOriginais,
+            mostrarTextos: false,
+          ),
+          salvar: (texto) => texto == (registro.observacao ?? '')
+              ? Future.value(true)
+              : _viewModel.salvarObservacao(registro.id!, texto),
         ),
       ),
     ],
@@ -682,8 +689,10 @@ class _HistoricoTempo extends StatelessWidget {
                 Text(
                   'Lançamento #${registros[index].id ?? '—'} · registrado em ${_formatarDataHora(registros[index].criadoEm)}',
                 ),
-                if (registros[index].observacao?.isNotEmpty ?? false)
-                  SelectableText(registros[index].observacao!),
+                RegistroTempoObservacoes(
+                  texto: registros[index].observacao,
+                  originais: registros[index].observacoesOriginais,
+                ),
                 TextButton(
                   onPressed: () => editarObservacao(registros[index]),
                   child: const Text('Editar observação'),

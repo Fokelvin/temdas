@@ -12,6 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import '../registros_tempo/registro_tempo_observacao.dart' as _i2;
+import 'package:temdas_backend_client/src/protocol/protocol.dart' as _i3;
 
 abstract class RegistroTempo implements _i1.SerializableModel {
   RegistroTempo._({
@@ -20,6 +22,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     required this.inicioEm,
     required this.duracaoMinutos,
     this.observacao,
+    this.observacoesOriginais,
     required this.criadoEm,
   });
 
@@ -29,6 +32,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     required DateTime inicioEm,
     required int duracaoMinutos,
     String? observacao,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     required DateTime criadoEm,
   }) = _RegistroTempoImpl;
 
@@ -41,6 +45,11 @@ abstract class RegistroTempo implements _i1.SerializableModel {
       ),
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
       observacao: jsonSerialization['observacao'] as String?,
+      observacoesOriginais: jsonSerialization['observacoesOriginais'] == null
+          ? null
+          : _i3.Protocol().deserialize<List<_i2.RegistroTempoObservacao>>(
+              jsonSerialization['observacoesOriginais'],
+            ),
       criadoEm: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['criadoEm'],
       ),
@@ -60,6 +69,8 @@ abstract class RegistroTempo implements _i1.SerializableModel {
 
   String? observacao;
 
+  List<_i2.RegistroTempoObservacao>? observacoesOriginais;
+
   DateTime criadoEm;
 
   /// Returns a shallow copy of this [RegistroTempo]
@@ -71,6 +82,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     DateTime? inicioEm,
     int? duracaoMinutos,
     String? observacao,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     DateTime? criadoEm,
   });
   @override
@@ -82,6 +94,10 @@ abstract class RegistroTempo implements _i1.SerializableModel {
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
       if (observacao != null) 'observacao': observacao,
+      if (observacoesOriginais != null)
+        'observacoesOriginais': observacoesOriginais?.toJson(
+          valueToJson: (v) => v.toJson(),
+        ),
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -101,6 +117,7 @@ class _RegistroTempoImpl extends RegistroTempo {
     required DateTime inicioEm,
     required int duracaoMinutos,
     String? observacao,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     required DateTime criadoEm,
   }) : super._(
          id: id,
@@ -108,6 +125,7 @@ class _RegistroTempoImpl extends RegistroTempo {
          inicioEm: inicioEm,
          duracaoMinutos: duracaoMinutos,
          observacao: observacao,
+         observacoesOriginais: observacoesOriginais,
          criadoEm: criadoEm,
        );
 
@@ -121,6 +139,7 @@ class _RegistroTempoImpl extends RegistroTempo {
     DateTime? inicioEm,
     int? duracaoMinutos,
     Object? observacao = _Undefined,
+    Object? observacoesOriginais = _Undefined,
     DateTime? criadoEm,
   }) {
     return RegistroTempo(
@@ -129,6 +148,10 @@ class _RegistroTempoImpl extends RegistroTempo {
       inicioEm: inicioEm ?? this.inicioEm,
       duracaoMinutos: duracaoMinutos ?? this.duracaoMinutos,
       observacao: observacao is String? ? observacao : this.observacao,
+      observacoesOriginais:
+          observacoesOriginais is List<_i2.RegistroTempoObservacao>?
+          ? observacoesOriginais
+          : this.observacoesOriginais?.map((e0) => e0.copyWith()).toList(),
       criadoEm: criadoEm ?? this.criadoEm,
     );
   }

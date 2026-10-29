@@ -1,0 +1,154 @@
+{
+  "postgres": "17.11",
+  "cpu_limit": 2,
+  "memory_limit": "3GiB",
+  "tmpfs_data_limit": "2GiB",
+  "network": "none",
+  "synthetic_only": true,
+  "migration": "20261029183226724-pacote4-demandas",
+  "perfis": [
+    {
+      "geracao_e_preparacao_segundos": 5.84,
+      "migration_segundos": 1.182,
+      "before": {
+        "demandas": 10000,
+        "registros_tempo": 40000,
+        "usuarios": 20,
+        "sprints": 20,
+        "vinculos": 200,
+        "bytes_texto_antes": 51009108,
+        "maior_descricao_bytes": 262172,
+        "maior_observacao_bytes": 262180,
+        "database_bytes": 89069235,
+        "sprints_hash": "f794a45f3a31dcb3c865192c8c530cfa",
+        "vinculos_hash": "b330edd283c6da248bf6dc47737cc03f",
+        "objetos_hash": "d5796222a3b39621b0ceea3c0aeb7fa0"
+      },
+      "after": {
+        "demandas": 10000,
+        "registros_tempo": 40000,
+        "usuarios": 20,
+        "sprints": 20,
+        "vinculos": 200,
+        "bytes_texto_antes": 80184631,
+        "maior_descricao_bytes": 524379,
+        "maior_observacao_bytes": 262180,
+        "database_bytes": 148108979,
+        "sprints_hash": "f794a45f3a31dcb3c865192c8c530cfa",
+        "vinculos_hash": "b330edd283c6da248bf6dc47737cc03f",
+        "objetos_hash": "d5796222a3b39621b0ceea3c0aeb7fa0"
+      },
+      "settings": {
+        "lock_timeout": "5s",
+        "statement_timeout": "1min"
+      },
+      "checks": {
+        "descricoes_divergentes": 0,
+        "outros_campos_divergentes": 0,
+        "tempos_divergentes": 0,
+        "campos_novos_preenchidos": 0,
+        "anotacoes_artificiais": 0,
+        "vinculos_orfaos": 0
+      }
+    },
+    {
+      "geracao_e_preparacao_segundos": 22.498,
+      "migration_segundos": 6.438,
+      "before": {
+        "demandas": 50000,
+        "registros_tempo": 200000,
+        "usuarios": 100,
+        "sprints": 100,
+        "vinculos": 1000,
+        "bytes_texto_antes": 256094256,
+        "maior_descricao_bytes": 262172,
+        "maior_observacao_bytes": 262180,
+        "database_bytes": 407664307,
+        "sprints_hash": "084b6c269f66b0271c37c18665ee5c1d",
+        "vinculos_hash": "eeaafdad2df3dc6b866aac45f86c7895",
+        "objetos_hash": "d5796222a3b39621b0ceea3c0aeb7fa0"
+      },
+      "after": {
+        "demandas": 50000,
+        "registros_tempo": 200000,
+        "usuarios": 100,
+        "sprints": 100,
+        "vinculos": 1000,
+        "bytes_texto_antes": 403020649,
+        "maior_descricao_bytes": 524379,
+        "maior_observacao_bytes": 262180,
+        "database_bytes": 704231091,
+        "sprints_hash": "084b6c269f66b0271c37c18665ee5c1d",
+        "vinculos_hash": "eeaafdad2df3dc6b866aac45f86c7895",
+        "objetos_hash": "d5796222a3b39621b0ceea3c0aeb7fa0"
+      },
+      "settings": {
+        "lock_timeout": "5s",
+        "statement_timeout": "1min"
+      },
+      "checks": {
+        "descricoes_divergentes": 0,
+        "outros_campos_divergentes": 0,
+        "tempos_divergentes": 0,
+        "campos_novos_preenchidos": 0,
+        "anotacoes_artificiais": 0,
+        "vinculos_orfaos": 0
+      }
+    }
+  ],
+  "primeira_tentativa": {
+    "tmpfs": "1GiB",
+    "resultado": "53100 na preparação de 50k; sem executar a migration nesse perfil"
+  },
+  "ajuste_ensaio_rollback": "Comparar dados/schema/revisão, não tamanho físico: páginas/WAL podem crescer mesmo com rollback.",
+  "lock_timeout": {
+    "duracao_segundos": 5.154,
+    "sqlstate": "55P03",
+    "rollback": {
+      "tabela_nova_ausente": true,
+      "colunas_novas_ausentes": true,
+      "revisao": "20261029113025000-sprint-integrity"
+    },
+    "integridade": {
+      "snapshot_logico_igual": true,
+      "delta_armazenamento_bytes": 32768
+    }
+  },
+  "statement_timeout": {
+    "duracao_segundos": 60.235,
+    "sqlstate": "57014",
+    "rollback": {
+      "tabela_nova_ausente": true,
+      "colunas_novas_ausentes": true,
+      "revisao": "20261029113025000-sprint-integrity"
+    },
+    "integridade": {
+      "snapshot_logico_igual": true,
+      "delta_armazenamento_bytes": 5914624
+    }
+  },
+  "owned_database_cleanup": "context-managed; discarded on exit",
+  "status": "passed",
+  "baseline_commit": "d226893d93d4053b95f984f608d8dc2079e54b3d",
+  "migration_sql_sha256": "90c8737d3f50fa828c82d43e903112f71520f915f7c8404a69ca7e36b661deec",
+  "migration_sql_unchanged": true,
+  "validacoes_afetadas": {
+    "flutter_sao_paulo": {
+      "testes_aprovados": 46
+    },
+    "flutter_utc": {
+      "testes_aprovados": 5
+    },
+    "backend_postgresql_descartavel": {
+      "testes_aprovados": 26
+    },
+    "analise_flutter": "passed",
+    "analise_workspace_serverpod": "passed",
+    "build_web_release": "passed",
+    "suites_completas_repetidas": false
+  },
+  "regressoes_reproduzidas": [
+    "Deduplicação: esperados 2, observado 1 para origens distintas com mesmo texto/intervalo.",
+    "Horário de origem após edição temporal: esperado 10:00Z, observado 09:30Z."
+  ]
+}

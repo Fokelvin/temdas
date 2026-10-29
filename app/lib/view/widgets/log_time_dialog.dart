@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
+import 'registro_tempo_observacoes.dart';
 
 import '../../view_model/log_time_form_data.dart';
 import '../demanda_detalhe_page.dart';
@@ -13,6 +15,7 @@ class LogTimeDialog extends StatefulWidget {
     required this.dataInicial,
     this.demandaId,
     this.observacaoInicial,
+    this.observacoesOriginais,
     this.onSalvar,
     this.horaInicial,
   }) : duracaoInicialMinutos = LogTimeFormData.duracaoPadraoMinutos,
@@ -27,6 +30,7 @@ class LogTimeDialog extends StatefulWidget {
     required Future<String?> Function(LogTimeFormData) this.onSalvar,
     this.demandaId,
     this.observacaoInicial,
+    this.observacoesOriginais,
   }) : edicao = true;
 
   final String demandaTitulo;
@@ -36,6 +40,7 @@ class LogTimeDialog extends StatefulWidget {
   final int duracaoInicialMinutos;
   final bool edicao;
   final String? observacaoInicial;
+  final List<backend.RegistroTempoObservacao>? observacoesOriginais;
 
   /// Retorna uma mensagem em caso de falha, ou null após salvar com sucesso.
   final Future<String?> Function(LogTimeFormData)? onSalvar;
@@ -161,6 +166,10 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Observação (opcional)',
                 ),
+              ),
+              RegistroTempoObservacoes(
+                originais: widget.observacoesOriginais,
+                mostrarTextos: false,
               ),
               if (_intervaloOriginalMultidia) ...[
                 const SizedBox(height: 12),

@@ -6,6 +6,7 @@ fields:
   duracaoMinutos: int
   observacao: String?
   observacaoOrigens: String?, scope=serverOnly
+  observacoesOriginais: List<RegistroTempoObservacao>?, !persist
   criadoEm: DateTime
 indexes:
   registros_tempo_inicio_em_idx:

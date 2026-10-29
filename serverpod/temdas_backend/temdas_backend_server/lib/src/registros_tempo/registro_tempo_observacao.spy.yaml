@@ -1,0 +1,6 @@
+### Trecho de observação com horários UTC; o cliente apresenta no fuso local.
+class: RegistroTempoObservacao
+fields:
+  inicioEm: DateTime
+  fimEm: DateTime
+  texto: String

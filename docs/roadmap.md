@@ -413,6 +413,8 @@ desta seção autoriza implementação automática.
 
 - **Estado:** implementado na branch do Pacote 4; validação local e plano de
   aplicação em [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
+  Validação complementar de volume, timeouts, origens e fuso registrada em
+  [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md).
   Homologação e aplicação/publicação em PROD dependem de autorização específica.
 - **Interface:** painel à direita com aproximadamente metade da largura no
   desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas

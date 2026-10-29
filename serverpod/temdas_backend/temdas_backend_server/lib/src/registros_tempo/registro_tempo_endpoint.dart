@@ -5,6 +5,7 @@ import '../auth/supabase_auth_service.dart';
 import '../auth/usuario_scope.dart';
 import 'registro_tempo_conflito_service.dart';
 import 'registro_tempo_normalizacao_service.dart';
+import 'registro_tempo_observacao_service.dart';
 
 class RegistroTempoEndpoint extends Endpoint {
   Future<int> _owner(Session session) async =>
@@ -50,7 +51,7 @@ class RegistroTempoEndpoint extends Endpoint {
       'demandaId=${registroCriado.demandaId}, '
       'duracaoMinutos=${registroCriado.duracaoMinutos}.',
     );
-    return registroCriado;
+    return RegistroTempoObservacaoService().paraResposta(registroCriado);
   }
 
   Future<RegistroTempo> editarRegistroTempo(
@@ -100,16 +101,23 @@ class RegistroTempoEndpoint extends Endpoint {
         throw RegistroTempoException(codigo: 'registroNaoEncontrado');
       }
 
+      // Congela a origem anterior antes de modificar horários de um registro
+      // que ainda não tinha sido unido. Texto editado explicitamente é novo.
+      final textoAlterado =
+          request.observacao != null &&
+          request.observacao != registro.observacao;
+      final origens = textoAlterado
+          ? null
+          : registro.observacaoOrigens ??
+                RegistroTempoObservacaoService()
+                    .unir(registro, const [])
+                    .origens;
       // ID, demandaId e criadoEm vêm exclusivamente do registro bloqueado.
       final desejado = registro.copyWith(
         inicioEm: request.inicioEm,
         duracaoMinutos: request.duracaoMinutos,
         observacao: request.observacao ?? registro.observacao,
-        observacaoOrigens:
-            request.observacao != null &&
-                request.observacao != registro.observacao
-            ? null
-            : registro.observacaoOrigens,
+        observacaoOrigens: origens,
       );
       return _normalizarEPersistir(session, desejado, transaction, usuarioId);
     });
@@ -119,7 +127,7 @@ class RegistroTempoEndpoint extends Endpoint {
       'demandaId=${atualizado.demandaId}, '
       'duracaoMinutos=${atualizado.duracaoMinutos}.',
     );
-    return atualizado;
+    return RegistroTempoObservacaoService().paraResposta(atualizado);
   }
 
   /// Esta operação não normaliza intervalos nem recalcula tempos.
@@ -130,7 +138,7 @@ class RegistroTempoEndpoint extends Endpoint {
     String? observacao,
   ) async {
     final usuarioId = await _owner(session);
-    return session.db.transaction((transaction) async {
+    final atualizado = await session.db.transaction((transaction) async {
       // A união lê textos antes de remover os absorvidos. Compartilha o mutex
       // temporal para uma edição concorrente nunca ser apagada sem ser lida.
       await _bloquearAgenda(session, transaction);
@@ -151,11 +159,16 @@ class RegistroTempoEndpoint extends Endpoint {
         id,
         columnValues: (t) => [
           t.observacao(observacao),
-          t.observacaoOrigens(null),
+          t.observacaoOrigens(
+            observacao == registro.observacao
+                ? registro.observacaoOrigens
+                : null,
+          ),
         ],
         transaction: transaction,
       ))!;
     });
+    return RegistroTempoObservacaoService().paraResposta(atualizado);
   }
 
   Future<List<RegistroTempo>> listarRegistrosTempoPorPeriodo(
@@ -167,7 +180,7 @@ class RegistroTempoEndpoint extends Endpoint {
     _validarPeriodo(inicio, fim);
     final ownedIds = await UsuarioScope(usuarioId).demandaIds(session);
     if (ownedIds.isEmpty) return [];
-    return RegistroTempo.db.find(
+    final registros = await RegistroTempo.db.find(
       session,
       where: (t) =>
           t.demandaId.inSet(ownedIds) &
@@ -175,6 +188,9 @@ class RegistroTempoEndpoint extends Endpoint {
           (t.inicioEm < fim),
       orderBy: (t) => t.inicioEm,
     );
+    return registros
+        .map(RegistroTempoObservacaoService().paraResposta)
+        .toList();
   }
 
   Future<List<RegistroTempo>> listarRegistrosTempoDaDemanda(
@@ -186,12 +202,15 @@ class RegistroTempoEndpoint extends Endpoint {
     if (demanda == null) {
       throw RegistroTempoException(codigo: 'demandaNaoEncontrada');
     }
-    return RegistroTempo.db.find(
+    final registros = await RegistroTempo.db.find(
       session,
       where: (t) => t.demandaId.equals(demandaId),
       orderBy: (t) => t.inicioEm,
       orderDescending: true,
     );
+    return registros
+        .map(RegistroTempoObservacaoService().paraResposta)
+        .toList();
   }
 
   Future<bool> excluirRegistroTempo(

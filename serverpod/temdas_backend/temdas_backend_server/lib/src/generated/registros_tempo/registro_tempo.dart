@@ -12,6 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod/serverpod.dart' as _i1;
+import '../registros_tempo/registro_tempo_observacao.dart' as _i2;
+import 'package:temdas_backend_server/src/generated/protocol.dart' as _i3;
 
 abstract class RegistroTempo
     implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
@@ -22,6 +24,7 @@ abstract class RegistroTempo
     required this.duracaoMinutos,
     this.observacao,
     this.observacaoOrigens,
+    this.observacoesOriginais,
     required this.criadoEm,
   });
 
@@ -32,6 +35,7 @@ abstract class RegistroTempo
     required int duracaoMinutos,
     String? observacao,
     String? observacaoOrigens,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     required DateTime criadoEm,
   }) = _RegistroTempoImpl;
 
@@ -45,6 +49,11 @@ abstract class RegistroTempo
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
       observacao: jsonSerialization['observacao'] as String?,
       observacaoOrigens: jsonSerialization['observacaoOrigens'] as String?,
+      observacoesOriginais: jsonSerialization['observacoesOriginais'] == null
+          ? null
+          : _i3.Protocol().deserialize<List<_i2.RegistroTempoObservacao>>(
+              jsonSerialization['observacoesOriginais'],
+            ),
       criadoEm: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['criadoEm'],
       ),
@@ -68,6 +77,8 @@ abstract class RegistroTempo
 
   String? observacaoOrigens;
 
+  List<_i2.RegistroTempoObservacao>? observacoesOriginais;
+
   DateTime criadoEm;
 
   @override
@@ -83,6 +94,7 @@ abstract class RegistroTempo
     int? duracaoMinutos,
     String? observacao,
     String? observacaoOrigens,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     DateTime? criadoEm,
   });
   @override
@@ -95,6 +107,10 @@ abstract class RegistroTempo
       'duracaoMinutos': duracaoMinutos,
       if (observacao != null) 'observacao': observacao,
       if (observacaoOrigens != null) 'observacaoOrigens': observacaoOrigens,
+      if (observacoesOriginais != null)
+        'observacoesOriginais': observacoesOriginais?.toJson(
+          valueToJson: (v) => v.toJson(),
+        ),
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -108,6 +124,10 @@ abstract class RegistroTempo
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
       if (observacao != null) 'observacao': observacao,
+      if (observacoesOriginais != null)
+        'observacoesOriginais': observacoesOriginais?.toJson(
+          valueToJson: (v) => v.toJsonForProtocol(),
+        ),
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -152,6 +172,7 @@ class _RegistroTempoImpl extends RegistroTempo {
     required int duracaoMinutos,
     String? observacao,
     String? observacaoOrigens,
+    List<_i2.RegistroTempoObservacao>? observacoesOriginais,
     required DateTime criadoEm,
   }) : super._(
          id: id,
@@ -160,6 +181,7 @@ class _RegistroTempoImpl extends RegistroTempo {
          duracaoMinutos: duracaoMinutos,
          observacao: observacao,
          observacaoOrigens: observacaoOrigens,
+         observacoesOriginais: observacoesOriginais,
          criadoEm: criadoEm,
        );
 
@@ -174,6 +196,7 @@ class _RegistroTempoImpl extends RegistroTempo {
     int? duracaoMinutos,
     Object? observacao = _Undefined,
     Object? observacaoOrigens = _Undefined,
+    Object? observacoesOriginais = _Undefined,
     DateTime? criadoEm,
   }) {
     return RegistroTempo(
@@ -185,6 +208,10 @@ class _RegistroTempoImpl extends RegistroTempo {
       observacaoOrigens: observacaoOrigens is String?
           ? observacaoOrigens
           : this.observacaoOrigens,
+      observacoesOriginais:
+          observacoesOriginais is List<_i2.RegistroTempoObservacao>?
+          ? observacoesOriginais
+          : this.observacoesOriginais?.map((e0) => e0.copyWith()).toList(),
       criadoEm: criadoEm ?? this.criadoEm,
     );
   }

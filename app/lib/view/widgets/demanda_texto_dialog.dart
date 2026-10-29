@@ -4,6 +4,7 @@ Future<void> mostrarTextoDemandaDialog(
   BuildContext context, {
   required String titulo,
   String? texto,
+  Widget? complemento,
   bool obrigatorio = false,
   required Future<bool> Function(String) salvar,
 }) => showDialog<void>(
@@ -12,6 +13,7 @@ Future<void> mostrarTextoDemandaDialog(
   builder: (_) => _TextoDialog(
     titulo: titulo,
     texto: texto,
+    complemento: complemento,
     obrigatorio: obrigatorio,
     salvar: salvar,
   ),
@@ -21,11 +23,13 @@ class _TextoDialog extends StatefulWidget {
   const _TextoDialog({
     required this.titulo,
     this.texto,
+    this.complemento,
     required this.obrigatorio,
     required this.salvar,
   });
   final String titulo;
   final String? texto;
+  final Widget? complemento;
   final bool obrigatorio;
   final Future<bool> Function(String) salvar;
   @override
@@ -92,6 +96,7 @@ class _TextoDialogState extends State<_TextoDialog> {
                     ? 'Informe o conteúdo.'
                     : null,
               ),
+              ?widget.complemento,
               if (erro != null) Semantics(liveRegion: true, child: Text(erro!)),
             ],
           ),

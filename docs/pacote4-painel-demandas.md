@@ -36,9 +36,14 @@ Migration: `20261029183226724-pacote4-demandas`.
   A segunda contém proveniência JSON privada (`scope=serverOnly`); não é
   controlável pelos DTOs nem exposta na serialização de resposta ao cliente.
 - A normalização preserva as regras temporais existentes. Concatena textos
-  integrais com os intervalos originais em UTC, ordenados por início, fim e
-  texto; deduplica a mesma origem (intervalo/texto). Metadados preservam as
+  integrais com intervalos originais UTC estruturados, ordenados por início,
+  fim e identidade privada da origem. Identidades distintas permanecem separadas
+  mesmo com intervalo/texto iguais. Metadados preservam as
   origens em uniões consecutivas, evitando envolver novamente texto já unido.
+  O texto editável contém apenas os textos; `observacoesOriginais` é uma projeção
+  tipada de resposta (`!persist`) para formatar horários no fuso local sem
+  interpretar o conteúdo livre. A validação complementar também protege os
+  horários anteriores ao movimento de um registro ainda sem metadados.
   Editar explicitamente uma observação substitui seu texto/proveniência;
   arrastar ou editar horários sem informar texto preserva a observação.
   Falhas de conflito ou metadados inválidos abortam antes das gravações.
@@ -58,7 +63,8 @@ Migration: `20261029183226724-pacote4-demandas`.
 
 ## Validação local
 
-Resultados: análise Flutter completa e análise Dart do workspace Serverpod
+Resultados da validação original (`d226893`): análise Flutter completa e análise
+Dart do workspace Serverpod
 sem problemas; suíte Flutter completa com 476 testes, 144 testes
 Dart do backend e quatro ensaios SQL aprovados. Build Web release com definições
 públicas existentes, sem publicação. Sem mudanças de dependências ou configuração.
@@ -190,3 +196,9 @@ Lista exata desta entrega, incluindo modelos/clientes gerados:
 - `serverpod/temdas_backend/temdas_backend_server/test/integration/test_tools/serverpod_test_tools.dart`
 - `serverpod/temdas_backend/temdas_backend_server/test/unit/registro_tempo_observacao_test.dart`
 - `serverpod/temdas_backend/temdas_backend_server/test/unit/sprint_integrity_migration_test.dart`
+
+## Validação complementar pré-deploy
+
+Ver [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md):
+volume sintético de até 50 mil Demandas/200 mil lançamentos, timeouts reais,
+correções de identidade/fuso e testes direcionados, sem alterar a migration SQL.
