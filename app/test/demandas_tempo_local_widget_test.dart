@@ -73,7 +73,10 @@ void main() {
           expect(comparacao.executadoMinutos, esperado);
           expect(comparacao.estimadoMinutos, 60);
           expect(
-            find.descendant(of: _card(id), matching: find.text('ID: $id')),
+            find.descendant(
+              of: _card(id),
+              matching: find.byKey(ValueKey('status-demanda-$id')),
+            ),
             findsOneWidget,
           );
         }
@@ -107,7 +110,10 @@ void main() {
           expect(vm.envioGlobalEmAndamento, isFalse);
           for (final id in [1, 2, 3, 4]) {
             expect(
-              find.descendant(of: _card(id), matching: find.text('ID: $id')),
+              find.descendant(
+                of: _card(id),
+                matching: find.byKey(ValueKey('status-demanda-$id')),
+              ),
               findsOneWidget,
             );
           }
@@ -167,10 +173,7 @@ void main() {
         verificarTotal(3, idAlvo == 3 ? 120 : 30);
         verificarTotal(4, 15);
         expect(
-          find.descendant(
-            of: _card(1),
-            matching: find.text('Média · Est. 1 h · Real. 3,5 h'),
-          ),
+          find.descendant(of: _card(1), matching: find.text('Real. 3,5 h')),
           findsOneWidget,
         );
         expect(

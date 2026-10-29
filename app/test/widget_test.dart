@@ -182,7 +182,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.widgetWithText(SnackBar, mensagem), findsOneWidget);
-      expect(find.text('ID: 1'), findsOneWidget);
+      expect(find.byKey(ValueKey('status-demanda-1')), findsOneWidget);
       if (operacao == 'filha') {
         expect(
           tester.widget<TextButton>(find.byKey(ValueKey(abrir))).onPressed,
@@ -509,7 +509,40 @@ void main() {
 
   for (final largura in [390.0, 1200.0, 2400.0]) {
     testWidgets(
-      'quadro com largura $largura mantém colunas e usa só o scroll vertical da página',
+      'quadro inicia compacto com colunas de 304 px em largura $largura',
+      (tester) async {
+        await tester.binding.setSurfaceSize(Size(largura, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final vm = DemandasViewModel(
+          repository: FakeDemandaRepository(demandas: [demandaFixture()]),
+        );
+        addTearDown(vm.dispose);
+        await _abrirPagina(tester, vm);
+        expect(
+          tester.widget<ToggleButtons>(find.byType(ToggleButtons)).isSelected,
+          [false, true],
+        );
+        for (final status in backend.DemandaStatus.values) {
+          expect(
+            tester
+                .getSize(find.byKey(ValueKey('demanda-coluna-${status.name}')))
+                .width,
+            304,
+          );
+        }
+        final board = find.byKey(const ValueKey('demandas-quadro-status'));
+        final controller = tester
+            .widget<SingleChildScrollView>(board)
+            .controller!;
+        expect(controller.position.maxScrollExtent > 0, largura < 2000);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final largura in [390.0, 1200.0, 2400.0]) {
+    testWidgets(
+      'quadro normal com largura $largura mantém colunas e usa só o scroll vertical da página',
       (tester) async {
         await tester.binding.setSurfaceSize(Size(largura, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -527,6 +560,8 @@ void main() {
         final viewModel = DemandasViewModel(repository: repository);
         addTearDown(viewModel.dispose);
         await _abrirPagina(tester, viewModel);
+        await tester.tap(find.byTooltip('Visualização normal'));
+        await tester.pumpAndSettle();
 
         final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
         final scrollQuadro = find.descendant(
@@ -851,18 +886,18 @@ void main() {
     addTearDown(viewModel.dispose);
     await _abrirPagina(tester, viewModel);
 
-    expect(find.text('ID: 1'), findsNothing);
+    expect(find.byKey(ValueKey('status-demanda-1')), findsNothing);
     await _expandirDemanda(tester, 'Mãe');
-    expect(find.text('ID: 1'), findsOneWidget);
+    expect(find.byKey(ValueKey('status-demanda-1')), findsOneWidget);
     await _expandirDemanda(tester, 'Mãe');
-    expect(find.text('ID: 1'), findsNothing);
+    expect(find.byKey(ValueKey('status-demanda-1')), findsNothing);
 
     await _expandirDemanda(tester, 'Mãe');
-    expect(find.text('ID: 2'), findsNothing);
+    expect(find.byKey(ValueKey('status-demanda-2')), findsNothing);
     await _expandirDemanda(tester, 'Filha');
-    expect(find.text('ID: 2'), findsOneWidget);
+    expect(find.byKey(ValueKey('status-demanda-2')), findsOneWidget);
     await _expandirDemanda(tester, 'Filha');
-    expect(find.text('ID: 2'), findsNothing);
+    expect(find.byKey(ValueKey('status-demanda-2')), findsNothing);
     final mae = find.byKey(const ValueKey('demanda-card-1'));
     final filha = find.byKey(const ValueKey('demanda-card-2'));
     final coluna = find.byKey(const ValueKey('demanda-coluna-aberta'));
@@ -931,7 +966,10 @@ void main() {
             ultimoX = posicao.dx;
             // O conteúdo só fica visível enquanto o card está expandido.
             expect(
-              find.descendant(of: card, matching: find.text('ID: $id')),
+              find.descendant(
+                of: card,
+                matching: find.byKey(ValueKey('status-demanda-$id')),
+              ),
               findsOneWidget,
             );
           }

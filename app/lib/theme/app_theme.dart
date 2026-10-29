@@ -12,6 +12,9 @@ abstract final class TemdasTokens {
   static const smallGap = 8.0;
   static const contentGap = 16.0;
   static const pagePadding = 24.0;
+
+  static BorderSide subtleBorder(ColorScheme colors) =>
+      BorderSide(color: colors.outlineVariant, width: borderWidth);
 }
 
 /// Toda tela usa este tema; cores de domínio vêm de TemdasSemanticColors.
@@ -79,10 +82,7 @@ abstract final class AppTheme {
     );
     final cardShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
-      side: BorderSide(
-        color: colors.outlineVariant,
-        width: TemdasTokens.borderWidth,
-      ),
+      side: TemdasTokens.subtleBorder(colors),
     );
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),

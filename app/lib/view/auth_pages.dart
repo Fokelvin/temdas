@@ -19,6 +19,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _passwordFocus = FocusNode();
+  bool _passwordVisible = false;
   bool _loading = false;
   bool _recovering = false;
   bool _recoveryLoading = false;
@@ -32,6 +34,7 @@ class _LoginPageState extends State<LoginPage> {
     _recoveryTimer?.cancel();
     _email.dispose();
     _password.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -198,9 +201,22 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 12),
             TextField(
               controller: _password,
-              obscureText: true,
+              focusNode: _passwordFocus,
+              obscureText: !_passwordVisible,
               autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(labelText: 'Senha'),
+              decoration: InputDecoration(
+                labelText: 'Senha',
+                suffixIcon: IconButton(
+                  tooltip: _passwordVisible ? 'Ocultar senha' : 'Mostrar senha',
+                  isSelected: _passwordVisible,
+                  onPressed: () {
+                    setState(() => _passwordVisible = !_passwordVisible);
+                    _passwordFocus.requestFocus();
+                  },
+                  icon: const Icon(Icons.visibility_outlined),
+                  selectedIcon: const Icon(Icons.visibility_off_outlined),
+                ),
+              ),
               onSubmitted: (_) => _login(),
             ),
             if (_error != null) ...[

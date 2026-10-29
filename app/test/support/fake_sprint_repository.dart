@@ -18,6 +18,9 @@ class FakeSprintRepository implements SprintRepository {
   Completer<List<backend.Sprint>>? listaPendente;
   Object? erroListagem;
   Object? erroIndicadores;
+  Object? erroVinculos;
+  Completer<List<backend.SprintDemanda>>? vinculosPendentes;
+  Completer<backend.SprintIndicadores>? indicadoresPendentes;
   Object? erroCriacao;
   Object? erroAtualizacao;
   Object? erroAtivacao;
@@ -93,13 +96,16 @@ class FakeSprintRepository implements SprintRepository {
   @override
   Future<List<backend.SprintDemanda>> listarDemandasDaSprint(int sprintId) {
     chamadasVinculos++;
-    return Future.value(vinculosPorSprint[sprintId] ?? const []);
+    if (erroVinculos case final erro?) return Future.error(erro);
+    return vinculosPendentes?.future ??
+        Future.value(vinculosPorSprint[sprintId] ?? const []);
   }
 
   @override
   Future<backend.SprintIndicadores> calcularIndicadoresSprint(int id) async {
     chamadasIndicadores++;
     if (erroIndicadores case final erro?) throw erro;
+    if (indicadoresPendentes case final pendente?) return pendente.future;
     return indicadoresPorId[id] ??
         backend.SprintIndicadores(
           tempoPrevistoMinutos: 0,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/app/app_routes.dart';
 import 'package:temdas/theme/app_theme.dart';
+import 'package:temdas/theme/temdas_semantic_colors.dart';
 import 'package:temdas/view/sprint_page.dart';
 import 'package:temdas/view_model/demanda_detalhe_view_model.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
@@ -14,6 +15,363 @@ import 'support/fake_demanda_repository.dart';
 import 'support/fake_sprint_repository.dart';
 
 void main() {
+  testWidgets(
+    'painel lateral adiciona Demanda reutilizando seletor e atualiza lista',
+    (tester) async {
+      await _configurarTela(tester);
+      final result = await _abrirDetalhe(
+        tester,
+        sprints: [_sprint()],
+        demandas: [for (var id = 71; id <= 77; id++) demandaFixture(id: id)],
+        vinculosPorSprint: {
+          7: [
+            for (var id = 71; id <= 76; id++)
+              backend.SprintDemanda(sprintId: 7, demandaId: id),
+          ],
+        },
+      );
+      addTearDown(result.viewModel.dispose);
+      final showAll = find.byKey(
+        const ValueKey('mostrar-tudo-demandas-sprint'),
+      );
+      await tester.ensureVisible(showAll);
+      await tester.tap(showAll);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('adicionar-demanda-painel-sprint')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('candidata-demanda-sprint-71')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('candidata-demanda-sprint-77')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('confirmar-vinculo-demanda-sprint')),
+      );
+      await tester.pumpAndSettle();
+      expect(result.repository.demandaIdsVinculadas, [77]);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('painel-lateral-demandas-sprint')),
+          matching: find.byKey(const ValueKey('demanda-vinculada-sprint-77')),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'falha ao verificar elegibilidade permite repetir e bloqueia seleção até consultar',
+    (tester) async {
+      await _configurarTela(tester);
+      final result = await _abrirDetalhe(
+        tester,
+        sprints: [_sprint()],
+        demandas: [demandaFixture(id: 11)],
+      );
+      addTearDown(result.viewModel.dispose);
+      result.repository.erroListagem = StateError('falha interna');
+      await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+      await tester.pumpAndSettle();
+      final candidate = find.byKey(
+        const ValueKey('candidata-demanda-sprint-11'),
+      );
+      expect(tester.widget<ListTile>(candidate).enabled, isFalse);
+      result.repository.erroListagem = null;
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('selecionar-demanda-sprint-dialog')),
+          matching: find.byTooltip('Tentar carregar novamente'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<ListTile>(candidate).enabled, isTrue);
+      expect(result.repository.chamadasVinculoLote, 0);
+    },
+  );
+
+  testWidgets(
+    'ativa em destaque e histórico expansível preservam acesso ao resumo',
+    (tester) async {
+      await _configurarTela(tester);
+      final repository = FakeSprintRepository(
+        sprints: [
+          _sprint(
+            id: 1,
+            nome: 'Planejamento',
+            status: backend.SprintStatus.planejada,
+          ),
+          _sprint(
+            id: 2,
+            nome: 'Histórica',
+            status: backend.SprintStatus.concluida,
+          ),
+          _sprint(id: 3, nome: 'Atual'),
+        ],
+      );
+      final vm = SprintViewModel(repository: repository);
+      addTearDown(vm.dispose);
+      await _abrirTelaComCriacao(tester, vm, criar: false);
+      await tester.pumpAndSettle();
+      final ativa = find.byKey(const ValueKey('sprint-card-3'));
+      final planejada = find.byKey(const ValueKey('sprint-card-1'));
+      expect(
+        tester.getTopLeft(ativa).dy,
+        lessThan(tester.getTopLeft(planejada).dy),
+      );
+      final card = tester.widget<Card>(
+        find.ancestor(of: ativa, matching: find.byType(Card)).first,
+      );
+      expect(
+        (card.shape! as RoundedRectangleBorder).side.color,
+        TemdasSemanticColors.light.emAndamento,
+      );
+      expect(find.byKey(const ValueKey('sprint-card-2')), findsNothing);
+      await tester.tap(find.text('Histórico de Sprints (1)'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('sprint-card-2')));
+      await tester.tap(find.byKey(const ValueKey('sprint-card-2')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('resumo-sprint-dialog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('iniciar-sprint-resumo')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'busca sem acentos por título/ID preserva seleção oculta e ao limpar',
+    (tester) async {
+      await _configurarTela(tester);
+      final result = await _abrirDetalhe(
+        tester,
+        sprints: [_sprint()],
+        demandas: [
+          demandaFixture(id: 21, titulo: 'Épico de integração'),
+          demandaFixture(id: 22, demandaPaiId: 21, titulo: 'Filha'),
+          demandaFixture(id: 31, titulo: 'Publicação'),
+        ],
+      );
+      addTearDown(result.viewModel.dispose);
+      await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+      await tester.pumpAndSettle();
+      final search = find.byKey(const ValueKey('buscar-demanda-sprint'));
+      await tester.enterText(search, 'EPICO DE INTEGRACAO');
+      await tester.pump();
+      expect(find.text('21 - Épico de integração'), findsOneWidget);
+      expect(find.text('31 - Publicação'), findsNothing);
+      expect(find.text('22 - Filha'), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey('candidata-demanda-sprint-21')),
+      );
+      await tester.enterText(search, '31');
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('candidata-demanda-sprint-31')),
+      );
+      await tester.enterText(search, 'inexistente');
+      await tester.pump();
+      expect(find.text('Nenhuma Demanda encontrada.'), findsOneWidget);
+      await tester.tap(find.byTooltip('Limpar busca de Demandas'));
+      await tester.pump();
+      for (final id in [21, 31]) {
+        expect(
+          tester
+              .widget<ListTile>(
+                find.byKey(ValueKey('candidata-demanda-sprint-$id')),
+              )
+              .selected,
+          isTrue,
+        );
+      }
+      await tester.tap(
+        find.byKey(const ValueKey('confirmar-vinculo-demanda-sprint')),
+      );
+      await tester.pumpAndSettle();
+      expect(result.repository.demandaIdsVinculadas, unorderedEquals([21, 31]));
+    },
+  );
+
+  testWidgets(
+    'resumo abre durante consulta e permite repetir falha de vínculos',
+    (tester) async {
+      await _configurarTela(tester);
+      final repository = FakeSprintRepository(sprints: [_sprint()]);
+      final vm = SprintViewModel(repository: repository);
+      addTearDown(vm.dispose);
+      await _abrirTelaComCriacao(tester, vm, criar: false);
+      await tester.pumpAndSettle();
+      final pending = Completer<List<backend.SprintDemanda>>();
+      repository.vinculosPendentes = pending;
+      await tester.tap(find.byKey(const ValueKey('sprint-card-7')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.byKey(const ValueKey('resumo-sprint-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Consultando Demandas vinculadas…'), findsOneWidget);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
+            )
+            .onPressed,
+        isNull,
+      );
+      pending.completeError(StateError('detalhe interno'));
+      repository.vinculosPendentes = null;
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Não foi possível carregar as demandas da sprint. Tente novamente.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Tentar carregar demandas novamente'));
+      await tester.pumpAndSettle();
+      expect(find.text('Demandas vinculadas (0)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'resumo mantém erro de indicadores após vínculos e permite repetir',
+    (tester) async {
+      await _configurarTela(tester);
+      final repository = FakeSprintRepository(sprints: [_sprint()]);
+      final vm = SprintViewModel(repository: repository);
+      addTearDown(vm.dispose);
+      await _abrirTelaComCriacao(tester, vm, criar: false);
+      await tester.pumpAndSettle();
+      repository.erroIndicadores = StateError('interno');
+      await tester.tap(find.byKey(const ValueKey('sprint-card-7')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('resumo-sprint-dialog')),
+          matching: find.text(
+            'Não foi possível carregar os indicadores da sprint. Tente novamente.',
+          ),
+        ),
+        findsOneWidget,
+      );
+      repository.erroIndicadores = null;
+      await tester.tap(find.byTooltip('Tentar carregar demandas novamente'));
+      await tester.pumpAndSettle();
+      expect(find.text('Demandas vinculadas (0)'), findsOneWidget);
+    },
+  );
+
+  testWidgets('ações do resumo iniciam e vinculam pelas operações existentes', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final repository = FakeSprintRepository(
+      sprints: [_sprint(status: backend.SprintStatus.planejada)],
+    );
+    final vm = SprintViewModel(repository: repository);
+    final dvm = DemandasViewModel(
+      repository: FakeDemandaRepository(demandas: [demandaFixture(id: 41)]),
+    );
+    addTearDown(vm.dispose);
+    addTearDown(dvm.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: SprintPage(viewModel: vm, demandasViewModel: dvm),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('sprint-card-7')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('iniciar-sprint-resumo')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('confirmar-inicio-sprint-dialog-confirmar')),
+    );
+    await tester.pumpAndSettle();
+    expect(repository.chamadasAtivacao, 1);
+    expect(find.byKey(const ValueKey('iniciar-sprint-resumo')), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('candidata-demanda-sprint-41')));
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('confirmar-vinculo-demanda-sprint')),
+    );
+    await tester.pumpAndSettle();
+    expect(repository.chamadasVinculoLote, 1);
+    expect(repository.demandaIdsVinculadas, [41]);
+    expect(find.text('Demandas vinculadas (1)'), findsOneWidget);
+  });
+
+  for (final caso in ['futura', 'sem tempo', 'outra ativa']) {
+    testWidgets('resumo não oferece início quando $caso', (tester) async {
+      await _configurarTela(tester);
+      var sprint = _sprint(status: backend.SprintStatus.planejada);
+      if (caso == 'futura') {
+        sprint = sprint.copyWith(
+          dataInicio: DateTime.now().add(const Duration(days: 2)),
+        );
+      }
+      if (caso == 'sem tempo') {
+        sprint = sprint.copyWith(tempoPrevistoMinutos: 0);
+      }
+      final repository = FakeSprintRepository(
+        sprints: [
+          sprint,
+          if (caso == 'outra ativa') _sprint(id: 9, nome: 'Atual'),
+        ],
+      );
+      final vm = SprintViewModel(repository: repository);
+      addTearDown(vm.dispose);
+      await _abrirTelaComCriacao(tester, vm, criar: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sprint-card-7')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('iniciar-sprint-resumo')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
+        findsOneWidget,
+      );
+      expect(repository.chamadasAtivacao, 0);
+    });
+  }
+
+  testWidgets('consulta de indicadores da lista tem feedback discreto', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final pending = Completer<backend.SprintIndicadores>();
+    final repository = FakeSprintRepository(sprints: [_sprint()])
+      ..indicadoresPendentes = pending;
+    final vm = SprintViewModel(repository: repository);
+    addTearDown(vm.dispose);
+    await _abrirTelaComCriacao(tester, vm, criar: false, aguardar: false);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('carregando-indicadores-sprints')),
+      findsOneWidget,
+    );
+    pending.complete(_indicadores());
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('carregando-indicadores-sprints')),
+      findsNothing,
+    );
+  });
+
   testWidgets('lista Sprints reais e abre resumo e página completa', (
     tester,
   ) async {
@@ -1464,8 +1822,10 @@ DemandaDetalheViewModel _criarDemandaDetalheViewModel(
 
 Future<void> _abrirTelaComCriacao(
   WidgetTester tester,
-  SprintViewModel viewModel,
-) async {
+  SprintViewModel viewModel, {
+  bool criar = true,
+  bool aguardar = true,
+}) async {
   final demandasRepository = FakeDemandaRepository();
   final demandasViewModel = DemandasViewModel(repository: demandasRepository);
   final demandaDetalheViewModel = _criarDemandaDetalheViewModel(
@@ -1483,10 +1843,16 @@ Future<void> _abrirTelaComCriacao(
       ),
     ),
   );
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('nova-sprint')));
-  await tester.pumpAndSettle();
-  expect(find.byKey(const ValueKey('criar-sprint-dialog')), findsOneWidget);
+  if (aguardar) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
+  if (criar) {
+    await tester.tap(find.byKey(const ValueKey('nova-sprint')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('criar-sprint-dialog')), findsOneWidget);
+  }
 }
 
 Future<void> _preencherFormCriacao(

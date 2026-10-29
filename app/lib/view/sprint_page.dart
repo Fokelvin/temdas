@@ -10,6 +10,7 @@ import '../view_model/demanda_detalhe_view_model.dart';
 import '../view_model/demandas_view_model.dart';
 import '../view_model/sprint_view_model.dart';
 import 'formatters/demanda_identificacao.dart';
+import 'formatters/texto_busca.dart';
 import 'demanda_detalhe_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/resumo_card.dart';
@@ -30,9 +31,12 @@ class SprintPage extends StatefulWidget {
   State<SprintPage> createState() => _SprintPageState();
 }
 
-class _SprintPageState extends State<SprintPage> {
+class _SprintPageState extends State<SprintPage>
+    with _SprintAcoesContextuais<SprintPage> {
+  @override
   late final SprintViewModel _viewModel;
   late final bool _possuiViewModel;
+  @override
   late final DemandasViewModel _demandasViewModel;
   late final bool _possuiDemandasViewModel;
 
@@ -55,49 +59,33 @@ class _SprintPageState extends State<SprintPage> {
     super.dispose();
   }
 
+  @override
   Future<void> _carregar() async {
     final carregada = await _viewModel.carregarSprints();
     if (!mounted || !carregada || _viewModel.sprints.isEmpty) return;
     await _viewModel.carregarIndicadoresDaLista();
   }
 
-  Future<void> _abrirResumo(backend.Sprint sprint) async {
-    final id = sprint.id;
-    if (id == null) return;
-    _viewModel.selecionarSprint(sprint);
-    await Future.wait<Object?>([
-      _viewModel.carregarVinculos(id),
-      _demandasViewModel.carregarDemandas(),
-    ]);
-    if (!mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => _SprintResumoDialog(
-        sprint: sprint,
-        viewModel: _viewModel,
-        demandasViewModel: _demandasViewModel,
-        onAbrirDemanda: _abrirDetalhesDemanda,
-        onMostrarTodas: () => _mostrarPainelDemandas(
-          sprint,
-          viewModel: _viewModel,
-          permiteAcoes: _permiteGerenciarVinculos(sprint),
-          aoAcionar: (demandaId, demanda, acao) =>
-              _removerDemandaResumo(sprint, demanda, demandaId, acao),
-        ),
-        onAbrirSprint: () {
-          final navigator = Navigator.of(dialogContext);
-          navigator.pop();
-          navigator.pushNamed(AppRoutes.detalheDaSprint(id));
-        },
-        onRecarregarVinculos: () => _viewModel.carregarVinculos(id),
+  Future<void> _abrirResumo(backend.Sprint sprint) => mostrarResumoSprint(
+    context,
+    sprint: sprint,
+    viewModel: _viewModel,
+    demandasViewModel: _demandasViewModel,
+    onAbrirDemanda: _abrirDetalhesDemanda,
+    onMostrarTodas: () => _mostrarPainelDemandas(
+      _viewModel.sprintSelecionada ?? sprint,
+      viewModel: _viewModel,
+      permiteAcoes: _permiteGerenciarVinculos(
+        _viewModel.sprintSelecionada ?? sprint,
       ),
-    );
-  }
-
-  bool _permiteGerenciarVinculos(backend.Sprint sprint) =>
-      sprint.status == backend.SprintStatus.planejada ||
-      sprint.status == backend.SprintStatus.ativa;
+      aoAcionar: (id, demanda, acao) => _removerDemandaResumo(
+        _viewModel.sprintSelecionada ?? sprint,
+        demanda,
+        id,
+        acao,
+      ),
+    ),
+  );
 
   void _abrirDetalhesDemanda(int demandaId) {
     unawaited(
@@ -122,12 +110,14 @@ class _SprintPageState extends State<SprintPage> {
   }) => _mostrarPainelLateralDemandas(
     context,
     titulo: 'Demandas da Sprint',
+    acao: _acaoAdicionarPainel(sprint),
     child: ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) => _DemandasVinculadasSprint(
         vinculos: viewModel.vinculos,
         demandas: _demandasViewModel.demandas,
-        permiteAcoes: permiteAcoes,
+        permiteAcoes:
+            permiteAcoes && !viewModel.carregando && !viewModel.enviando,
         aoAbrir: _abrirDetalhesDemanda,
         aoAcionar: aoAcionar,
         mensagemVazia: 'Nenhuma Demanda vinculada à Sprint.',
@@ -235,6 +225,10 @@ class _SprintPageState extends State<SprintPage> {
         ),
       ) ==
       true;
+
+  @override
+  void _mostrarFeedback(String mensagem, {bool erro = false}) =>
+      _mostrarFeedbackResumo(mensagem);
 
   void _mostrarFeedbackResumo(String mensagem) {
     ScaffoldMessenger.of(
@@ -344,6 +338,38 @@ class _SprintPageState extends State<SprintPage> {
       );
     }
 
+    final abertas =
+        _viewModel.sprints
+            .where(
+              (s) =>
+                  s.status == backend.SprintStatus.ativa ||
+                  s.status == backend.SprintStatus.planejada,
+            )
+            .toList()
+          ..sort(
+            (a, b) => (a.status == backend.SprintStatus.ativa ? 0 : 1)
+                .compareTo(b.status == backend.SprintStatus.ativa ? 0 : 1),
+          );
+    final historico = _viewModel.sprints
+        .where(
+          (s) =>
+              s.status == backend.SprintStatus.concluida ||
+              s.status == backend.SprintStatus.cancelada,
+        )
+        .toList();
+    Widget card(backend.Sprint sprint) => Padding(
+      padding: const EdgeInsets.only(bottom: TemdasTokens.smallGap),
+      child: _SprintListaCard(
+        sprint: sprint,
+        indicadores: sprint.id == null
+            ? null
+            : _viewModel.indicadoresDaSprint(sprint.id!),
+        onTap: _viewModel.carregando || _viewModel.enviando
+            ? null
+            : () => _abrirResumo(sprint),
+      ),
+    );
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1120),
@@ -360,18 +386,21 @@ class _SprintPageState extends State<SprintPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: TemdasTokens.contentGap),
-            for (final sprint in _viewModel.sprints) ...[
-              _SprintListaCard(
-                sprint: sprint,
-                indicadores: sprint.id == null
-                    ? null
-                    : _viewModel.indicadoresDaSprint(sprint.id!),
-                onTap: _viewModel.carregando
-                    ? null
-                    : () => _abrirResumo(sprint),
+            if (_viewModel.carregando)
+              const LinearProgressIndicator(
+                key: ValueKey('carregando-indicadores-sprints'),
               ),
-              const SizedBox(height: TemdasTokens.smallGap),
-            ],
+            for (final sprint in abertas) card(sprint),
+            if (historico.isNotEmpty)
+              Card(
+                child: ExpansionTile(
+                  key: const PageStorageKey('historico-sprints'),
+                  title: Text('Histórico de Sprints (${historico.length})'),
+                  leading: const Icon(Icons.history),
+                  childrenPadding: const EdgeInsets.all(TemdasTokens.smallGap),
+                  children: [for (final sprint in historico) card(sprint)],
+                ),
+              ),
           ],
         ),
       ),
@@ -705,7 +734,24 @@ class _SprintListaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = sprint.id;
     final atrasada = _sprintAtrasada(sprint);
+    final ativa = sprint.status == backend.SprintStatus.ativa;
+    final semantic = TemdasSemanticColors.of(context);
     return Card(
+      color: ativa
+          ? Color.alphaBlend(
+              semantic.emAndamento.withValues(alpha: .08),
+              Theme.of(context).colorScheme.surface,
+            )
+          : null,
+      shape: ativa
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
+              side: BorderSide(
+                color: semantic.emAndamento,
+                width: TemdasTokens.borderWidth,
+              ),
+            )
+          : null,
       child: InkWell(
         key: ValueKey('sprint-card-$id'),
         onTap: onTap,
@@ -778,6 +824,186 @@ class _SprintListaCard extends StatelessWidget {
   }
 }
 
+/// Resumo compartilhado pela lista de Sprints e pelo Board de Demandas.
+Future<void> mostrarResumoSprint(
+  BuildContext context, {
+  required backend.Sprint sprint,
+  required SprintViewModel viewModel,
+  required DemandasViewModel demandasViewModel,
+  ValueChanged<int>? onAbrirDemanda,
+  VoidCallback? onMostrarTodas,
+}) async {
+  final sprintId = await showDialog<int>(
+    context: context,
+    builder: (_) => _SprintResumoContextual(
+      sprint: sprint,
+      viewModel: viewModel,
+      demandasViewModel: demandasViewModel,
+      onAbrirDemanda: onAbrirDemanda,
+      onMostrarTodas: onMostrarTodas,
+    ),
+  );
+  if (sprintId != null && context.mounted) {
+    await Navigator.of(context).pushNamed(AppRoutes.detalheDaSprint(sprintId));
+  }
+}
+
+class _SprintResumoContextual extends StatefulWidget {
+  const _SprintResumoContextual({
+    required this.sprint,
+    required this.viewModel,
+    required this.demandasViewModel,
+    this.onAbrirDemanda,
+    this.onMostrarTodas,
+  });
+  final backend.Sprint sprint;
+  final SprintViewModel viewModel;
+  final DemandasViewModel demandasViewModel;
+  final ValueChanged<int>? onAbrirDemanda;
+  final VoidCallback? onMostrarTodas;
+
+  @override
+  State<_SprintResumoContextual> createState() =>
+      _SprintResumoContextualState();
+}
+
+class _SprintResumoContextualState extends State<_SprintResumoContextual>
+    with _SprintAcoesContextuais<_SprintResumoContextual> {
+  @override
+  SprintViewModel get _viewModel => widget.viewModel;
+  @override
+  DemandasViewModel get _demandasViewModel => widget.demandasViewModel;
+  bool _carregandoResumo = true;
+  String? _erroConsulta;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _viewModel.selecionarSprint(widget.sprint);
+      unawaited(_carregar());
+    });
+  }
+
+  @override
+  Future<void> _carregar() async {
+    final id = widget.sprint.id;
+    if (id == null) return;
+    setState(() {
+      _carregandoResumo = true;
+      _erroConsulta = null;
+    });
+    String? erro;
+    if (_viewModel.sprints.isEmpty && !await _viewModel.carregarSprints()) {
+      erro = _viewModel.erro;
+    }
+    if (!mounted) return;
+    if (!await _viewModel.carregarVinculos(id)) erro = _viewModel.erro;
+    if (!mounted) return;
+    if (!await _viewModel.carregarIndicadores(id)) erro ??= _viewModel.erro;
+    if (!mounted) return;
+    await _demandasViewModel.carregarDemandas();
+    if (!mounted) return;
+    erro ??= _demandasViewModel.erro;
+    setState(() {
+      _carregandoResumo = false;
+      _erroConsulta = erro;
+    });
+  }
+
+  @override
+  void _mostrarFeedback(String mensagem, {bool erro = false}) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensagem)));
+  }
+
+  void _abrirDemanda(int id) {
+    if (widget.onAbrirDemanda case final abrir?) {
+      abrir(id);
+    } else {
+      unawaited(mostrarDetalhesDemandaDialog(context, id));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([_viewModel, _demandasViewModel]),
+    builder: (context, _) {
+      final sprint = _viewModel.sprintSelecionada?.id == widget.sprint.id
+          ? _viewModel.sprintSelecionada!
+          : widget.sprint;
+      final ocupado =
+          _carregandoResumo ||
+          _viewModel.carregando ||
+          _viewModel.enviando ||
+          _demandasViewModel.carregando;
+      final aberta =
+          sprint.status == backend.SprintStatus.planejada ||
+          sprint.status == backend.SprintStatus.ativa;
+      return _SprintResumoDialog(
+        sprint: sprint,
+        viewModel: _viewModel,
+        demandasViewModel: _demandasViewModel,
+        carregando: _carregandoResumo,
+        erroConsulta: _erroConsulta,
+        onAbrirDemanda: _abrirDemanda,
+        onMostrarTodas:
+            widget.onMostrarTodas ??
+            () => _mostrarPainelLateralDemandas(
+              context,
+              titulo: 'Demandas da Sprint',
+              acao: _acaoAdicionarPainel(sprint),
+              child: ListenableBuilder(
+                listenable: Listenable.merge([_viewModel, _demandasViewModel]),
+                builder: (context, _) => _DemandasVinculadasSprint(
+                  vinculos: _viewModel.vinculos,
+                  demandas: _demandasViewModel.demandas,
+                  permiteAcoes: false,
+                  aoAbrir: _abrirDemanda,
+                  aoAcionar: (_, _, _) {},
+                  mensagemVazia: 'Nenhuma Demanda vinculada à Sprint.',
+                ),
+              ),
+            ),
+        onAbrirSprint: () {
+          Navigator.of(context).pop(sprint.id);
+        },
+        onRecarregarVinculos: _carregar,
+        onAdicionar: aberta && !ocupado && _erroConsulta == null
+            ? () => _adicionarDemanda(sprint)
+            : null,
+        mostrarAdicionar: aberta,
+        onIniciar:
+            !ocupado &&
+                _erroConsulta == null &&
+                _podeIniciarSprint(sprint, _viewModel.sprints)
+            ? () => _iniciarSprint(sprint)
+            : null,
+        mostrarIniciar: _podeIniciarSprint(sprint, _viewModel.sprints),
+      );
+    },
+  );
+}
+
+bool _podeIniciarSprint(backend.Sprint sprint, List<backend.Sprint> sprints) {
+  final agora = DateTime.now();
+  final hoje = DateTime(agora.year, agora.month, agora.day);
+  final inicio = DateTime(
+    sprint.dataInicio.year,
+    sprint.dataInicio.month,
+    sprint.dataInicio.day,
+  );
+  return sprint.status == backend.SprintStatus.planejada &&
+      !inicio.isAfter(hoje) &&
+      (sprint.tempoPrevistoMinutos ?? 0) > 0 &&
+      !sprints.any(
+        (outra) =>
+            outra.id != sprint.id && outra.status == backend.SprintStatus.ativa,
+      );
+}
+
 class _SprintResumoDialog extends StatelessWidget {
   const _SprintResumoDialog({
     required this.sprint,
@@ -787,8 +1013,20 @@ class _SprintResumoDialog extends StatelessWidget {
     required this.onMostrarTodas,
     required this.onAbrirSprint,
     required this.onRecarregarVinculos,
+    required this.carregando,
+    this.erroConsulta,
+    this.onIniciar,
+    this.onAdicionar,
+    this.mostrarIniciar = false,
+    this.mostrarAdicionar = false,
   });
 
+  final bool carregando;
+  final String? erroConsulta;
+  final VoidCallback? onIniciar;
+  final VoidCallback? onAdicionar;
+  final bool mostrarIniciar;
+  final bool mostrarAdicionar;
   final backend.Sprint sprint;
   final SprintViewModel viewModel;
   final DemandasViewModel demandasViewModel;
@@ -804,7 +1042,8 @@ class _SprintResumoDialog extends StatelessWidget {
       final indicadores = sprint.id == null
           ? null
           : viewModel.indicadoresDaSprint(sprint.id!);
-      final falhaVinculos = viewModel.erro != null && !viewModel.carregando;
+      final ocupado = carregando || viewModel.carregando || viewModel.enviando;
+      final falhaVinculos = erroConsulta != null && !ocupado;
       return AlertDialog(
         key: const ValueKey('resumo-sprint-dialog'),
         title: Text('Sprint ${sprint.nome}'),
@@ -853,11 +1092,13 @@ class _SprintResumoDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Demandas vinculadas (${viewModel.vinculos.length})',
+                  ocupado
+                      ? 'Consultando Demandas vinculadas…'
+                      : 'Demandas vinculadas (${viewModel.vinculos.length})',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 6),
-                if (viewModel.carregando)
+                if (ocupado)
                   const SizedBox(
                     height: 32,
                     child: Align(
@@ -871,8 +1112,10 @@ class _SprintResumoDialog extends StatelessWidget {
                 else if (falhaVinculos)
                   Row(
                     children: [
-                      const Expanded(
-                        child: Text('Não foi possível carregar a quantidade.'),
+                      Expanded(
+                        child: Text(
+                          erroConsulta ?? 'Não foi possível carregar o resumo.',
+                        ),
                       ),
                       IconButton(
                         tooltip: 'Tentar carregar demandas novamente',
@@ -903,6 +1146,20 @@ class _SprintResumoDialog extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text('Fechar'),
           ),
+          if (mostrarIniciar)
+            FilledButton.icon(
+              key: const ValueKey('iniciar-sprint-resumo'),
+              onPressed: onIniciar,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Iniciar Sprint'),
+            ),
+          if (mostrarAdicionar)
+            OutlinedButton.icon(
+              key: const ValueKey('adicionar-demanda-sprint-resumo'),
+              onPressed: onAdicionar,
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar Demanda'),
+            ),
           FilledButton.icon(
             key: const ValueKey('abrir-sprint-completa'),
             onPressed: onAbrirSprint,
@@ -913,6 +1170,207 @@ class _SprintResumoDialog extends StatelessWidget {
       );
     },
   );
+}
+
+mixin _SprintAcoesContextuais<T extends StatefulWidget> on State<T> {
+  SprintViewModel get _viewModel;
+  DemandasViewModel get _demandasViewModel;
+  Future<void> _carregar();
+  void _mostrarFeedback(String mensagem, {bool erro = false});
+
+  bool _permiteGerenciarVinculos(backend.Sprint sprint) =>
+      sprint.status == backend.SprintStatus.planejada ||
+      sprint.status == backend.SprintStatus.ativa;
+
+  Widget? _acaoAdicionarPainel(backend.Sprint sprint) {
+    if (!_permiteGerenciarVinculos(sprint)) return null;
+    return ListenableBuilder(
+      listenable: Listenable.merge([_viewModel, _demandasViewModel]),
+      builder: (context, _) => TextButton.icon(
+        key: const ValueKey('adicionar-demanda-painel-sprint'),
+        onPressed:
+            _viewModel.carregando ||
+                _viewModel.enviando ||
+                _demandasViewModel.carregando
+            ? null
+            : () => _adicionarDemanda(sprint),
+        icon: const Icon(Icons.add),
+        label: const Text('Adicionar Demanda'),
+      ),
+    );
+  }
+
+  Future<void> _adicionarDemanda(backend.Sprint sprint) async {
+    final sprintId = sprint.id;
+    if (sprintId == null ||
+        !_permiteGerenciarVinculos(sprint) ||
+        _viewModel.carregando ||
+        _viewModel.enviando ||
+        _demandasViewModel.carregando) {
+      return;
+    }
+    final vinculada = await showDialog<bool>(
+      context: context,
+      builder: (_) => _SelecionarDemandaSprintDialog(
+        demandas: _demandasViewModel.demandas,
+        idsJaVinculados: _viewModel.vinculos
+            .map((vinculo) => vinculo.demandaId)
+            .toSet(),
+        carregarIndisponiveis: () =>
+            _viewModel.carregarDemandasDeOutrasSprintsAbertas(sprintId),
+        onVincular: (demandaIds) async {
+          final sucesso = await _viewModel.vincularDemandas(
+            sprintId: sprintId,
+            demandaIds: demandaIds,
+          );
+          return sucesso
+              ? null
+              : _viewModel.erro ?? 'Não foi possível vincular a Demanda.';
+        },
+      ),
+    );
+    if (vinculada != true || !mounted) return;
+    await _carregar();
+    if (mounted) _mostrarFeedback('Demanda vinculada à Sprint.');
+  }
+
+  Future<void> _iniciarSprint(backend.Sprint sprint) async {
+    final id = sprint.id;
+    if (id == null) return;
+
+    final listaCarregada = await _viewModel.carregarSprints();
+    if (!mounted) return;
+    if (!listaCarregada) {
+      _mostrarFeedback(
+        _viewModel.erro ?? 'Não foi possível verificar as Sprints ativas.',
+        erro: true,
+      );
+      return;
+    }
+
+    final ativa = _outraSprintAtiva(id);
+    if (ativa != null) {
+      await _mostrarSprintAtivaExistente(ativa);
+      return;
+    }
+
+    final confirmado = await _confirmarOperacao(
+      chave: 'confirmar-inicio-sprint-dialog',
+      titulo: 'Iniciar Sprint?',
+      mensagem: 'A Sprint ficará ativa a partir de agora.',
+      acao: 'Iniciar Sprint',
+    );
+    if (!confirmado || !mounted) return;
+
+    final sucesso = await _viewModel.ativarSprint(id);
+    if (!mounted) return;
+    if (sucesso) {
+      await _recarregarAposAcao('Sprint iniciada.');
+      return;
+    }
+
+    final erro = _viewModel.erro ?? 'Não foi possível iniciar a Sprint.';
+    final listaAtualizada = await _viewModel.carregarSprints();
+    if (!mounted) return;
+    final sprintAtiva = listaAtualizada ? _outraSprintAtiva(id) : null;
+    if (sprintAtiva != null) {
+      await _mostrarSprintAtivaExistente(sprintAtiva);
+      return;
+    }
+    await _carregar();
+    if (mounted) _mostrarFeedback(erro, erro: true);
+  }
+
+  Future<void> _recarregarAposAcao(String mensagem) async {
+    await _carregar();
+    if (mounted) _mostrarFeedback(mensagem);
+  }
+
+  Future<bool> _confirmarOperacao({
+    required String chave,
+    required String titulo,
+    required String mensagem,
+    required String acao,
+    bool destrutiva = false,
+  }) async =>
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          key: ValueKey(chave),
+          title: Text(titulo),
+          content: Text(mensagem),
+          actions: [
+            TextButton(
+              key: ValueKey('$chave-cancelar'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Voltar'),
+            ),
+            FilledButton(
+              key: ValueKey('$chave-confirmar'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: destrutiva
+                  ? FilledButton.styleFrom(
+                      backgroundColor: Theme.of(
+                        dialogContext,
+                      ).colorScheme.error,
+                    )
+                  : null,
+              child: Text(acao),
+            ),
+          ],
+        ),
+      ) ==
+      true;
+
+  backend.Sprint? _outraSprintAtiva(int sprintId) {
+    for (final sprint in _viewModel.sprints) {
+      if (sprint.id != sprintId &&
+          sprint.status == backend.SprintStatus.ativa) {
+        return sprint;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _mostrarSprintAtivaExistente(backend.Sprint ativa) async {
+    final id = ativa.id;
+    if (id == null) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('sprint-ativa-existente-dialog'),
+        title: const Text('Já existe uma Sprint ativa'),
+        content: Text(
+          'Sprint ${ativa.nome} está ativa. Abra-a para continuar.',
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('ajustar-sprint-ativa'),
+            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
+            child: const Text('Ajustar Sprint atual'),
+          ),
+          OutlinedButton(
+            key: const ValueKey('finalizar-sprint-ativa'),
+            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
+            child: const Text('Finalizar Sprint atual'),
+          ),
+          FilledButton(
+            key: const ValueKey('cancelar-sprint-ativa'),
+            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
+            child: const Text('Cancelar Sprint atual'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navegarParaSprintAtiva(BuildContext dialogContext, int id) {
+    final navigator = Navigator.of(dialogContext);
+    navigator.pop();
+    navigator.pushNamed(AppRoutes.detalheDaSprint(id));
+  }
 }
 
 class SprintDetalhePage extends StatefulWidget {
@@ -933,12 +1391,17 @@ class SprintDetalhePage extends StatefulWidget {
   State<SprintDetalhePage> createState() => _SprintDetalhePageState();
 }
 
-class _SprintDetalhePageState extends State<SprintDetalhePage> {
+class _SprintDetalhePageState extends State<SprintDetalhePage>
+    with _SprintAcoesContextuais<SprintDetalhePage> {
+  @override
   late final SprintViewModel _viewModel;
   late final bool _possuiViewModel;
+  @override
   late final DemandasViewModel _demandasViewModel;
   late final bool _possuiDemandasViewModel;
   bool _mutacaoDemandaEmAndamento = false;
+  bool _carregandoContexto = false;
+  String? _erroConsulta;
 
   @override
   void initState() {
@@ -969,47 +1432,35 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
     super.dispose();
   }
 
+  @override
   Future<void> _carregar() async {
-    final carregada = await _viewModel.carregarSprint(widget.sprintId);
-    if (!mounted || !carregada) return;
-    await _viewModel.carregarIndicadores(widget.sprintId);
-    if (!mounted) return;
-    await _viewModel.carregarVinculos(widget.sprintId);
-    if (!mounted) return;
-    await _demandasViewModel.carregarDemandas();
-    if (mounted) setState(() {});
-  }
-
-  bool _permiteGerenciarVinculos(backend.Sprint sprint) =>
-      sprint.status == backend.SprintStatus.planejada ||
-      sprint.status == backend.SprintStatus.ativa;
-
-  Future<void> _adicionarDemanda(backend.Sprint sprint) async {
-    final sprintId = sprint.id;
-    if (sprintId == null || !_permiteGerenciarVinculos(sprint)) return;
-    final vinculada = await showDialog<bool>(
-      context: context,
-      builder: (_) => _SelecionarDemandaSprintDialog(
-        demandas: _demandasViewModel.demandas,
-        idsJaVinculados: _viewModel.vinculos
-            .map((vinculo) => vinculo.demandaId)
-            .toSet(),
-        carregarIndisponiveis: () =>
-            _viewModel.carregarDemandasDeOutrasSprintsAbertas(sprintId),
-        onVincular: (demandaIds) async {
-          final sucesso = await _viewModel.vincularDemandas(
-            sprintId: sprintId,
-            demandaIds: demandaIds,
-          );
-          return sucesso
-              ? null
-              : _viewModel.erro ?? 'Não foi possível vincular a Demanda.';
-        },
-      ),
-    );
-    if (vinculada != true || !mounted) return;
-    await _carregar();
-    if (mounted) _mostrarFeedback('Demanda vinculada à Sprint.');
+    setState(() {
+      _carregandoContexto = true;
+      _erroConsulta = null;
+    });
+    String? erro;
+    try {
+      final carregada = await _viewModel.carregarSprint(widget.sprintId);
+      if (!mounted || !carregada) return;
+      if (!await _viewModel.carregarIndicadores(widget.sprintId)) {
+        erro = _viewModel.erro;
+      }
+      if (!mounted) return;
+      if (!await _viewModel.carregarVinculos(widget.sprintId)) {
+        erro ??= _viewModel.erro;
+      }
+      if (!mounted) return;
+      await _demandasViewModel.carregarDemandas();
+      if (!mounted) return;
+      erro ??= _demandasViewModel.erro;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _carregandoContexto = false;
+          _erroConsulta = erro;
+        });
+      }
+    }
   }
 
   void _abrirDetalhesDemanda(int demandaId) {
@@ -1026,6 +1477,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
     await _mostrarPainelLateralDemandas(
       context,
       titulo: 'Demandas da Sprint',
+      acao: _acaoAdicionarPainel(sprint),
       child: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) => _DemandasVinculadasSprint(
@@ -1172,53 +1624,6 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
     }
   }
 
-  Future<void> _iniciarSprint(backend.Sprint sprint) async {
-    final id = sprint.id;
-    if (id == null) return;
-
-    final listaCarregada = await _viewModel.carregarSprints();
-    if (!mounted) return;
-    if (!listaCarregada) {
-      _mostrarFeedback(
-        _viewModel.erro ?? 'Não foi possível verificar as Sprints ativas.',
-        erro: true,
-      );
-      return;
-    }
-
-    final ativa = _outraSprintAtiva(id);
-    if (ativa != null) {
-      await _mostrarSprintAtivaExistente(ativa);
-      return;
-    }
-
-    final confirmado = await _confirmarOperacao(
-      chave: 'confirmar-inicio-sprint-dialog',
-      titulo: 'Iniciar Sprint?',
-      mensagem: 'A Sprint ficará ativa a partir de agora.',
-      acao: 'Iniciar Sprint',
-    );
-    if (!confirmado || !mounted) return;
-
-    final sucesso = await _viewModel.ativarSprint(id);
-    if (!mounted) return;
-    if (sucesso) {
-      await _recarregarAposAcao('Sprint iniciada.');
-      return;
-    }
-
-    final erro = _viewModel.erro ?? 'Não foi possível iniciar a Sprint.';
-    final listaAtualizada = await _viewModel.carregarSprints();
-    if (!mounted) return;
-    final sprintAtiva = listaAtualizada ? _outraSprintAtiva(id) : null;
-    if (sprintAtiva != null) {
-      await _mostrarSprintAtivaExistente(sprintAtiva);
-      return;
-    }
-    await _carregar();
-    if (mounted) _mostrarFeedback(erro, erro: true);
-  }
-
   Future<void> _cancelarSprint(backend.Sprint sprint) async {
     final id = sprint.id;
     if (id == null) return;
@@ -1321,97 +1726,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
     _mostrarFeedback(realizada ? sucesso : erro!, erro: !realizada);
   }
 
-  Future<void> _recarregarAposAcao(String mensagem) async {
-    await _carregar();
-    if (mounted) _mostrarFeedback(mensagem);
-  }
-
-  Future<bool> _confirmarOperacao({
-    required String chave,
-    required String titulo,
-    required String mensagem,
-    required String acao,
-    bool destrutiva = false,
-  }) async =>
-      await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          key: ValueKey(chave),
-          title: Text(titulo),
-          content: Text(mensagem),
-          actions: [
-            TextButton(
-              key: ValueKey('$chave-cancelar'),
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Voltar'),
-            ),
-            FilledButton(
-              key: ValueKey('$chave-confirmar'),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: destrutiva
-                  ? FilledButton.styleFrom(
-                      backgroundColor: Theme.of(
-                        dialogContext,
-                      ).colorScheme.error,
-                    )
-                  : null,
-              child: Text(acao),
-            ),
-          ],
-        ),
-      ) ==
-      true;
-
-  backend.Sprint? _outraSprintAtiva(int sprintId) {
-    for (final sprint in _viewModel.sprints) {
-      if (sprint.id != sprintId &&
-          sprint.status == backend.SprintStatus.ativa) {
-        return sprint;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _mostrarSprintAtivaExistente(backend.Sprint ativa) async {
-    final id = ativa.id;
-    if (id == null) return;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        key: const ValueKey('sprint-ativa-existente-dialog'),
-        title: const Text('Já existe uma Sprint ativa'),
-        content: Text(
-          'Sprint ${ativa.nome} está ativa. Abra-a para continuar.',
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('ajustar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Ajustar Sprint atual'),
-          ),
-          OutlinedButton(
-            key: const ValueKey('finalizar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Finalizar Sprint atual'),
-          ),
-          FilledButton(
-            key: const ValueKey('cancelar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Cancelar Sprint atual'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _navegarParaSprintAtiva(BuildContext dialogContext, int id) {
-    final navigator = Navigator.of(dialogContext);
-    navigator.pop();
-    navigator.pushNamed(AppRoutes.detalheDaSprint(id));
-  }
-
+  @override
   void _mostrarFeedback(String mensagem, {bool erro = false}) {
     final messenger = ScaffoldMessenger.of(context);
     messenger
@@ -1425,7 +1740,8 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
   }
 
   Widget _acoesCabecalho(backend.Sprint sprint) {
-    final ocupado = _viewModel.carregando || _viewModel.enviando;
+    final ocupado =
+        _carregandoContexto || _viewModel.carregando || _viewModel.enviando;
     final botoes = <Widget>[
       OutlinedButton.icon(
         key: const ValueKey('editar-sprint'),
@@ -1532,7 +1848,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _viewModel,
+    listenable: Listenable.merge([_viewModel, _demandasViewModel]),
     builder: (context, _) => PageScaffold(
       title: 'Sprint',
       route: AppRoutes.sprint,
@@ -1594,6 +1910,10 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
                 label: const Text('Voltar para Sprints'),
               ),
             ),
+            if (_carregandoContexto || _viewModel.carregando)
+              const LinearProgressIndicator(
+                key: ValueKey('carregando-contexto-sprint'),
+              ),
             const SizedBox(height: 4),
             Card(
               child: Padding(
@@ -1679,7 +1999,11 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
                   ? OutlinedButton.icon(
                       key: const ValueKey('adicionar-demanda-sprint'),
                       onPressed:
-                          _viewModel.enviando ||
+                          _carregandoContexto ||
+                              _erroConsulta != null ||
+                              _viewModel.carregando ||
+                              _viewModel.enviando ||
+                              _demandasViewModel.carregando ||
                               _demandasViewModel.enviando ||
                               _mutacaoDemandaEmAndamento
                           ? null
@@ -1691,9 +2015,12 @@ class _SprintDetalhePageState extends State<SprintDetalhePage> {
               child: _arvoreDemandasVinculadas(sprint, limite: 5),
             ),
             const SizedBox(height: TemdasTokens.contentGap),
-            if (_viewModel.erro != null) ...[
+            if (_erroConsulta != null || _viewModel.erro != null) ...[
               const SizedBox(height: TemdasTokens.contentGap),
-              _AvisoErro(mensagem: _viewModel.erro!, onTentar: _carregar),
+              _AvisoErro(
+                mensagem: _erroConsulta ?? _viewModel.erro!,
+                onTentar: _carregar,
+              ),
             ],
           ],
         ),
@@ -1748,6 +2075,10 @@ class _SelecionarDemandaSprintDialogState
   }
 
   Future<void> _carregarIndisponiveis() async {
+    setState(() {
+      _verificandoDisponibilidade = true;
+      _falhouDisponibilidade = false;
+    });
     try {
       final indisponiveis = await widget.carregarIndisponiveis();
       if (!mounted) return;
@@ -1771,7 +2102,7 @@ class _SelecionarDemandaSprintDialogState
       for (final demanda in widget.demandas)
         if (demanda.id != null) demanda.id!: demanda,
     };
-    final consulta = _busca.trim().toLowerCase();
+    final consulta = normalizarTextoBusca(_busca.trim());
     final filhosPorPai = <int, List<int>>{};
     for (final id in porId.keys) {
       final paiId = porId[id]?.demandaPaiId;
@@ -1788,7 +2119,7 @@ class _SelecionarDemandaSprintDialogState
       final paiId = demanda.demandaPaiId;
       if (paiId != null && porId.containsKey(paiId)) continue;
 
-      final texto = '${demanda.id} ${demanda.titulo}'.toLowerCase();
+      final texto = normalizarTextoBusca('${demanda.id} ${demanda.titulo}');
       if (consulta.isNotEmpty && !texto.contains(consulta)) continue;
 
       final idsDaArvore = <int>{};
@@ -1811,7 +2142,12 @@ class _SelecionarDemandaSprintDialogState
   }
 
   Future<void> _vincular() async {
-    if (_enviando || _selecionadas.isEmpty) return;
+    if (_enviando ||
+        _selecionadas.isEmpty ||
+        _verificandoDisponibilidade ||
+        _falhouDisponibilidade) {
+      return;
+    }
     setState(() {
       _enviando = true;
       _erro = null;
@@ -1851,9 +2187,19 @@ class _SelecionarDemandaSprintDialogState
               key: const ValueKey('buscar-demanda-sprint'),
               controller: _buscaController,
               onChanged: (valor) => setState(() => _busca = valor),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                labelText: 'Buscar Demanda',
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                labelText: 'Buscar Demanda...',
+                suffixIcon: _busca.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpar busca de Demandas',
+                        onPressed: () => setState(() {
+                          _buscaController.clear();
+                          _busca = '';
+                        }),
+                        icon: const Icon(Icons.clear),
+                      ),
               ),
             ),
             if (_verificandoDisponibilidade)
@@ -1861,12 +2207,10 @@ class _SelecionarDemandaSprintDialogState
                 key: ValueKey('verificando-vinculos-outras-sprints'),
               ),
             if (_falhouDisponibilidade)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  'Não foi possível verificar outras Sprints. O backend validará a tentativa.',
-                  key: ValueKey('aviso-disponibilidade-demanda'),
-                ),
+              _AvisoErro(
+                mensagem:
+                    'Não foi possível verificar os vínculos com outras Sprints.',
+                onTentar: _carregarIndisponiveis,
               ),
             const SizedBox(height: 8),
             Expanded(
@@ -1884,7 +2228,9 @@ class _SelecionarDemandaSprintDialogState
                           outraSprint ??= _indisponiveis[idDaArvore];
                         }
                         final selecionavel =
-                            outraSprint == null && !_verificandoDisponibilidade;
+                            outraSprint == null &&
+                            !_verificandoDisponibilidade &&
+                            !_falhouDisponibilidade;
                         final selecionada = _selecionadas.contains(id);
                         final tooltip = outraSprint != null
                             ? 'Já pertence à Sprint ${outraSprint.nome}'
@@ -1963,7 +2309,13 @@ class _SelecionarDemandaSprintDialogState
         ),
         FilledButton.icon(
           key: const ValueKey('confirmar-vinculo-demanda-sprint'),
-          onPressed: _enviando || _selecionadas.isEmpty ? null : _vincular,
+          onPressed:
+              _enviando ||
+                  _selecionadas.isEmpty ||
+                  _verificandoDisponibilidade ||
+                  _falhouDisponibilidade
+              ? null
+              : _vincular,
           icon: _enviando
               ? const SizedBox.square(
                   dimension: 18,
@@ -2103,6 +2455,7 @@ Future<void> _mostrarPainelLateralDemandas(
   BuildContext context, {
   required String titulo,
   required Widget child,
+  Widget? acao,
 }) => showGeneralDialog<void>(
   context: context,
   barrierDismissible: true,
@@ -2137,6 +2490,7 @@ Future<void> _mostrarPainelLateralDemandas(
                           style: Theme.of(dialogContext).textTheme.titleLarge,
                         ),
                       ),
+                      ?acao,
                       IconButton(
                         key: const ValueKey('fechar-painel-demandas-sprint'),
                         tooltip: 'Fechar lista',

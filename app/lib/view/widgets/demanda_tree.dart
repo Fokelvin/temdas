@@ -25,6 +25,7 @@ class DemandaTree extends StatefulWidget {
     required this.onAlterarStatus,
     required this.onConcluir,
     this.onReabrir,
+    this.sprintBuilder,
     this.onMover,
     this.demandasEmProcessamento = const {},
     this.autoExpandIds = const {},
@@ -53,6 +54,7 @@ class DemandaTree extends StatefulWidget {
   final int focoVersao;
   final bool dragHabilitado;
   final DensidadeDemanda densidade;
+  final Widget Function(backend.Demanda)? sprintBuilder;
 
   @override
   State<DemandaTree> createState() => _DemandaTreeState();
@@ -409,6 +411,7 @@ class _DemandaTreeState extends State<DemandaTree> {
               expansionController: _expansaoDe(demanda),
               densidade: widget.densidade,
               demanda: demanda,
+              sprintContexto: widget.sprintBuilder?.call(demanda),
               tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
               dragHandle: dragHandle,
               destacado: _demandaDestacadaId == demanda.id,

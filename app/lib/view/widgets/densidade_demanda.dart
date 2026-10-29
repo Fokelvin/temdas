@@ -33,7 +33,7 @@ enum DensidadeDemanda {
   double get espacoAposLinhaArvore => isCompacta ? 6 : 10;
 
   double get alturaMinimaCabecalho => isCompacta ? 48 : 80;
-  double get paddingVerticalCabecalho => isCompacta ? 4 : 12;
+  double get paddingVerticalCabecalho => isCompacta ? 2 : 12;
   double get espacamentoChevron => isCompacta ? 4 : 12;
   EdgeInsets get paddingCabecalho =>
       EdgeInsets.symmetric(horizontal: isCompacta ? 10 : 12);

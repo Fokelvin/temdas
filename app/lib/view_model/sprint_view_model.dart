@@ -84,10 +84,11 @@ class SprintViewModel extends ChangeNotifier {
   }
 
   /// Retorna, quando disponível, a Sprint aberta que já contém cada Demanda.
+  /// Sem sprintIdAtual, inclui os vínculos de todas as Sprints abertas.
   /// A resposta serve apenas para orientar a seleção; o backend valida o vínculo.
-  Future<Map<int, backend.Sprint>?> carregarDemandasDeOutrasSprintsAbertas(
-    int sprintIdAtual,
-  ) async {
+  Future<Map<int, backend.Sprint>?> carregarDemandasDeOutrasSprintsAbertas([
+    int? sprintIdAtual,
+  ]) async {
     return _executar<Map<int, backend.Sprint>>(
       operacao: 'verificar vínculos com outras sprints',
       carregar: true,

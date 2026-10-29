@@ -151,12 +151,18 @@ void main() {
             findsOneWidget,
           );
           expect(
-            find.descendant(of: _card(id), matching: find.text('ID: $id')),
+            find.descendant(
+              of: _card(id),
+              matching: find.byKey(ValueKey('status-demanda-$id')),
+            ),
             findsOneWidget,
           );
         }
         expect(
-          find.descendant(of: _card(3), matching: find.text('ID: 3')),
+          find.descendant(
+            of: _card(3),
+            matching: find.byKey(ValueKey('status-demanda-3')),
+          ),
           findsOneWidget,
         );
         expect(tester.element(find.byType(DemandaTree)), same(quadro));
@@ -217,7 +223,10 @@ void main() {
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
       expect(horizontal.position.pixels, 150);
       expect(
-        find.descendant(of: _card(1), matching: find.text('ID: 1')),
+        find.descendant(
+          of: _card(1),
+          matching: find.byKey(ValueKey('status-demanda-1')),
+        ),
         findsOneWidget,
       );
       expect(repository.chamadasListar, 1);
@@ -265,7 +274,10 @@ void main() {
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
       expect(find.text('1 - Editada'), findsOneWidget);
       expect(
-        find.descendant(of: _card(1), matching: find.text('ID: 1')),
+        find.descendant(
+          of: _card(1),
+          matching: find.byKey(ValueKey('status-demanda-1')),
+        ),
         findsOneWidget,
       );
     },

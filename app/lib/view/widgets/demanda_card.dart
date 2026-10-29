@@ -17,6 +17,7 @@ class DemandaCard extends StatelessWidget {
     required this.onAlterarStatus,
     required this.onConcluir,
     this.onReabrir,
+    this.sprintContexto,
     this.acoesHabilitadas = true,
     this.emProcessamento = false,
     this.onCriarFilha,
@@ -29,6 +30,7 @@ class DemandaCard extends StatelessWidget {
   });
 
   final backend.Demanda demanda;
+  final Widget? sprintContexto;
   final int tempoExecutadoTotalMinutos;
   final VoidCallback onEditar;
   final VoidCallback onExcluir;
@@ -48,16 +50,23 @@ class DemandaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final cardShape = Theme.of(context).cardTheme.shape;
+    final outlinedShape = cardShape is OutlinedBorder
+        ? cardShape
+        : RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
+          );
     return SelectionArea(
       child: Card(
         key: ValueKey('demanda-card-${demanda.id}'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: destacado ? colors.primary : Colors.transparent,
-            width: 2,
-          ),
-        ),
+        shape: destacado
+            ? outlinedShape.copyWith(
+                side: BorderSide(
+                  color: colors.primary,
+                  width: TemdasTokens.borderWidth * 2,
+                ),
+              )
+            : null,
         child: ListTileTheme.merge(
           minVerticalPadding: densidade.paddingVerticalCabecalho,
           horizontalTitleGap: densidade.espacamentoChevron,
@@ -66,9 +75,16 @@ class DemandaCard extends StatelessWidget {
             leading: dragHandle,
             tilePadding: densidade.paddingCabecalho,
             minTileHeight: densidade.alturaMinimaCabecalho,
-            title: densidade.isCompacta
-                ? _cabecalhoCompacto(context)
-                : _cabecalhoNormal(context),
+            title: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                densidade.isCompacta
+                    ? _cabecalhoCompacto(context)
+                    : _cabecalhoNormal(context),
+                ?sprintContexto,
+              ],
+            ),
             childrenPadding: densidade.paddingConteudo,
             expandedCrossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -91,32 +107,37 @@ class DemandaCard extends StatelessWidget {
                   _menuAcoes(context),
                 ],
               ),
-              _Campo(
-                titulo: 'ID',
-                valor: demanda.id?.toString() ?? '-',
-                densidade: densidade,
-              ),
+              if (!densidade.isCompacta)
+                _Campo(
+                  titulo: 'ID',
+                  valor: demanda.id?.toString() ?? '-',
+                  densidade: densidade,
+                ),
               if (demanda.demandaPaiId != null)
                 _Campo(
                   titulo: 'Demanda mãe',
                   valor: demanda.demandaPaiId.toString(),
                   densidade: densidade,
                 ),
-              _Campo(
-                titulo: 'Descrição',
-                valor: demanda.descricao ?? 'Não informada',
-                densidade: densidade,
-              ),
+              if (!densidade.isCompacta ||
+                  (demanda.descricao?.trim().isNotEmpty ?? false))
+                _Campo(
+                  titulo: 'Descrição',
+                  valor: demanda.descricao ?? 'Não informada',
+                  densidade: densidade,
+                ),
               SizedBox(height: densidade.espacamentoEntreSecoes),
               TempoComparacao(
                 estimadoMinutos: demanda.tempoEstimadoMinutos,
                 executadoMinutos: tempoExecutadoTotalMinutos,
               ),
-              _Campo(
-                titulo: 'Observações',
-                valor: demanda.observacoes ?? 'Não informadas',
-                densidade: densidade,
-              ),
+              if (!densidade.isCompacta ||
+                  (demanda.observacoes?.trim().isNotEmpty ?? false))
+                _Campo(
+                  titulo: 'Observações',
+                  valor: demanda.observacoes ?? 'Não informadas',
+                  densidade: densidade,
+                ),
               SizedBox(height: densidade.espacamentoEntreSecoes),
               _botoesAcoes(),
             ],
@@ -163,51 +184,29 @@ class DemandaCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: prioridade.fundo,
-                borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final painter = TextPainter(
+              text: TextSpan(
+                text: formatarIdentificacaoDemanda(demanda),
+                style: text.titleSmall,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                child: Text(
-                  _prioridadeLabel(demanda.prioridade),
-                  style: text.labelMedium?.copyWith(color: prioridade.cor),
-                ),
+              maxLines: 1,
+              textDirection: Directionality.of(context),
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout(maxWidth: constraints.maxWidth);
+            final truncado = painter.didExceedMaxLines;
+            painter.dispose();
+            return Tooltip(
+              message: truncado ? formatarIdentificacaoDemanda(demanda) : '',
+              child: Text(
+                formatarIdentificacaoDemanda(demanda),
+                style: text.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(width: TemdasTokens.smallGap),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final painter = TextPainter(
-                    text: TextSpan(
-                      text: formatarIdentificacaoDemanda(demanda),
-                      style: text.titleSmall,
-                    ),
-                    maxLines: 1,
-                    textDirection: Directionality.of(context),
-                    textScaler: MediaQuery.textScalerOf(context),
-                  )..layout(maxWidth: constraints.maxWidth);
-                  final truncado = painter.didExceedMaxLines;
-                  painter.dispose();
-                  return Tooltip(
-                    message: truncado
-                        ? formatarIdentificacaoDemanda(demanda)
-                        : '',
-                    child: Text(
-                      formatarIdentificacaoDemanda(demanda),
-                      style: text.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
         const SizedBox(height: 2),
         DefaultTextStyle.merge(
@@ -216,6 +215,10 @@ class DemandaCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 2,
             children: [
+              Text(
+                _prioridadeLabel(demanda.prioridade),
+                style: text.labelMedium?.copyWith(color: prioridade.cor),
+              ),
               Text('Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)}'),
               Text('Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}'),
             ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/theme_preference.dart';
 import '../../data/supabase_session.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -53,6 +54,33 @@ class AppDrawer extends StatelessWidget {
         label: Text('Meu Perfil'),
       ),
       const Divider(),
+      if (ThemePreferenceScope.maybeOf(context) case final preference?)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+          child: DropdownButtonFormField<ThemeMode>(
+            key: ValueKey(preference.mode),
+            initialValue: preference.mode,
+            decoration: const InputDecoration(labelText: 'Tema'),
+            items: const [
+              DropdownMenuItem(value: ThemeMode.system, child: Text('Sistema')),
+              DropdownMenuItem(value: ThemeMode.light, child: Text('Claro')),
+              DropdownMenuItem(value: ThemeMode.dark, child: Text('Escuro')),
+            ],
+            onChanged: (mode) async {
+              if (mode == null) return;
+              final saved = await preference.select(mode);
+              if (!saved && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Não foi possível salvar o tema neste dispositivo.',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
       ListTile(
         leading: const Icon(Icons.logout),
         title: const Text('Sair'),

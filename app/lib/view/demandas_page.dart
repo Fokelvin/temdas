@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
@@ -5,6 +7,8 @@ import '../app/app_routes.dart';
 import 'formatters/demanda_identificacao.dart';
 import '../theme/app_theme.dart';
 import '../view_model/demandas_view_model.dart';
+import '../view_model/sprint_view_model.dart';
+import 'sprint_page.dart';
 import 'demanda_detalhe_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/demanda_dialog.dart';
@@ -14,9 +18,10 @@ import 'widgets/densidade_demanda.dart';
 import 'widgets/log_time_dialog.dart';
 
 class DemandasPage extends StatefulWidget {
-  const DemandasPage({super.key, this.viewModel});
+  const DemandasPage({super.key, this.viewModel, this.sprintViewModel});
 
   final DemandasViewModel? viewModel;
+  final SprintViewModel? sprintViewModel;
 
   @override
   State<DemandasPage> createState() => _DemandasPageState();
@@ -31,10 +36,15 @@ class _DemandasPageState extends State<DemandasPage> {
   final _quadroHorizontalController = ScrollController();
   late final DemandasViewModel _viewModel;
   late final bool _possuiViewModel;
+  late final SprintViewModel _sprintViewModel;
+  Map<int, backend.Sprint> _sprintsPorDemanda = const {};
+  bool _carregandoSprints = true;
+  String? _erroSprints;
+  bool _aguardandoConsultaSprint = false;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
   backend.Prioridade? _filtroPrioridade;
-  DensidadeDemanda _densidade = DensidadeDemanda.normal;
+  DensidadeDemanda _densidade = DensidadeDemanda.compacta;
   int _filtroVersao = 0;
   final Set<int> _demandasEmStatus = {};
 
@@ -44,10 +54,15 @@ class _DemandasPageState extends State<DemandasPage> {
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? DemandasViewModel();
     _viewModel.carregarDemandas();
+    _sprintViewModel = widget.sprintViewModel ?? SprintViewModel();
+    _sprintViewModel.addListener(_consultarSprintsQuandoLivre);
+    unawaited(_carregarSprints());
   }
 
   @override
   void dispose() {
+    _sprintViewModel.removeListener(_consultarSprintsQuandoLivre);
+    if (widget.sprintViewModel == null) _sprintViewModel.dispose();
     _tituloController.dispose();
     _descricaoController.dispose();
     _tempoController.dispose();
@@ -57,6 +72,83 @@ class _DemandasPageState extends State<DemandasPage> {
       _viewModel.dispose();
     }
     super.dispose();
+  }
+
+  void _consultarSprintsQuandoLivre() {
+    if (!_aguardandoConsultaSprint ||
+        _sprintViewModel.carregando ||
+        _sprintViewModel.enviando) {
+      return;
+    }
+    _aguardandoConsultaSprint = false;
+    unawaited(_carregarSprints());
+  }
+
+  Future<void> _carregarSprints() async {
+    if (!mounted) return;
+    setState(() {
+      _carregandoSprints = true;
+      _erroSprints = null;
+    });
+    // Fechar o resumo não cancela uma consulta que já chegou ao repositório.
+    if (_sprintViewModel.carregando || _sprintViewModel.enviando) {
+      _aguardandoConsultaSprint = true;
+      return;
+    }
+    final vinculos = await _sprintViewModel
+        .carregarDemandasDeOutrasSprintsAbertas();
+    if (!mounted) return;
+    setState(() {
+      _carregandoSprints = false;
+      if (vinculos == null) {
+        _erroSprints =
+            _sprintViewModel.erro ??
+            'Não foi possível consultar as Sprints vinculadas.';
+      } else {
+        _sprintsPorDemanda = vinculos;
+      }
+    });
+  }
+
+  Widget _vinculoSprint(backend.Demanda demanda) {
+    if (_carregandoSprints || _erroSprints != null) {
+      return Text(
+        _carregandoSprints ? 'Consultando Sprint…' : 'Sprint indisponível',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
+    }
+    final sprint = _sprintsPorDemanda[demanda.id];
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: ValueKey('sprint-da-demanda-${demanda.id}'),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(0, 32),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: Theme.of(context).textTheme.bodySmall,
+        ),
+        icon: const Icon(Icons.directions_run, size: 16),
+        label: Text(
+          sprint == null ? 'Sem Sprint' : 'Sprint: ${sprint.nome}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onPressed: () async {
+          if (sprint == null) {
+            await Navigator.of(context).pushNamed(AppRoutes.sprint);
+          } else {
+            await mostrarResumoSprint(
+              context,
+              sprint: sprint,
+              viewModel: _sprintViewModel,
+              demandasViewModel: _viewModel,
+            );
+          }
+          if (mounted) await _carregarSprints();
+        },
+      ),
+    );
   }
 
   bool get _filtrosAtivos =>
@@ -740,6 +832,20 @@ class _DemandasPageState extends State<DemandasPage> {
                 },
               ),
               SizedBox(height: _densidade.espacamentoEntreSecoes),
+              if (_carregandoSprints)
+                const LinearProgressIndicator(
+                  key: ValueKey('carregando-sprints-demandas'),
+                ),
+              if (_erroSprints != null)
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(_erroSprints!),
+                  trailing: IconButton(
+                    tooltip: 'Tentar consultar Sprints novamente',
+                    onPressed: _carregarSprints,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
               if (_viewModel.carregando)
                 const Center(
                   child: Padding(
@@ -753,6 +859,7 @@ class _DemandasPageState extends State<DemandasPage> {
                   key: const ValueKey('demandas-arvore'),
                   horizontalController: _quadroHorizontalController,
                   densidade: _densidade,
+                  sprintBuilder: _vinculoSprint,
                   demandas: resultadoBusca.demandas,
                   autoExpandIds: resultadoBusca.autoExpandIds,
                   focoDemandaId: resultadoBusca.focoDemandaId,

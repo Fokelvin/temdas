@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import 'auth_gate.dart';
 import 'app_routes.dart';
 
-class TemdasApp extends StatelessWidget {
+class TemdasApp extends StatefulWidget {
   const TemdasApp({super.key, this.initialUri});
 
   final Uri? initialUri;
 
   @override
+  State<TemdasApp> createState() => _TemdasAppState();
+}
+
+class _TemdasAppState extends State<TemdasApp> {
+  final _theme = ThemePreference();
+
+  @override
+  void initState() {
+    super.initState();
+    _theme.load();
+  }
+
+  @override
+  void dispose() {
+    _theme.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final startupUri = initialUri ?? Uri.base;
+    final startupUri = widget.initialUri ?? Uri.base;
     final isCallback = isAuthCallbackLocation(startupUri);
     final authRoute = startupUri.path == AppRoutes.authCallback
         ? AppRoutes.authCallback
@@ -21,20 +41,26 @@ class TemdasApp extends StatelessWidget {
         ? AppRoutes.authCallback
         : null;
     final initialRoute = authRoute ?? AppRoutes.demandas;
-    return MaterialApp(
-      title: 'TEMDAS',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      initialRoute: initialRoute,
-      onGenerateInitialRoutes: (route) => [
-        _onGenerateRoute(
-          RouteSettings(name: authRoute ?? route),
-          callbackUri: authRoute != null ? startupUri : null,
+    return ThemePreferenceScope(
+      notifier: _theme,
+      child: ListenableBuilder(
+        listenable: _theme,
+        builder: (context, _) => MaterialApp(
+          title: 'TEMDAS',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: _theme.mode,
+          initialRoute: initialRoute,
+          onGenerateInitialRoutes: (route) => [
+            _onGenerateRoute(
+              RouteSettings(name: authRoute ?? route),
+              callbackUri: authRoute != null ? startupUri : null,
+            ),
+          ],
+          onGenerateRoute: _onGenerateRoute,
         ),
-      ],
-      onGenerateRoute: _onGenerateRoute,
+      ),
     );
   }
 

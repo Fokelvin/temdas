@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../view_model/agenda_view_model.dart';
+import '../../theme/app_theme.dart';
 import '../formatters/demanda_identificacao.dart';
 
 typedef LogTimeCalendarAction =
@@ -462,17 +463,39 @@ class _CalendarBlock extends StatelessWidget {
           message: '$title\n$horario',
           child: Material(
             color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
+              side: TemdasTokens.subtleBorder(Theme.of(context).colorScheme),
+            ),
             child: InkWell(
               key: ValueKey('editar-registro-${registro.id}'),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
               onTap: registro.id == null
                   ? null
                   : () => unawaited(onEditar(registro)),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final alturaDisponivel = constraints.maxHeight;
-                  final mostrarHorario = alturaDisponivel >= 40;
+                  final text = Theme.of(context).textTheme;
+                  final escala = MediaQuery.textScalerOf(context);
+                  final estiloTitulo = text.bodyMedium!;
+                  final estiloHorario = text.labelSmall!;
+                  final alturaLinhaTitulo =
+                      escala.scale(estiloTitulo.fontSize!) *
+                      (estiloTitulo.height ?? 1);
+                  final alturaLinhaHorario =
+                      escala.scale(estiloHorario.fontSize!) *
+                      (estiloHorario.height ?? 1);
+                  final mostrarHorario =
+                      alturaDisponivel >= 40 &&
+                      alturaDisponivel >=
+                          alturaLinhaTitulo + alturaLinhaHorario;
+                  final linhasTitulo =
+                      ((alturaDisponivel -
+                                  (mostrarHorario ? alturaLinhaHorario : 0)) /
+                              alturaLinhaTitulo)
+                          .floor()
+                          .clamp(1, 2);
                   final alturaAcao = math.min(28, alturaDisponivel).toDouble();
                   final tamanhoIcone = math
                       .min(17, alturaDisponivel)
@@ -487,15 +510,20 @@ class _CalendarBlock extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                title,
-                                maxLines: mostrarHorario ? 2 : 1,
-                                overflow: TextOverflow.ellipsis,
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  style: estiloTitulo,
+                                  maxLines: linhasTitulo,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               if (mostrarHorario)
                                 Text(
                                   horario,
-                                  style: Theme.of(context).textTheme.labelSmall,
+                                  style: estiloHorario,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                             ],
                           ),
@@ -545,7 +573,10 @@ class _CalendarBlock extends StatelessWidget {
       onDragEnd: onDragFinished,
       feedback: Material(
         elevation: 4,
-        borderRadius: BorderRadius.circular(8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
+          side: TemdasTokens.subtleBorder(Theme.of(context).colorScheme),
+        ),
         color: Theme.of(context).colorScheme.primaryContainer,
         child: SizedBox(
           width: 180,

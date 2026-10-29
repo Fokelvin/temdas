@@ -78,7 +78,7 @@ void main() {
       expect(repository.chamadasConcluirEmCascata, 0);
       expect(vm.demandas.first.status, backend.DemandaStatus.concluida);
       expect(vm.demandas.last, filha);
-      expect(find.text('ID: 1'), findsOneWidget);
+      expect(find.byKey(ValueKey('status-demanda-1')), findsOneWidget);
     });
 
     for (final confirmar in [false, true]) {
