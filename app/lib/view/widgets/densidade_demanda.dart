@@ -32,7 +32,7 @@ enum DensidadeDemanda {
   double get recuoMaximo => isCompacta ? 48 : 100;
   double get espacoAposLinhaArvore => isCompacta ? 6 : 10;
 
-  double get alturaMinimaCabecalho => isCompacta ? 44 : 80;
+  double get alturaMinimaCabecalho => isCompacta ? 48 : 80;
   double get paddingVerticalCabecalho => isCompacta ? 2 : 12;
   double get espacamentoChevron => isCompacta ? 4 : 12;
   EdgeInsets get paddingCabecalho =>
@@ -54,8 +54,8 @@ enum DensidadeDemanda {
           padding: WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           ),
-          minimumSize: WidgetStatePropertyAll(Size(32, 32)),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          minimumSize: WidgetStatePropertyAll(Size(48, 48)),
+          tapTargetSize: MaterialTapTargetSize.padded,
         )
       : null;
 }

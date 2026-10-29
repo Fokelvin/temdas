@@ -22,7 +22,7 @@ void main() {
         theme: AppTheme.dark,
         escala: 1.5,
       );
-      expect(find.text('Lançamentos no período'), findsOneWidget);
+      expect(find.textContaining('Lançamentos'), findsOneWidget);
       expect(find.text('Tempo executado'), findsOneWidget);
       expect(
         tester.getSize(find.byType(LogTimeCalendar)).height,
@@ -439,7 +439,7 @@ void main() {
                 .height,
             lessThanOrEqualTo(80),
           );
-          expect(find.text('Lançamentos no período'), findsOneWidget);
+          expect(find.textContaining('Lançamentos'), findsOneWidget);
           expect(find.text('Tempo executado'), findsOneWidget);
           expect(find.text('30min'), findsOneWidget);
           if (size.width > 1240) {

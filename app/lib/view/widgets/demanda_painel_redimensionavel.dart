@@ -11,7 +11,15 @@ class DemandaPainelRedimensionavel extends StatefulWidget {
     required this.child,
     required this.onClose,
     this.actions = const [],
+    this.preferenceKey = LarguraPainelDemanda.storageKey,
+    this.panelKey = const ValueKey('demanda-detalhe-dialog'),
+    this.closeTooltip = 'Fechar detalhes',
+    this.closeKey,
   });
+  final String closeTooltip;
+  final Key? closeKey;
+  final String preferenceKey;
+  final Key panelKey;
   final String title;
   final Widget child;
   final VoidCallback onClose;
@@ -21,7 +29,9 @@ class DemandaPainelRedimensionavel extends StatefulWidget {
 }
 
 class _PainelState extends State<DemandaPainelRedimensionavel> {
-  final _largura = LarguraPainelDemanda();
+  late final _largura = LarguraPainelDemanda(
+    preferenceKey: widget.preferenceKey,
+  );
   bool _focoBorda = false;
   double _arraste = 0;
 
@@ -68,7 +78,7 @@ class _PainelState extends State<DemandaPainelRedimensionavel> {
             width: width,
             height: constraints.maxHeight,
             child: Material(
-              key: const ValueKey('demanda-detalhe-dialog'),
+              key: widget.panelKey,
               color: Theme.of(context).colorScheme.surface,
               elevation: 12,
               child: Stack(
@@ -104,7 +114,8 @@ class _PainelState extends State<DemandaPainelRedimensionavel> {
                                       _salvar(_largura.alternar(viewport)),
                                 ),
                               IconButton(
-                                tooltip: 'Fechar detalhes',
+                                key: widget.closeKey,
+                                tooltip: widget.closeTooltip,
                                 onPressed: widget.onClose,
                                 icon: const Icon(Icons.close),
                               ),

@@ -63,11 +63,11 @@ de escopo.
 ### UX-P1-01 — Visão e organização de Sprints
 
 - **Descrição:** destacar a Sprint ativa, diferenciar visualmente os status e
-  organizar o histórico. A apresentação do histórico (lista expansível, painel
-  lateral ou alternativa) ainda precisa ser escolhida.
+  organizar o histórico. O Pacote 6 usa histórico expansível por status/período
+  e painel lateral redimensionável para os detalhes.
 - **Prioridade:** P1.
-- **Estado:** Aprovado / pendente.
-- **Dependências:** decisão da apresentação do histórico; preservar o ciclo de
+- **Estado:** Implementado e validado no Pacote 6: ativa destacada, grade responsiva e histórico expansível por status/período; homologação visual final manual.
+- **Dependências:** preservar a apresentação aprovada, o ciclo de
   vida e as transições de Sprint existentes.
 - **Critérios de aceite:** a Sprint ativa é identificável; status distintos
   podem ser reconhecidos visualmente; o histórico fica organizado e acessível.
@@ -79,7 +79,7 @@ de escopo.
   de navegação a decidir, e resumo contextual. O resumo de Sprint, painel de
   Demandas vinculadas e abertura dos detalhes já existem.
 - **Prioridade:** P1.
-- **Estado:** Parcial.
+- **Estado:** Implementado e validado no Pacote 6: navegação entre painéis, URL/nova aba e atualização contextual de vínculos e indicadores, exclusivamente via SprintDemanda.
 - **Dependências:** usar `SprintDemanda` como fonte do vínculo.
 - **Critérios de aceite:** quando uma Demanda tiver Sprint aberta vinculada, a
   interface a identifica; quando não tiver, mostra “Sem Sprint”. Não criar
@@ -121,8 +121,7 @@ de escopo.
   organização interna apropriada à Sprint, sem copiar literalmente as três
   abas específicas de Demanda (Visão geral/Anotações/Horas).
 - **Prioridade:** P1.
-- **Estado:** Parcial — resumos e ações de Sprint já existem; painel lateral
-  padronizado conforme Demandas ainda não implementado.
+- **Estado:** Implementado e validado no Pacote 6: painel compartilhado de 420 px, redimensionamento, preferência independente e ações existentes; sem modal central de detalhes.
 - **Dependências:** reutilizar componentes de painel e redimensionamento dos
   Pacotes 4/5, `SprintDemanda` e regras atuais do backend/ciclo de vida da Sprint.
   Sem antecipar mudança de schema ou regras de negócio.
@@ -137,8 +136,7 @@ de escopo.
 - **Descrição:** completar feedback visual durante consultas, especialmente na
   abertura do resumo e no carregamento de indicadores e vínculos.
 - **Prioridade:** P1.
-- **Estado:** Parcial; já há indicadores na carga inicial, detalhes e lista de
-  Demandas vinculadas.
+- **Estado:** Implementado e validado no Pacote 6: feedback nas consultas e operações, erros compreensíveis, retry e estados vazios roláveis.
 - **Dependências:** consultas existentes da página de Sprints.
 - **Critérios de aceite:** uma consulta em andamento tem feedback visível e
   uma falha oferece estado compreensível e possibilidade de tentar novamente,
@@ -386,9 +384,7 @@ desta seção autoriza implementação automática.
   modais e ações para smartphones e tablets, com layouts e interações
   apropriados a toque; não apenas reduzir fontes.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Parcial / contínuo — melhorias já entregues nos Pacotes 1–5;
-  fechamento transversal de responsividade aprovado para o Pacote 6, ainda
-  pendente de implementação e homologação em dispositivos reais.
+- **Estado:** Fechamento frontend implementado e validado no Pacote 6 em celular, tablet e desktop, dois temas e texto ampliado; homologação em dispositivos reais permanece manual/contínua.
 - **Dependências:** definir breakpoints e comportamentos por tela após
   avaliação; preservar a experiência desktop.
 - **Critérios de aceite:** funções principais permanecem utilizáveis em
@@ -638,7 +634,10 @@ responsável, exclusivamente frontend, com confirmação do workflow e HTTPS.
 
 ## Pacote 6 — Modernização de Sprints e fechamento responsivo
 
-- **Estado:** Escopo direcionador aprovado, pendente de implementação.
+- **Estado:** implementação frontend concluída e validada na branch
+  `feat/pacote-6-sprints-responsividade`; publicação automática autorizada após
+  gates de análise, testes e build. Homologação visual final em dispositivos
+  reais permanece manual. Evidências em [pacote6-sprints-responsividade.md](pacote6-sprints-responsividade.md).
 - **Objetivo 1 — Sprints (P1):** modernizar a interface de Sprints e concluir os
   itens UX-P1-01 (Sprint ativa e histórico), UX-P1-02 (navegação e vínculos com
   Demandas), UX-P1-04 (painel lateral igual ao de Demandas, com largura ajustável

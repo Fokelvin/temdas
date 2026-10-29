@@ -6,6 +6,52 @@ import 'package:temdas/view_model/relatorios_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 void main() {
+  for (final width in [320.0, 768.0, 1440.0]) {
+    testWidgets('relatório responsivo em $width com texto ampliado', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final vm = RelatoriosViewModel(
+        repository: _FakeRelatorioRepository(),
+        relogio: () => DateTime(2026, 9, 16),
+      );
+      addTearDown(vm.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.8)),
+            child: child!,
+          ),
+          home: RelatoriosPage(viewModel: vm),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('1 - Mãe'),
+        150,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('relatorio-lista-responsiva')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(find.text('1 - Mãe'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('3 - Filha'),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('relatorio-lista-responsiva')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(find.text('3 - Filha'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('exibe resumo, identificação formatada e hierarquia', (
     tester,
   ) async {
@@ -23,7 +69,10 @@ void main() {
     expect(find.text('1h30'), findsAtLeastNWidgets(1));
     expect(find.text('3 - Filha'), findsOneWidget);
     expect(find.text('1 - Mãe'), findsOneWidget);
-    expect(find.byType(DataTable), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('relatorio-lista-responsiva')),
+      findsOneWidget,
+    );
 
     viewModel.dispose();
   });

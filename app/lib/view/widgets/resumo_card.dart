@@ -14,7 +14,7 @@ class ResumoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Row(
         children: [
           Container(
@@ -25,17 +25,12 @@ class ResumoCard extends StatelessWidget {
             ),
             child: Icon(icone, color: Theme.of(context).colorScheme.primary),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  titulo,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(titulo, style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 3),
                 Text(
                   valor,

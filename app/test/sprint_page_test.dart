@@ -119,9 +119,13 @@ void main() {
       await tester.pumpAndSettle();
       final ativa = find.byKey(const ValueKey('sprint-card-3'));
       final planejada = find.byKey(const ValueKey('sprint-card-1'));
+      final rectAtiva = tester.getRect(ativa),
+          rectPlanejada = tester.getRect(planejada);
       expect(
-        tester.getTopLeft(ativa).dy,
-        lessThan(tester.getTopLeft(planejada).dy),
+        rectAtiva.top < rectPlanejada.top ||
+            (rectAtiva.top == rectPlanejada.top &&
+                rectAtiva.left < rectPlanejada.left),
+        isTrue,
       );
       final card = tester.widget<Card>(
         find.ancestor(of: ativa, matching: find.byType(Card)).first,
@@ -232,8 +236,11 @@ void main() {
       repository.vinculosPendentes = null;
       await tester.pumpAndSettle();
       expect(
-        find.text(
-          'Não foi possível carregar as demandas da sprint. Tente novamente.',
+        find.descendant(
+          of: find.byKey(const ValueKey('resumo-sprint-dialog')),
+          matching: find.text(
+            'Não foi possível carregar as demandas da sprint. Tente novamente.',
+          ),
         ),
         findsOneWidget,
       );
@@ -1630,7 +1637,7 @@ void main() {
     var indice = 0;
     for (final duracao in duracoes.entries) {
       if (indice > 0) {
-        await tester.tap(find.text('Fechar'));
+        await tester.tap(find.byTooltip('Fechar Sprint'));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('nova-sprint')));
         await tester.pumpAndSettle();

@@ -165,7 +165,11 @@ class PageScaffold extends StatelessWidget {
             ],
           );
           Widget boundedControls() => ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: constraints.maxHeight * .4),
+            constraints: BoxConstraints(
+              maxHeight:
+                  constraints.maxHeight *
+                  (MediaQuery.textScalerOf(context).scale(14) > 21 ? .3 : .4),
+            ),
             child: SingleChildScrollView(child: controls()),
           );
           return Column(

@@ -17,6 +17,25 @@ import 'package:temdas/view/widgets/app_drawer.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 void main() {
+  for (final width in [320.0, 768.0, 1440.0]) {
+    testWidgets('perfil admin responsivo em $width com texto ampliado', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fixture = _SupabaseFixture();
+      await fixture.signIn();
+      await tester.pumpWidget(
+        _page(fixture.session, () async => _me(isAdmin: true), scale: 1.8),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('admin@example.com'), findsOneWidget);
+      expect(find.byKey(const ValueKey('convite-email')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('admin sees profile, AAL2, and invitation form', (tester) async {
     final auth = _SupabaseFixture();
     await auth.signIn();
@@ -336,7 +355,12 @@ Widget _page(
   SupabaseSession session,
   Future<backend.AuthMe> Function() loadMe, {
   ConvitesGateway? gateway,
+  double scale = 1,
 }) => MaterialApp(
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+    child: child!,
+  ),
   theme: AppTheme.light,
   home: MeuPerfilPage(
     session: session,

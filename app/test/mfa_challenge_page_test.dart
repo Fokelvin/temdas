@@ -10,6 +10,23 @@ import 'package:temdas/data/supabase_session.dart';
 import 'package:temdas/view/auth_pages.dart';
 
 void main() {
+  for (final width in [320.0, 768.0, 1440.0]) {
+    testWidgets('MFA responsivo em $width com texto ampliado', (tester) async {
+      tester.view.physicalSize = Size(width, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fixture = _AuthFixture(requests: [], verifyBodies: []);
+      addTearDown(fixture.close);
+      final client = _client(fixture.client);
+
+      await _signIn(client);
+      await tester.pumpWidget(_page(client, scale: 1.8));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets(
     'confirma com challenge interno e mostra só ações para o usuário',
     (tester) async {
@@ -119,7 +136,11 @@ Future<void> _pumpRequest(WidgetTester tester) async {
   }
 }
 
-Widget _page(SupabaseClient supabase) => MaterialApp(
+Widget _page(SupabaseClient supabase, {double scale = 1}) => MaterialApp(
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+    child: child!,
+  ),
   home: MfaChallengePage(
     session: SupabaseSession(supabase),
     factors: [

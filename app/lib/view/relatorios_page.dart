@@ -67,20 +67,39 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
           constraints: const BoxConstraints(maxWidth: 1240),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_viewModel.erro case final erro?) ...[
-                  const SizedBox(height: 12),
-                  _MensagemErro(mensagem: erro),
-                ],
-                if (_viewModel.resposta case final resposta?) ...[
-                  const SizedBox(height: 16),
-                  _Resumo(resposta: resposta),
-                ],
-                const SizedBox(height: 20),
-                Expanded(child: _conteudo()),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact =
+                    constraints.maxWidth < 900 ||
+                    MediaQuery.textScalerOf(context).scale(14) > 21;
+                if (compact) {
+                  final response = _viewModel.resposta;
+                  if (!_viewModel.carregando &&
+                      _viewModel.erro == null &&
+                      response != null) {
+                    return _TabelaRelatorio(
+                      itens: response.itens,
+                      header: _Resumo(resposta: response),
+                    );
+                  }
+                  return _conteudo();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_viewModel.erro case final erro?) ...[
+                      const SizedBox(height: 12),
+                      _MensagemErro(mensagem: erro),
+                    ],
+                    if (_viewModel.resposta case final resposta?) ...[
+                      const SizedBox(height: 16),
+                      _Resumo(resposta: resposta),
+                    ],
+                    const SizedBox(height: 20),
+                    Expanded(child: _conteudo()),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -343,38 +362,88 @@ class _Resumo extends StatelessWidget {
 }
 
 class _TabelaRelatorio extends StatelessWidget {
-  const _TabelaRelatorio({required this.itens});
+  const _TabelaRelatorio({required this.itens, this.header});
+  final Widget? header;
 
   final List<backend.RelatorioDemandaItem> itens;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => Card(
-      clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: constraints.maxWidth < 1200 ? 1200 : constraints.maxWidth,
-          child: SingleChildScrollView(
-            child: DataTable(
-              columnSpacing: 24,
-              headingRowColor: WidgetStatePropertyAll(
-                Theme.of(context).colorScheme.surfaceContainerHighest,
+    builder: (context, constraints) {
+      if (constraints.maxWidth < 900 ||
+          MediaQuery.textScalerOf(context).scale(14) > 21) {
+        return ListView.builder(
+          key: const ValueKey('relatorio-lista-responsiva'),
+          itemCount:
+              itens.length + (header == null ? 0 : 1) + (itens.isEmpty ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == 0 && header != null) return header!;
+            if (itens.isEmpty) return const _EstadoVazio();
+            final item = itens[index - (header == null ? 0 : 1)];
+            return Padding(
+              padding: EdgeInsets.only(
+                left: (item.nivelHierarquico * 12.0).clamp(0, 48),
+                bottom: 8,
               ),
-              columns: const [
-                DataColumn(label: Text('Demanda')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Prioridade')),
-                DataColumn(label: Text('Estimado')),
-                DataColumn(label: Text('Realizado próprio')),
-                DataColumn(label: Text('Total da árvore')),
-              ],
-              rows: itens.map((item) => _linha(context, item)).toList(),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item.demandaId} - ${item.titulo}',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        '${statusLabelRelatorio(item.status)} · ${prioridadeLabelRelatorio(item.prioridade)}',
+                      ),
+                      Text(
+                        'Estimado: ${formatDuration(Duration(minutes: item.tempoEstimadoMinutos))}',
+                      ),
+                      Text(
+                        'Realizado próprio: ${formatDuration(Duration(minutes: item.tempoRealizadoProprioMinutos))}',
+                      ),
+                      Text(
+                        'Total da árvore: ${formatDuration(Duration(minutes: item.tempoRealizadoTotalArvoreMinutos))}',
+                      ),
+                      if (item.apenasContexto)
+                        const Text('Contexto da hierarquia'),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }
+      return Card(
+        clipBehavior: Clip.antiAlias,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: constraints.maxWidth < 1200 ? 1200 : constraints.maxWidth,
+            child: SingleChildScrollView(
+              child: DataTable(
+                columnSpacing: 24,
+                headingRowColor: WidgetStatePropertyAll(
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+                columns: const [
+                  DataColumn(label: Text('Demanda')),
+                  DataColumn(label: Text('Status')),
+                  DataColumn(label: Text('Prioridade')),
+                  DataColumn(label: Text('Estimado')),
+                  DataColumn(label: Text('Realizado próprio')),
+                  DataColumn(label: Text('Total da árvore')),
+                ],
+                rows: itens.map((item) => _linha(context, item)).toList(),
+              ),
             ),
           ),
         ),
-      ),
-    ),
+      );
+    },
   );
 
   DataRow _linha(BuildContext context, backend.RelatorioDemandaItem item) {

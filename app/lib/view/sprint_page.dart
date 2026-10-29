@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../app/nova_aba.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
@@ -13,7 +15,8 @@ import 'formatters/demanda_identificacao.dart';
 import 'formatters/texto_busca.dart';
 import 'demanda_detalhe_page.dart';
 import 'widgets/app_drawer.dart';
-import 'widgets/resumo_card.dart';
+import 'widgets/demanda_painel_redimensionavel.dart';
+import 'widgets/resumo_card.dart' show formatDuration;
 
 class SprintPage extends StatefulWidget {
   const SprintPage({
@@ -87,14 +90,18 @@ class _SprintPageState extends State<SprintPage>
     ),
   );
 
-  void _abrirDetalhesDemanda(int demandaId) {
-    unawaited(
-      mostrarDetalhesDemandaDialog(
-        context,
-        demandaId,
-        viewModel: widget.demandaDetalheViewModel,
-      ),
+  Future<void> _abrirDetalhesDemanda(int demandaId) async {
+    await mostrarDetalhesDemandaDialog(
+      context,
+      demandaId,
+      viewModel: widget.demandaDetalheViewModel,
     );
+    if (!mounted) return;
+    await _demandasViewModel.carregarDemandas();
+    final sprintId = _viewModel.sprintSelecionada?.id;
+    if (!mounted || sprintId == null) return;
+    await _viewModel.carregarVinculos(sprintId);
+    if (mounted) await _viewModel.carregarIndicadores(sprintId);
   }
 
   Future<void> _mostrarPainelDemandas(
@@ -350,13 +357,15 @@ class _SprintPageState extends State<SprintPage>
             (a, b) => (a.status == backend.SprintStatus.ativa ? 0 : 1)
                 .compareTo(b.status == backend.SprintStatus.ativa ? 0 : 1),
           );
-    final historico = _viewModel.sprints
-        .where(
-          (s) =>
-              s.status == backend.SprintStatus.concluida ||
-              s.status == backend.SprintStatus.cancelada,
-        )
-        .toList();
+    final historico =
+        _viewModel.sprints
+            .where(
+              (s) =>
+                  s.status == backend.SprintStatus.concluida ||
+                  s.status == backend.SprintStatus.cancelada,
+            )
+            .toList()
+          ..sort((a, b) => b.dataFim.compareTo(a.dataFim));
     Widget card(backend.Sprint sprint) => Padding(
       padding: const EdgeInsets.only(bottom: TemdasTokens.smallGap),
       child: _SprintListaCard(
@@ -370,12 +379,31 @@ class _SprintPageState extends State<SprintPage>
       ),
     );
 
+    Widget grade(List<backend.Sprint> lista) => LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1100
+            ? 3
+            : constraints.maxWidth >= 700
+            ? 2
+            : 1;
+        final width = (constraints.maxWidth - 8 * (columns - 1)) / columns;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final sprint in lista)
+              SizedBox(width: width, child: card(sprint)),
+          ],
+        );
+      },
+    );
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1120),
+        constraints: const BoxConstraints(maxWidth: 1440),
         child: ListView(
           key: const ValueKey('sprints-lista'),
-          padding: const EdgeInsets.all(TemdasTokens.pagePadding),
+          padding: const EdgeInsets.all(16),
           children: [
             if (_viewModel.erro != null) ...[
               _AvisoErro(mensagem: _viewModel.erro!, onTentar: _carregar),
@@ -390,7 +418,7 @@ class _SprintPageState extends State<SprintPage>
               const LinearProgressIndicator(
                 key: ValueKey('carregando-indicadores-sprints'),
               ),
-            for (final sprint in abertas) card(sprint),
+            grade(abertas),
             if (historico.isNotEmpty)
               Card(
                 child: ExpansionTile(
@@ -398,7 +426,26 @@ class _SprintPageState extends State<SprintPage>
                   title: Text('Histórico de Sprints (${historico.length})'),
                   leading: const Icon(Icons.history),
                   childrenPadding: const EdgeInsets.all(TemdasTokens.smallGap),
-                  children: [for (final sprint in historico) card(sprint)],
+                  children: [
+                    for (final status in [
+                      backend.SprintStatus.concluida,
+                      backend.SprintStatus.cancelada,
+                    ])
+                      if (historico.any((s) => s.status == status)) ...[
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            status == backend.SprintStatus.concluida
+                                ? 'Concluídas'
+                                : 'Canceladas',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        grade(
+                          historico.where((s) => s.status == status).toList(),
+                        ),
+                      ],
+                  ],
                 ),
               ),
           ],
@@ -757,7 +804,7 @@ class _SprintListaCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -783,39 +830,20 @@ class _SprintListaCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    _periodo(sprint),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  Expanded(
+                    child: Text(
+                      _periodo(sprint),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ),
-                  const Spacer(),
                   Icon(
                     Icons.chevron_right,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 24,
-                runSpacing: 10,
-                children: [
-                  _MetricaCompacta(
-                    titulo: 'Tempo previsto',
-                    valor: _duracao(sprint.tempoPrevistoMinutos),
-                    icone: Icons.flag_outlined,
-                  ),
-                  _MetricaCompacta(
-                    titulo: 'Total estimado',
-                    valor: _duracao(indicadores?.tempoTotalEstimadoMinutos),
-                    icone: Icons.hourglass_empty,
-                  ),
-                  _MetricaCompacta(
-                    titulo: 'Executado',
-                    valor: _duracao(indicadores?.tempoExecutadoMinutos),
-                    icone: Icons.timer_outlined,
-                  ),
-                ],
-              ),
+              const SizedBox(height: 8),
+              _SprintMetricas(sprint: sprint, indicadores: indicadores),
             ],
           ),
         ),
@@ -833,158 +861,44 @@ Future<void> mostrarResumoSprint(
   ValueChanged<int>? onAbrirDemanda,
   VoidCallback? onMostrarTodas,
 }) async {
-  final sprintId = await showDialog<int>(
+  final sprintId = await showGeneralDialog<int>(
     context: context,
-    builder: (_) => _SprintResumoContextual(
-      sprint: sprint,
-      viewModel: viewModel,
-      demandasViewModel: demandasViewModel,
-      onAbrirDemanda: onAbrirDemanda,
-      onMostrarTodas: onMostrarTodas,
+    barrierDismissible: true,
+    barrierLabel: 'Fechar Sprint',
+    pageBuilder: (dialogContext, _, _) => DemandaPainelRedimensionavel(
+      title: 'Sprint',
+      closeTooltip: 'Fechar Sprint',
+      preferenceKey: 'temdas.sprint.painel.largura',
+      panelKey: const ValueKey('resumo-sprint-dialog'),
+      onClose: () => Navigator.pop(dialogContext),
+      actions: [
+        if (kIsWeb)
+          IconButton(
+            tooltip: 'Abrir Sprint em nova aba',
+            icon: const Icon(Icons.launch),
+            onPressed: () =>
+                abrirRotaEmNovaAba(AppRoutes.detalheDaSprint(sprint.id!)),
+          ),
+        IconButton(
+          key: const ValueKey('abrir-sprint-completa'),
+          tooltip: 'Abrir Sprint',
+          icon: const Icon(Icons.open_in_new),
+          onPressed: () => Navigator.pop(dialogContext, sprint.id),
+        ),
+      ],
+      child: SprintDetalhePage(
+        sprintId: sprint.id!,
+        viewModel: viewModel,
+        demandasViewModel: demandasViewModel,
+        painel: true,
+        onAbrirDemanda: onAbrirDemanda,
+        onMostrarTodas: onMostrarTodas,
+      ),
     ),
   );
   if (sprintId != null && context.mounted) {
     await Navigator.of(context).pushNamed(AppRoutes.detalheDaSprint(sprintId));
   }
-}
-
-class _SprintResumoContextual extends StatefulWidget {
-  const _SprintResumoContextual({
-    required this.sprint,
-    required this.viewModel,
-    required this.demandasViewModel,
-    this.onAbrirDemanda,
-    this.onMostrarTodas,
-  });
-  final backend.Sprint sprint;
-  final SprintViewModel viewModel;
-  final DemandasViewModel demandasViewModel;
-  final ValueChanged<int>? onAbrirDemanda;
-  final VoidCallback? onMostrarTodas;
-
-  @override
-  State<_SprintResumoContextual> createState() =>
-      _SprintResumoContextualState();
-}
-
-class _SprintResumoContextualState extends State<_SprintResumoContextual>
-    with _SprintAcoesContextuais<_SprintResumoContextual> {
-  @override
-  SprintViewModel get _viewModel => widget.viewModel;
-  @override
-  DemandasViewModel get _demandasViewModel => widget.demandasViewModel;
-  bool _carregandoResumo = true;
-  String? _erroConsulta;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _viewModel.selecionarSprint(widget.sprint);
-      unawaited(_carregar());
-    });
-  }
-
-  @override
-  Future<void> _carregar() async {
-    final id = widget.sprint.id;
-    if (id == null) return;
-    setState(() {
-      _carregandoResumo = true;
-      _erroConsulta = null;
-    });
-    String? erro;
-    if (_viewModel.sprints.isEmpty && !await _viewModel.carregarSprints()) {
-      erro = _viewModel.erro;
-    }
-    if (!mounted) return;
-    if (!await _viewModel.carregarVinculos(id)) erro = _viewModel.erro;
-    if (!mounted) return;
-    if (!await _viewModel.carregarIndicadores(id)) erro ??= _viewModel.erro;
-    if (!mounted) return;
-    await _demandasViewModel.carregarDemandas();
-    if (!mounted) return;
-    erro ??= _demandasViewModel.erro;
-    setState(() {
-      _carregandoResumo = false;
-      _erroConsulta = erro;
-    });
-  }
-
-  @override
-  void _mostrarFeedback(String mensagem, {bool erro = false}) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensagem)));
-  }
-
-  void _abrirDemanda(int id) {
-    if (widget.onAbrirDemanda case final abrir?) {
-      abrir(id);
-    } else {
-      unawaited(mostrarDetalhesDemandaDialog(context, id));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([_viewModel, _demandasViewModel]),
-    builder: (context, _) {
-      final sprint = _viewModel.sprintSelecionada?.id == widget.sprint.id
-          ? _viewModel.sprintSelecionada!
-          : widget.sprint;
-      final ocupado =
-          _carregandoResumo ||
-          _viewModel.carregando ||
-          _viewModel.enviando ||
-          _demandasViewModel.carregando;
-      final aberta =
-          sprint.status == backend.SprintStatus.planejada ||
-          sprint.status == backend.SprintStatus.ativa;
-      return _SprintResumoDialog(
-        sprint: sprint,
-        viewModel: _viewModel,
-        demandasViewModel: _demandasViewModel,
-        carregando: _carregandoResumo,
-        erroConsulta: _erroConsulta,
-        onAbrirDemanda: _abrirDemanda,
-        onMostrarTodas:
-            widget.onMostrarTodas ??
-            () => _mostrarPainelLateralDemandas(
-              context,
-              titulo: 'Demandas da Sprint',
-              acao: _acaoAdicionarPainel(sprint),
-              child: ListenableBuilder(
-                listenable: Listenable.merge([_viewModel, _demandasViewModel]),
-                builder: (context, _) => _DemandasVinculadasSprint(
-                  vinculos: _viewModel.vinculos,
-                  demandas: _demandasViewModel.demandas,
-                  permiteAcoes: false,
-                  aoAbrir: _abrirDemanda,
-                  aoAcionar: (_, _, _) {},
-                  mensagemVazia: 'Nenhuma Demanda vinculada à Sprint.',
-                ),
-              ),
-            ),
-        onAbrirSprint: () {
-          Navigator.of(context).pop(sprint.id);
-        },
-        onRecarregarVinculos: _carregar,
-        onAdicionar: aberta && !ocupado && _erroConsulta == null
-            ? () => _adicionarDemanda(sprint)
-            : null,
-        mostrarAdicionar: aberta,
-        onIniciar:
-            !ocupado &&
-                _erroConsulta == null &&
-                _podeIniciarSprint(sprint, _viewModel.sprints)
-            ? () => _iniciarSprint(sprint)
-            : null,
-        mostrarIniciar: _podeIniciarSprint(sprint, _viewModel.sprints),
-      );
-    },
-  );
 }
 
 bool _podeIniciarSprint(backend.Sprint sprint, List<backend.Sprint> sprints) {
@@ -1002,174 +916,6 @@ bool _podeIniciarSprint(backend.Sprint sprint, List<backend.Sprint> sprints) {
         (outra) =>
             outra.id != sprint.id && outra.status == backend.SprintStatus.ativa,
       );
-}
-
-class _SprintResumoDialog extends StatelessWidget {
-  const _SprintResumoDialog({
-    required this.sprint,
-    required this.viewModel,
-    required this.demandasViewModel,
-    required this.onAbrirDemanda,
-    required this.onMostrarTodas,
-    required this.onAbrirSprint,
-    required this.onRecarregarVinculos,
-    required this.carregando,
-    this.erroConsulta,
-    this.onIniciar,
-    this.onAdicionar,
-    this.mostrarIniciar = false,
-    this.mostrarAdicionar = false,
-  });
-
-  final bool carregando;
-  final String? erroConsulta;
-  final VoidCallback? onIniciar;
-  final VoidCallback? onAdicionar;
-  final bool mostrarIniciar;
-  final bool mostrarAdicionar;
-  final backend.Sprint sprint;
-  final SprintViewModel viewModel;
-  final DemandasViewModel demandasViewModel;
-  final ValueChanged<int> onAbrirDemanda;
-  final VoidCallback onMostrarTodas;
-  final VoidCallback onAbrirSprint;
-  final VoidCallback onRecarregarVinculos;
-
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: viewModel,
-    builder: (context, _) {
-      final indicadores = sprint.id == null
-          ? null
-          : viewModel.indicadoresDaSprint(sprint.id!);
-      final ocupado = carregando || viewModel.carregando || viewModel.enviando;
-      final falhaVinculos = erroConsulta != null && !ocupado;
-      return AlertDialog(
-        key: const ValueKey('resumo-sprint-dialog'),
-        title: Text('Sprint ${sprint.nome}'),
-        content: SizedBox(
-          width: 560,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _SprintStatusChip(status: sprint.status),
-                    if (_sprintAtrasada(sprint)) const _AtrasadaChip(),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _LinhaResumo(
-                  icone: Icons.calendar_month_outlined,
-                  texto: _periodo(sprint),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _MetricaResumo(
-                      titulo: 'Previsto',
-                      valor: _duracao(sprint.tempoPrevistoMinutos),
-                      icone: Icons.flag_outlined,
-                    ),
-                    _MetricaResumo(
-                      titulo: 'Estimado',
-                      valor: _duracao(indicadores?.tempoTotalEstimadoMinutos),
-                      icone: Icons.hourglass_empty,
-                    ),
-                    _MetricaResumo(
-                      titulo: 'Executado',
-                      valor: _duracao(indicadores?.tempoExecutadoMinutos),
-                      icone: Icons.timer_outlined,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  ocupado
-                      ? 'Consultando Demandas vinculadas…'
-                      : 'Demandas vinculadas (${viewModel.vinculos.length})',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 6),
-                if (ocupado)
-                  const SizedBox(
-                    height: 32,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  )
-                else if (falhaVinculos)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          erroConsulta ?? 'Não foi possível carregar o resumo.',
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Tentar carregar demandas novamente',
-                        onPressed: onRecarregarVinculos,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
-                  )
-                else
-                  _DemandasVinculadasSprint(
-                    vinculos: viewModel.vinculos,
-                    demandas: demandasViewModel.demandas,
-                    limite: 5,
-                    permiteAcoes: false,
-                    mostrarEstimativa: false,
-                    aoAbrir: onAbrirDemanda,
-                    aoAcionar: (_, _, _) {},
-                    aoMostrarTodas: onMostrarTodas,
-                    chaveMostrarTodas: 'mostrar-tudo-demandas-sprint-resumo',
-                    mensagemVazia: 'Nenhuma Demanda vinculada à Sprint.',
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-          if (mostrarIniciar)
-            FilledButton.icon(
-              key: const ValueKey('iniciar-sprint-resumo'),
-              onPressed: onIniciar,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Iniciar Sprint'),
-            ),
-          if (mostrarAdicionar)
-            OutlinedButton.icon(
-              key: const ValueKey('adicionar-demanda-sprint-resumo'),
-              onPressed: onAdicionar,
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar Demanda'),
-            ),
-          FilledButton.icon(
-            key: const ValueKey('abrir-sprint-completa'),
-            onPressed: onAbrirSprint,
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('Abrir Sprint'),
-          ),
-        ],
-      );
-    },
-  );
 }
 
 mixin _SprintAcoesContextuais<T extends StatefulWidget> on State<T> {
@@ -1380,8 +1126,14 @@ class SprintDetalhePage extends StatefulWidget {
     this.viewModel,
     this.demandasViewModel,
     this.demandaDetalheViewModel,
+    this.painel = false,
+    this.onAbrirDemanda,
+    this.onMostrarTodas,
   });
 
+  final bool painel;
+  final ValueChanged<int>? onAbrirDemanda;
+  final VoidCallback? onMostrarTodas;
   final int sprintId;
   final SprintViewModel? viewModel;
   final DemandasViewModel? demandasViewModel;
@@ -1440,6 +1192,13 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
     });
     String? erro;
     try {
+      if (widget.painel &&
+          _viewModel.sprints.isEmpty &&
+          !await _viewModel.carregarSprints()) {
+        erro = _viewModel.erro;
+      }
+      if (!mounted) return;
+
       final carregada = await _viewModel.carregarSprint(widget.sprintId);
       if (!mounted || !carregada) return;
       if (!await _viewModel.carregarIndicadores(widget.sprintId)) {
@@ -1463,17 +1222,24 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
     }
   }
 
-  void _abrirDetalhesDemanda(int demandaId) {
-    unawaited(
-      mostrarDetalhesDemandaDialog(
-        context,
-        demandaId,
-        viewModel: widget.demandaDetalheViewModel,
-      ),
+  Future<void> _abrirDetalhesDemanda(int demandaId) async {
+    if (widget.onAbrirDemanda case final abrir?) {
+      abrir(demandaId);
+      return;
+    }
+    await mostrarDetalhesDemandaDialog(
+      context,
+      demandaId,
+      viewModel: widget.demandaDetalheViewModel,
     );
+    if (mounted) await _carregar();
   }
 
   Future<void> _mostrarPainelDemandas(backend.Sprint sprint) async {
+    if (widget.onMostrarTodas case final mostrar?) {
+      mostrar();
+      return;
+    }
     await _mostrarPainelLateralDemandas(
       context,
       titulo: 'Demandas da Sprint',
@@ -1579,6 +1345,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
 
   Widget _arvoreDemandasVinculadas(backend.Sprint sprint, {int? limite}) =>
       _DemandasVinculadasSprint(
+        mostrarEstimativa: !widget.painel,
         vinculos: _viewModel.vinculos,
         demandas: _demandasViewModel.demandas,
         limite: limite,
@@ -1588,7 +1355,9 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
         aoAcionar: (id, demanda, acao) =>
             _removerDemanda(sprint, demanda, id, acao),
         aoMostrarTodas: () => _mostrarPainelDemandas(sprint),
-        chaveMostrarTodas: 'mostrar-tudo-demandas-sprint',
+        chaveMostrarTodas: widget.painel
+            ? 'mostrar-tudo-demandas-sprint-resumo'
+            : 'mostrar-tudo-demandas-sprint',
         mensagemVazia: 'Nenhuma Demanda vinculada à Sprint.',
       );
 
@@ -1710,7 +1479,11 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
       if (mounted) _mostrarFeedback(erro, erro: true);
       return;
     }
-    Navigator.of(context).pushReplacementNamed(AppRoutes.sprint);
+    if (widget.painel) {
+      Navigator.pop(context);
+    } else {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.sprint);
+    }
   }
 
   Future<void> _executarAcao(
@@ -1741,7 +1514,10 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
 
   Widget _acoesCabecalho(backend.Sprint sprint) {
     final ocupado =
-        _carregandoContexto || _viewModel.carregando || _viewModel.enviando;
+        _carregandoContexto ||
+        _erroConsulta != null ||
+        _viewModel.carregando ||
+        _viewModel.enviando;
     final botoes = <Widget>[
       OutlinedButton.icon(
         key: const ValueKey('editar-sprint'),
@@ -1749,9 +1525,13 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
         icon: const Icon(Icons.edit_outlined),
         label: const Text('Editar'),
       ),
-      if (sprint.status == backend.SprintStatus.planejada)
+      if (widget.painel
+          ? _podeIniciarSprint(sprint, _viewModel.sprints)
+          : sprint.status == backend.SprintStatus.planejada)
         FilledButton.icon(
-          key: const ValueKey('iniciar-sprint'),
+          key: ValueKey(
+            widget.painel ? 'iniciar-sprint-resumo' : 'iniciar-sprint',
+          ),
           onPressed: ocupado ? null : () => _iniciarSprint(sprint),
           icon: _viewModel.enviando
               ? const SizedBox.square(
@@ -1849,21 +1629,36 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([_viewModel, _demandasViewModel]),
-    builder: (context, _) => PageScaffold(
-      title: 'Sprint',
-      route: AppRoutes.sprint,
-      toolbar: _viewModel.sprintSelecionada?.id == widget.sprintId
-          ? _acoesCabecalho(_viewModel.sprintSelecionada!)
-          : null,
-      actions: [
-        TextButton.icon(
-          onPressed: _voltar,
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('Voltar para Sprints'),
-        ),
-      ],
-      body: _conteudo(context),
-    ),
+    builder: (context, _) {
+      final sprint = _viewModel.sprintSelecionada;
+      final controls = sprint?.id == widget.sprintId
+          ? _acoesCabecalho(sprint!)
+          : const SizedBox();
+      if (widget.painel) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: controls,
+            ),
+            Expanded(child: _conteudo(context)),
+          ],
+        );
+      }
+      return PageScaffold(
+        title: 'Sprint',
+        route: AppRoutes.sprint,
+        toolbar: controls,
+        actions: [
+          TextButton.icon(
+            onPressed: _voltar,
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Voltar para Sprints'),
+          ),
+        ],
+        body: _conteudo(context),
+      );
+    },
   );
 
   Widget _conteudo(BuildContext context) {
@@ -1910,16 +1705,18 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
         constraints: const BoxConstraints(maxWidth: 1120),
         child: ListView(
           key: const ValueKey('sprint-detalhe-scroll'),
-          padding: const EdgeInsets.all(TemdasTokens.pagePadding),
+          padding: EdgeInsets.all(widget.painel ? 12 : 16),
           children: [
             if (_carregandoContexto || _viewModel.carregando)
               const LinearProgressIndicator(
                 key: ValueKey('carregando-contexto-sprint'),
               ),
+            if (widget.painel && _carregandoContexto)
+              const Text('Consultando Demandas vinculadas…'),
             const SizedBox(height: 4),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1955,50 +1752,24 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
               ),
             ),
             const SizedBox(height: TemdasTokens.contentGap),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final largura = constraints.maxWidth >= 700
-                    ? (constraints.maxWidth - 2 * TemdasTokens.contentGap) / 3
-                    : (constraints.maxWidth - TemdasTokens.contentGap) / 2;
-                return Wrap(
-                  spacing: TemdasTokens.contentGap,
-                  runSpacing: TemdasTokens.contentGap,
-                  children: [
-                    SizedBox(
-                      width: largura,
-                      child: ResumoCard(
-                        titulo: 'Tempo previsto',
-                        valor: _duracao(sprint.tempoPrevistoMinutos),
-                        icone: Icons.flag_outlined,
-                      ),
-                    ),
-                    SizedBox(
-                      width: largura,
-                      child: ResumoCard(
-                        titulo: 'Tempo total estimado',
-                        valor: _duracao(indicadores?.tempoTotalEstimadoMinutos),
-                        icone: Icons.hourglass_empty,
-                      ),
-                    ),
-                    SizedBox(
-                      width: largura,
-                      child: ResumoCard(
-                        titulo: 'Tempo executado',
-                        valor: _duracao(indicadores?.tempoExecutadoMinutos),
-                        icone: Icons.timer_outlined,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: TemdasTokens.contentGap),
+            _SprintMetricas(sprint: sprint, indicadores: indicadores),
+            const SizedBox(height: 8),
+            if (!_carregandoContexto && _erroConsulta == null)
+              _SprintProgresso(
+                vinculos: _viewModel.vinculos,
+                demandas: _demandasViewModel.demandas,
+              ),
+            const SizedBox(height: 8),
             _SecaoSprint(
               titulo: 'Demandas vinculadas (${_viewModel.vinculos.length})',
               icone: Icons.account_tree_outlined,
               acao: _permiteGerenciarVinculos(sprint)
                   ? OutlinedButton.icon(
-                      key: const ValueKey('adicionar-demanda-sprint'),
+                      key: ValueKey(
+                        widget.painel
+                            ? 'adicionar-demanda-sprint-resumo'
+                            : 'adicionar-demanda-sprint',
+                      ),
                       onPressed:
                           _carregandoContexto ||
                               _erroConsulta != null ||
@@ -2020,6 +1791,9 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
               const SizedBox(height: TemdasTokens.contentGap),
               _AvisoErro(
                 mensagem: _erroConsulta ?? _viewModel.erro!,
+                tooltip: widget.painel
+                    ? 'Tentar carregar demandas novamente'
+                    : 'Tentar carregar novamente',
                 onTentar: _carregar,
               ),
             ],
@@ -2463,66 +2237,21 @@ Future<void> _mostrarPainelLateralDemandas(
   barrierLabel: 'Fechar Demandas vinculadas',
   barrierColor: Colors.black54,
   transitionDuration: const Duration(milliseconds: 220),
-  pageBuilder: (dialogContext, _, _) {
-    final tamanho = MediaQuery.sizeOf(dialogContext);
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Material(
-        key: const ValueKey('painel-lateral-demandas-sprint'),
-        color: Theme.of(dialogContext).colorScheme.surface,
-        elevation: 16,
-        borderRadius: const BorderRadius.horizontal(
-          left: Radius.circular(TemdasTokens.cardRadius),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          width: tamanho.width < 560 ? tamanho.width : 560,
-          height: tamanho.height,
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          titulo,
-                          style: Theme.of(dialogContext).textTheme.titleLarge,
-                        ),
-                      ),
-                      ?acao,
-                      IconButton(
-                        key: const ValueKey('fechar-painel-demandas-sprint'),
-                        tooltip: 'Fechar lista',
-                        onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: child,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+  pageBuilder: (dialogContext, _, _) => DemandaPainelRedimensionavel(
+    title: titulo,
+    closeTooltip: 'Fechar lista',
+    closeKey: const ValueKey('fechar-painel-demandas-sprint'),
+    preferenceKey: 'temdas.sprint.vinculos.largura',
+    panelKey: const ValueKey('painel-lateral-demandas-sprint'),
+    onClose: () => Navigator.pop(dialogContext),
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [?acao, child],
       ),
-    );
-  },
-  transitionBuilder: (context, animation, secondaryAnimation, child) =>
-      SlideTransition(
-        position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-            .animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            ),
-        child: child,
-      ),
+    ),
+  ),
 );
 
 class _LinhaDemandaSprint extends StatelessWidget {
@@ -2712,24 +2441,30 @@ class _EstadoSprint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 460),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icone, size: 52, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              titulo,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(mensagem, textAlign: TextAlign.center),
-            if (acao != null) ...[const SizedBox(height: 20), acao!],
-          ],
+    child: SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icone,
+                size: 52,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                titulo,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(mensagem, textAlign: TextAlign.center),
+              if (acao != null) ...[const SizedBox(height: 20), acao!],
+            ],
+          ),
         ),
       ),
     ),
@@ -2775,6 +2510,65 @@ class _AtrasadaChip extends StatelessWidget {
   }
 }
 
+class _SprintMetricas extends StatelessWidget {
+  const _SprintMetricas({required this.sprint, required this.indicadores});
+  final backend.Sprint sprint;
+  final backend.SprintIndicadores? indicadores;
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _MetricaCompacta(
+        titulo: 'Tempo previsto',
+        valor: _duracao(sprint.tempoPrevistoMinutos),
+        icone: Icons.flag_outlined,
+      ),
+      _MetricaCompacta(
+        titulo: 'Tempo total estimado',
+        valor: _duracao(indicadores?.tempoTotalEstimadoMinutos),
+        icone: Icons.hourglass_empty,
+      ),
+      _MetricaCompacta(
+        titulo: 'Tempo executado',
+        valor: _duracao(indicadores?.tempoExecutadoMinutos),
+        icone: Icons.timer_outlined,
+      ),
+    ],
+  );
+}
+
+class _SprintProgresso extends StatelessWidget {
+  const _SprintProgresso({required this.vinculos, required this.demandas});
+  final List<backend.SprintDemanda> vinculos;
+  final List<backend.Demanda> demandas;
+  @override
+  Widget build(BuildContext context) {
+    final ids = vinculos.map((v) => v.demandaId).toSet();
+    final concluidas = demandas
+        .where(
+          (d) =>
+              ids.contains(d.id) && d.status == backend.DemandaStatus.concluida,
+        )
+        .length;
+    return Semantics(
+      label: '$concluidas de ${ids.length} Demandas concluídas',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '$concluidas de ${ids.length} Demandas concluídas',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+          LinearProgressIndicator(
+            value: ids.isEmpty ? 0 : concluidas / ids.length,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MetricaCompacta extends StatelessWidget {
   const _MetricaCompacta({
     required this.titulo,
@@ -2787,52 +2581,17 @@ class _MetricaCompacta extends StatelessWidget {
   final IconData icone;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(
-        icone,
-        size: 18,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-      const SizedBox(width: 6),
-      Text('$titulo: ', style: Theme.of(context).textTheme.bodySmall),
-      Text(valor, style: Theme.of(context).textTheme.labelLarge),
-    ],
-  );
-}
-
-class _MetricaResumo extends StatelessWidget {
-  const _MetricaResumo({
-    required this.titulo,
-    required this.valor,
-    required this.icone,
-  });
-
-  final String titulo;
-  final String valor;
-  final IconData icone;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minWidth: 145),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
       children: [
         Icon(icone, size: 18, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 6),
-        Text(titulo, style: Theme.of(context).textTheme.bodySmall),
-        Text(
-          valor,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(titulo, style: Theme.of(context).textTheme.bodySmall),
         ),
+        const SizedBox(width: 8),
+        Text(valor, style: Theme.of(context).textTheme.labelLarge),
       ],
     ),
   );
@@ -2870,7 +2629,7 @@ class _SecaoSprint extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2885,10 +2644,12 @@ class _SecaoSprint extends StatelessWidget {
                 children: [
                   Icon(icone, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 10),
-                  Text(
-                    titulo,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  Flexible(
+                    child: Text(
+                      titulo,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -2905,7 +2666,12 @@ class _SecaoSprint extends StatelessWidget {
 }
 
 class _AvisoErro extends StatelessWidget {
-  const _AvisoErro({required this.mensagem, required this.onTentar});
+  const _AvisoErro({
+    required this.mensagem,
+    required this.onTentar,
+    this.tooltip = 'Tentar carregar novamente',
+  });
+  final String tooltip;
 
   final String mensagem;
   final VoidCallback onTentar;
@@ -2918,8 +2684,9 @@ class _AvisoErro extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(mensagem)),
+
           IconButton(
-            tooltip: 'Tentar carregar novamente',
+            tooltip: tooltip,
             onPressed: onTentar,
             icon: const Icon(Icons.refresh),
           ),

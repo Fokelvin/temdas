@@ -349,32 +349,37 @@ class DemandaCard extends StatelessWidget {
               dimension: 48,
               child: Center(child: Icon(Icons.circle, size: 14, color: cor)),
             )
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(
-                  cor.withValues(alpha: 0.10),
-                  colors.surface,
+          : ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color.alphaBlend(
+                    cor.withValues(alpha: 0.10),
+                    colors.surface,
+                  ),
+                  border: Border.all(
+                    color: cor.withValues(alpha: 0.20),
+                    width: TemdasTokens.borderWidth,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    TemdasTokens.controlRadius,
+                  ),
                 ),
-                border: Border.all(
-                  color: cor.withValues(alpha: 0.20),
-                  width: TemdasTokens.borderWidth,
-                ),
-                borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
-              ),
-              child: Padding(
-                padding: densidade.paddingStatus,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _statusLabel(demanda.status),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.labelLarge?.copyWith(color: cor),
+                child: Padding(
+                  padding: densidade.paddingStatus,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _statusLabel(demanda.status),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(color: cor),
+                        ),
                       ),
-                    ),
-                    Icon(Icons.arrow_drop_down, size: 18, color: cor),
-                  ],
+                      Icon(Icons.arrow_drop_down, size: 18, color: cor),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -597,21 +597,27 @@ class _EstadoPerfil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 480),
-      child: Padding(
-        padding: const EdgeInsets.all(TemdasTokens.pagePadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 44, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: TemdasTokens.contentGap),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: TemdasTokens.smallGap),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: TemdasTokens.contentGap),
-            FilledButton(onPressed: onAction, child: Text(actionLabel)),
-          ],
+    child: SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(TemdasTokens.pagePadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 44,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: TemdasTokens.contentGap),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: TemdasTokens.smallGap),
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: TemdasTokens.contentGap),
+              FilledButton(onPressed: onAction, child: Text(actionLabel)),
+            ],
+          ),
         ),
       ),
     ),

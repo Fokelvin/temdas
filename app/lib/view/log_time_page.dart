@@ -397,7 +397,9 @@ class _Summary extends StatelessWidget {
         children: [
           _metrica(
             context,
-            'Lançamentos no período',
+            MediaQuery.sizeOf(context).width < 600
+                ? 'Lançamentos'
+                : 'Lançamentos no período',
             '${viewModel.lancamentosDoPeriodo}',
             Icons.event_note,
           ),

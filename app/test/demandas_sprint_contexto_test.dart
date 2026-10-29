@@ -51,7 +51,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Consultando Demandas vinculadas…'), findsOneWidget);
-      await tester.tap(find.text('Fechar'));
+      await tester.tap(find.byTooltip('Fechar Sprint'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(
@@ -104,7 +104,7 @@ void main() {
         find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
         findsOneWidget,
       );
-      await tester.tap(find.text('Fechar'));
+      await tester.tap(find.byTooltip('Fechar Sprint'));
       await tester.pumpAndSettle();
       expect(find.text('Sprint: Ciclo 1'), findsOneWidget);
     },

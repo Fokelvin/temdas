@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Largura em pixels deste navegador, independente de sessão ou Demanda.
 class LarguraPainelDemanda extends ChangeNotifier {
   static const storageKey = 'temdas.demanda.painel.largura';
+  LarguraPainelDemanda({this.preferenceKey = storageKey});
+  final String preferenceKey;
   static const padrao = 420.0;
   static const minima = 360.0;
   static const breakpoint = 840.0;
@@ -23,7 +25,7 @@ class LarguraPainelDemanda extends ChangeNotifier {
   Future<void> load() async {
     try {
       final stored = (await SharedPreferences.getInstance()).getDouble(
-        storageKey,
+        preferenceKey,
       );
       if (_selected || _disposed) return;
       if (stored != null && stored.isFinite && stored >= minima) {
@@ -47,7 +49,7 @@ class LarguraPainelDemanda extends ChangeNotifier {
     return _pending = _pending.then((_) async {
       try {
         return await (await SharedPreferences.getInstance()).setDouble(
-          storageKey,
+          preferenceKey,
           width,
         );
       } catch (_) {
