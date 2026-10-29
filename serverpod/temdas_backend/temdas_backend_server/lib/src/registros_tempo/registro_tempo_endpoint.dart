@@ -38,6 +38,7 @@ class RegistroTempoEndpoint extends Endpoint {
         demandaId: request.demandaId,
         inicioEm: request.inicioEm,
         duracaoMinutos: request.duracaoMinutos,
+        observacao: request.observacao,
         criadoEm: DateTime.now().toUtc(),
       );
 
@@ -103,6 +104,12 @@ class RegistroTempoEndpoint extends Endpoint {
       final desejado = registro.copyWith(
         inicioEm: request.inicioEm,
         duracaoMinutos: request.duracaoMinutos,
+        observacao: request.observacao ?? registro.observacao,
+        observacaoOrigens:
+            request.observacao != null &&
+                request.observacao != registro.observacao
+            ? null
+            : registro.observacaoOrigens,
       );
       return _normalizarEPersistir(session, desejado, transaction, usuarioId);
     });
@@ -113,6 +120,42 @@ class RegistroTempoEndpoint extends Endpoint {
       'duracaoMinutos=${atualizado.duracaoMinutos}.',
     );
     return atualizado;
+  }
+
+  /// Esta operação não normaliza intervalos nem recalcula tempos.
+  /// O update por coluna preserva inclusive alterações temporais concorrentes.
+  Future<RegistroTempo> atualizarObservacao(
+    Session session,
+    int id,
+    String? observacao,
+  ) async {
+    final usuarioId = await _owner(session);
+    return session.db.transaction((transaction) async {
+      // A união lê textos antes de remover os absorvidos. Compartilha o mutex
+      // temporal para uma edição concorrente nunca ser apagada sem ser lida.
+      await _bloquearAgenda(session, transaction);
+      final ids = await UsuarioScope(
+        usuarioId,
+      ).demandaIds(session, transaction: transaction);
+      final registro = await RegistroTempo.db.findFirstRow(
+        session,
+        where: (t) => t.id.equals(id) & t.demandaId.inSet(ids),
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (registro == null) {
+        throw RegistroTempoException(codigo: 'registroNaoEncontrado');
+      }
+      return (await RegistroTempo.db.updateById(
+        session,
+        id,
+        columnValues: (t) => [
+          t.observacao(observacao),
+          t.observacaoOrigens(null),
+        ],
+        transaction: transaction,
+      ))!;
+    });
   }
 
   Future<List<RegistroTempo>> listarRegistrosTempoPorPeriodo(

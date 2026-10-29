@@ -8,6 +8,8 @@ import 'formatters/demanda_identificacao.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/tempo_comparacao.dart';
+import 'widgets/demanda_painel_acoes.dart';
+import 'widgets/demanda_texto_dialog.dart';
 
 class DemandaDetalhePage extends StatelessWidget {
   const DemandaDetalhePage({
@@ -46,57 +48,71 @@ Future<void> mostrarDetalhesDemandaDialog(
   BuildContext context,
   int demandaId, {
   DemandaDetalheViewModel? viewModel,
-}) => showDialog<void>(
+}) => showGeneralDialog<void>(
   context: context,
-  builder: (dialogContext) => Dialog(
-    key: const ValueKey('demanda-detalhe-dialog'),
-    child: SizedBox(
-      width: 1040,
-      height: MediaQuery.sizeOf(dialogContext).height * .85,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-            child: Row(
+  barrierDismissible: true,
+  barrierLabel: 'Fechar detalhes da demanda',
+  pageBuilder: (dialogContext, _, _) {
+    final size = MediaQuery.sizeOf(dialogContext);
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: size.width < 840 ? size.width : size.width * .5,
+        height: size.height,
+        child: Material(
+          key: const ValueKey('demanda-detalhe-dialog'),
+          color: Theme.of(dialogContext).colorScheme.surface,
+          elevation: 12,
+          child: SafeArea(
+            child: Column(
               children: [
-                const Expanded(child: Text('Detalhes da demanda')),
-                IconButton(
-                  tooltip: 'Fechar detalhes',
-                  onPressed: () => Navigator.pop(dialogContext),
-                  icon: const Icon(Icons.close),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Demanda #$demandaId',
+                          style: Theme.of(dialogContext).textTheme.titleLarge,
+                        ),
+                      ),
+                      if (kIsWeb)
+                        IconButton(
+                          key: const ValueKey('abrir-demanda-nova-aba'),
+                          tooltip: 'Abrir em nova aba',
+                          icon: const Icon(Icons.open_in_new),
+                          onPressed: () => abrirRotaEmNovaAba(
+                            AppRoutes.detalheDaDemanda(demandaId),
+                          ),
+                        ),
+                      IconButton(
+                        tooltip: 'Fechar detalhes',
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _DemandaDetalheConteudo(
+                    demandaId: demandaId,
+                    viewModel: viewModel,
+                    painel: true,
+                    onVoltar: () => Navigator.pop(dialogContext),
+                    onAbrirDemanda: (id) {
+                      if (id != null) {
+                        mostrarDetalhesDemandaDialog(dialogContext, id);
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
           ),
-          if (kIsWeb)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const ValueKey('abrir-demanda-nova-aba'),
-                  onPressed: () =>
-                      abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Abrir em nova aba'),
-                ),
-              ),
-            ),
-          Expanded(
-            child: _DemandaDetalheConteudo(
-              demandaId: demandaId,
-              viewModel: viewModel,
-              onVoltar: () => Navigator.pop(dialogContext),
-              onAbrirDemanda: (id) {
-                if (id == null) return;
-                mostrarDetalhesDemandaDialog(dialogContext, id);
-              },
-            ),
-          ),
-        ],
+        ),
       ),
-    ),
-  ),
+    );
+  },
 );
 
 // A página e o popup compartilham carregamento e apresentação dos detalhes.
@@ -106,8 +122,10 @@ class _DemandaDetalheConteudo extends StatefulWidget {
     required this.onVoltar,
     required this.onAbrirDemanda,
     this.viewModel,
+    this.painel = false,
   });
 
+  final bool painel;
   final int demandaId;
   final VoidCallback onVoltar;
   final ValueChanged<int?> onAbrirDemanda;
@@ -121,6 +139,8 @@ class _DemandaDetalheConteudo extends StatefulWidget {
 class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
   late final DemandaDetalheViewModel _viewModel;
   late final bool _possuiViewModel;
+  int _aba = 0;
+  bool _anotacoesIniciadas = false;
 
   @override
   void initState() {
@@ -134,6 +154,8 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
   void didUpdateWidget(covariant _DemandaDetalheConteudo oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.demandaId != oldWidget.demandaId) {
+      _aba = 0;
+      _anotacoesIniciadas = false;
       _viewModel.carregar(widget.demandaId);
     }
   }
@@ -182,67 +204,247 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
       );
     }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1040),
-        child: SelectionArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: widget.onVoltar,
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Voltar'),
-                ),
-              ),
-              const SizedBox(height: 4),
-              _Cabecalho(demanda: demanda),
-              const SizedBox(height: 16),
-              _Secao(
-                titulo: 'Estimado x executado',
-                child: TempoComparacao(
-                  estimadoMinutos: demanda.tempoEstimadoMinutos,
-                  executadoMinutos: _viewModel.tempoExecutadoMinutos,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _Secao(
-                titulo: 'Informações',
-                child: _Informacoes(
-                  demanda: demanda,
-                  executadoMinutos: _viewModel.tempoExecutadoMinutos,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _Secao(
-                titulo: 'Demanda mãe',
-                child: _DemandaMae(
-                  demanda: demanda,
-                  demandaMae: _viewModel.demandaMae,
-                  onAbrir: widget.onAbrirDemanda,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _Secao(
-                titulo: 'Demandas filhas (${_viewModel.filhas.length})',
-                child: _DemandasFilhas(
-                  demandas: _viewModel.filhas,
-                  onAbrir: widget.onAbrirDemanda,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _Secao(
-                titulo: 'Histórico de tempo (${_viewModel.registros.length})',
-                child: _HistoricoTempo(registros: _viewModel.registros),
-              ),
+    return DefaultTabController(
+      length: 3,
+      initialIndex: _aba,
+      child: Column(
+        children: [
+          TabBar(
+            isScrollable: MediaQuery.textScalerOf(context).scale(1) > 1.3,
+            onTap: (aba) {
+              _aba = aba;
+              if (aba == 1 && !_anotacoesIniciadas) {
+                _anotacoesIniciadas = true;
+                _viewModel.carregarAnotacoes(widget.demandaId);
+              }
+            },
+            tabs: const [
+              Tab(text: 'Visão geral'),
+              Tab(text: 'Anotações'),
+              Tab(text: 'Horas'),
             ],
           ),
-        ),
+          Expanded(
+            child: TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
+              children: [_visaoGeral(demanda), _anotacoes(demanda), _horas()],
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _visaoGeral(backend.Demanda demanda) => SelectionArea(
+    child: ListView(
+      key: const PageStorageKey('demanda-visao-geral'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        if (!widget.painel)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: widget.onVoltar,
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Voltar'),
+            ),
+          ),
+        _Cabecalho(demanda: demanda),
+        if (_viewModel.acoesViewModel case final vm?)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: DemandaPainelAcoes(
+              demanda: demanda,
+              viewModel: vm,
+              onAtualizar: () => _viewModel.carregar(widget.demandaId),
+            ),
+          ),
+        _Secao(
+          titulo: 'Estimado x executado',
+          child: TempoComparacao(
+            estimadoMinutos: demanda.tempoEstimadoMinutos,
+            executadoMinutos: _viewModel.tempoExecutadoMinutos,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Secao(
+          titulo: 'Sprint',
+          child: _viewModel.carregandoSprint
+              ? const LinearProgressIndicator()
+              : _viewModel.erroSprint != null
+              ? TextButton(
+                  onPressed: () => _viewModel.carregarSprint(widget.demandaId),
+                  child: const Text('Tentar consultar Sprint novamente'),
+                )
+              : TextButton.icon(
+                  icon: const Icon(Icons.directions_run),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.sprint),
+                  label: Text(_viewModel.sprint?.nome ?? 'Sem Sprint'),
+                ),
+        ),
+        const SizedBox(height: 12),
+        _Secao(
+          titulo: 'Informações',
+          child: _Informacoes(
+            demanda: demanda,
+            executadoMinutos: _viewModel.tempoExecutadoMinutos,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Secao(
+          titulo: 'Demanda mãe',
+          child: _DemandaMae(
+            demanda: demanda,
+            demandaMae: _viewModel.demandaMae,
+            onAbrir: widget.onAbrirDemanda,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Secao(
+          titulo: 'Demandas filhas (${_viewModel.filhas.length})',
+          child: _DemandasFilhas(
+            demandas: _viewModel.filhas,
+            onAbrir: widget.onAbrirDemanda,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _anotacoes(backend.Demanda demanda) => ListView(
+    key: PageStorageKey('demanda-${widget.demandaId}-anotacoes'),
+    padding: const EdgeInsets.all(16),
+    children: [
+      Align(
+        alignment: Alignment.centerLeft,
+        child: FilledButton.icon(
+          onPressed: _viewModel.salvando ? null : () => _editarAnotacao(),
+          icon: const Icon(Icons.add_comment_outlined),
+          label: const Text('Nova anotação'),
+        ),
+      ),
+      if (_viewModel.carregandoAnotacoes) const LinearProgressIndicator(),
+      if (_viewModel.erroAnotacoes case final erro?) ...[
+        Text(erro),
+        TextButton(
+          onPressed: () => _viewModel.carregarAnotacoes(widget.demandaId),
+          child: const Text('Tentar novamente'),
+        ),
+      ] else if (!_viewModel.carregandoAnotacoes &&
+          _viewModel.anotacoes.isEmpty)
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Nenhuma anotação nesta demanda.'),
+        ),
+      for (final anotacao in _viewModel.anotacoes)
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Autor #${anotacao.autorId} · ${_formatarDataHora(anotacao.criadoEm)}',
+                ),
+                if (anotacao.editadoEm != null)
+                  Text('Editada em ${_formatarDataHora(anotacao.editadoEm!)}'),
+                const SizedBox(height: 8),
+                SelectableText(anotacao.conteudo),
+                if (anotacao.autorId == demanda.usuarioId)
+                  Wrap(
+                    children: [
+                      TextButton(
+                        onPressed: _viewModel.salvando
+                            ? null
+                            : () => _editarAnotacao(anotacao),
+                        child: const Text('Editar anotação'),
+                      ),
+                      TextButton(
+                        onPressed: _viewModel.salvando
+                            ? null
+                            : () => _excluirAnotacao(anotacao),
+                        child: const Text('Excluir anotação'),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Future<void> _editarAnotacao([backend.AnotacaoDemanda? anotacao]) =>
+      mostrarTextoDemandaDialog(
+        context,
+        titulo: anotacao == null ? 'Nova anotação' : 'Editar anotação',
+        texto: anotacao?.conteudo,
+        obrigatorio: true,
+        salvar: (texto) => _viewModel.salvarAnotacao(
+          widget.demandaId,
+          texto,
+          id: anotacao?.id,
+        ),
+      );
+
+  Future<void> _excluirAnotacao(backend.AnotacaoDemanda anotacao) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir anotação?'),
+        content: const Text('A anotação será removida do histórico visível.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    final sucesso = await _viewModel.excluirAnotacao(
+      widget.demandaId,
+      anotacao.id!,
+    );
+    if (!sucesso && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível excluir. Tente novamente.'),
+        ),
+      );
+    }
+  }
+
+  Widget _horas() => ListView(
+    key: const PageStorageKey('demanda-horas'),
+    padding: const EdgeInsets.all(16),
+    children: [
+      Text(
+        'Total: ${_formatarDuracao(_viewModel.registros.fold<int>(0, (t, r) => t + r.duracaoMinutos))}',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          'Correções de horários e exclusões estão disponíveis na tela Log Time.',
+        ),
+      ),
+      _HistoricoTempo(
+        registros: _viewModel.registros,
+        editarObservacao: (registro) => mostrarTextoDemandaDialog(
+          context,
+          titulo: 'Editar observação',
+          texto: registro.observacao,
+          salvar: (texto) => _viewModel.salvarObservacao(registro.id!, texto),
+        ),
+      ),
+    ],
+  );
 }
 
 class _Cabecalho extends StatelessWidget {
@@ -333,10 +535,6 @@ class _Informacoes extends StatelessWidget {
         valor: demanda.concluidoEm == null
             ? 'Não concluída'
             : _formatarDataHora(demanda.concluidoEm!),
-      ),
-      (
-        label: 'Observações',
-        valor: _textoOuFallback(demanda.observacoes, 'Não informadas'),
       ),
     ];
 
@@ -453,7 +651,12 @@ class _DemandasFilhas extends StatelessWidget {
 }
 
 class _HistoricoTempo extends StatelessWidget {
-  const _HistoricoTempo({required this.registros});
+  const _HistoricoTempo({
+    required this.registros,
+    required this.editarObservacao,
+  });
+
+  final ValueChanged<backend.RegistroTempo> editarObservacao;
 
   final List<backend.RegistroTempo> registros;
 
@@ -470,9 +673,22 @@ class _HistoricoTempo extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.schedule),
             title: Text(_formatarDataHora(registros[index].inicioEm)),
-            subtitle: Text(
-              'Lançamento #${registros[index].id ?? '—'} · registrado em '
-              '${_formatarDataHora(registros[index].criadoEm)}',
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Até ${_formatarDataHora(registros[index].inicioEm.add(Duration(minutes: registros[index].duracaoMinutos)))}',
+                ),
+                Text(
+                  'Lançamento #${registros[index].id ?? '—'} · registrado em ${_formatarDataHora(registros[index].criadoEm)}',
+                ),
+                if (registros[index].observacao?.isNotEmpty ?? false)
+                  SelectableText(registros[index].observacao!),
+                TextButton(
+                  onPressed: () => editarObservacao(registros[index]),
+                  child: const Text('Editar observação'),
+                ),
+              ],
             ),
             trailing: Text(
               _formatarDuracao(registros[index].duracaoMinutos),

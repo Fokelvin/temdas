@@ -148,7 +148,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.textContaining(demanda.titulo));
+      await tester.tap(find.byKey(ValueKey('expandir-demanda-${demanda.id}')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('acoes-demanda-1')));
       await tester.pumpAndSettle();
@@ -172,7 +172,7 @@ Future<DemandasViewModel> _abrir(
   await tester.pumpAndSettle();
   final alvo = find.textContaining('Alvo');
   await tester.ensureVisible(alvo);
-  await tester.tap(alvo);
+  await tester.tap(find.byKey(const ValueKey('expandir-demanda-1')));
   await tester.pumpAndSettle();
   return vm;
 }

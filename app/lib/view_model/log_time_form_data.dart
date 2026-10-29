@@ -8,11 +8,13 @@ class LogTimeFormData {
     required this.data,
     required this.hora,
     required this.duracaoMinutos,
+    this.observacao,
   });
 
   final DateTime data;
   final TimeOfDay hora;
   final int duracaoMinutos;
+  final String? observacao;
 
   /// Adapta o formulário às operações existentes da AgendaViewModel.
   double get duracaoHoras => duracaoMinutos / Duration.minutesPerHour;
@@ -25,12 +27,18 @@ class LogTimeFormData {
     required DateTime data,
     required TimeOfDay inicio,
     required TimeOfDay fim,
+    String? observacao,
   }) {
     final minutos =
         (fim.hour - inicio.hour) * Duration.minutesPerHour +
         fim.minute -
         inicio.minute;
     if (minutos <= 0) return null;
-    return LogTimeFormData(data: data, hora: inicio, duracaoMinutos: minutos);
+    return LogTimeFormData(
+      data: data,
+      hora: inicio,
+      duracaoMinutos: minutos,
+      observacao: observacao,
+    );
   }
 }

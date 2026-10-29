@@ -144,11 +144,11 @@ void main() {
         );
         final card = find.byKey(const ValueKey('demanda-card-1'));
         final collapsed = tester.getSize(card).height;
-        await tester.tap(find.byType(ExpansionTile));
+        await tester.tap(find.byIcon(Icons.expand_more));
         await tester.pumpAndSettle();
         heights[density] = [collapsed, tester.getSize(card).height];
         expect(find.text('Descrição: Descrição inicial'), findsOneWidget);
-        expect(find.text('Observações: Observação preservada'), findsOneWidget);
+        expect(find.text('Observações: Observação preservada'), findsNothing);
         expect(find.byKey(const ValueKey('status-demanda-1')), findsOneWidget);
         expect(
           find.byKey(const ValueKey('concluir-demanda-1')),

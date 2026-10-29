@@ -1,0 +1,12 @@
+class: AnotacaoDemanda
+table: anotacoes_demanda
+fields:
+  demandaId: int, relation(parent=demandas, onDelete=Cascade)
+  autorId: int, relation(parent=usuarios)
+  conteudo: String
+  criadoEm: DateTime
+  editadoEm: DateTime?
+  excluidoEm: DateTime?
+indexes:
+  anotacoes_demanda_criacao_idx:
+    fields: demandaId, criadoEm

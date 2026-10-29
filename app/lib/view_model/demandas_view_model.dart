@@ -6,9 +6,11 @@ import '../data/repositories/registro_tempo_repository.dart';
 
 class DemandasViewModel extends ChangeNotifier {
   DemandasViewModel({
+    List<backend.Demanda> demandasIniciais = const [],
     DemandaRepository? repository,
     RegistroTempoRepository? registroTempoRepository,
-  }) : _repository = repository ?? DemandaRepository(),
+  }) : _demandas = List.of(demandasIniciais),
+       _repository = repository ?? DemandaRepository(),
        _registroTempoRepository =
            registroTempoRepository ?? RegistroTempoRepository();
 
@@ -26,7 +28,7 @@ class DemandasViewModel extends ChangeNotifier {
   backend.TransicaoStatusException? _erroTransicaoStatus;
   backend.MovimentacaoDemandaException? _erroMovimentacao;
   backend.Demanda? _demandaCriada;
-  List<backend.Demanda> _demandas = [];
+  List<backend.Demanda> _demandas;
 
   // Os fluxos globais continuam exclusivos; mutações locais bloqueiam só seu ID.
   bool get enviando => _enviando || _demandasEmProcessamento.isNotEmpty;
@@ -179,7 +181,6 @@ class DemandasViewModel extends ChangeNotifier {
         motivoCancelamento: motivoCancelamento,
         prioridade: prioridade,
         tempoEstimadoMinutos: tempoEstimadoMinutos,
-        observacoes: demanda.observacoes,
       );
 
       if (!_descartado) {
@@ -337,6 +338,7 @@ class DemandasViewModel extends ChangeNotifier {
     required backend.Demanda demanda,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) async {
     if (_descartado || _enviando) return false;
 
@@ -362,6 +364,7 @@ class DemandasViewModel extends ChangeNotifier {
         demandaId: id,
         inicioEm: inicioEm.toUtc(),
         duracaoMinutos: duracaoMinutos,
+        observacao: observacao,
       );
       registrado = true;
       if (!_descartado) {

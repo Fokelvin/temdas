@@ -2,6 +2,11 @@ convite:
   - consultar:
   - convidar:
   - reenviar:
+anotacaoDemanda:
+  - listar:
+  - criar:
+  - editar:
+  - excluir:
 auth:
   - provisionar:
   - me:
@@ -21,6 +26,7 @@ greeting:
 registroTempo:
   - registrarTempo:
   - editarRegistroTempo:
+  - atualizarObservacao:
   - listarRegistrosTempoPorPeriodo:
   - listarRegistrosTempoDaDemanda:
   - excluirRegistroTempo:

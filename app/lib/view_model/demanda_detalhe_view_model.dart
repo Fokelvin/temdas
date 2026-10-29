@@ -2,19 +2,38 @@ import 'package:flutter/foundation.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../data/repositories/demanda_repository.dart';
+import '../data/repositories/anotacao_demanda_repository.dart';
+import 'sprint_view_model.dart';
+import 'demandas_view_model.dart';
 import '../data/repositories/registro_tempo_repository.dart';
 
 class DemandaDetalheViewModel extends ChangeNotifier {
   DemandaDetalheViewModel({
     DemandaRepository? demandaRepository,
     RegistroTempoRepository? registroTempoRepository,
-  }) : _demandaRepository = demandaRepository ?? DemandaRepository(),
+    AnotacaoDemandaRepository? anotacaoRepository,
+    SprintViewModel? sprintViewModel,
+  }) : _anotacaoRepository = anotacaoRepository ?? AnotacaoDemandaRepository(),
+       _sprintViewModel = sprintViewModel ?? SprintViewModel(),
+       _demandaRepository = demandaRepository ?? DemandaRepository(),
        _registroTempoRepository =
            registroTempoRepository ?? RegistroTempoRepository();
 
+  final AnotacaoDemandaRepository _anotacaoRepository;
+  final SprintViewModel _sprintViewModel;
+  List<backend.AnotacaoDemanda> _anotacoes = [];
+  List<backend.AnotacaoDemanda> get anotacoes => List.unmodifiable(_anotacoes);
+  backend.Sprint? sprint;
+  String? erroSprint;
+  bool carregandoSprint = false;
+  bool carregandoAnotacoes = false;
+  bool salvando = false;
+  String? erroAnotacoes;
+  String? erroMutacao;
   final DemandaRepository _demandaRepository;
   final RegistroTempoRepository _registroTempoRepository;
 
+  DemandasViewModel? acoesViewModel;
   bool _carregando = false;
   String? _erro;
   backend.Demanda? _demanda;
@@ -22,6 +41,9 @@ class DemandaDetalheViewModel extends ChangeNotifier {
   List<backend.Demanda> _filhas = [];
   List<backend.RegistroTempo> _registros = [];
   int _versaoCarregamento = 0;
+  int _versaoSprint = 0;
+  int _versaoAnotacoes = 0;
+  int? _idAtual;
   bool _descartado = false;
 
   bool get carregando => _carregando;
@@ -35,6 +57,8 @@ class DemandaDetalheViewModel extends ChangeNotifier {
 
   Future<void> carregar(int demandaId) async {
     final versao = ++_versaoCarregamento;
+    if (_idAtual != demandaId) _anotacoes = [];
+    _idAtual = demandaId;
 
     _carregando = true;
     _erro = null;
@@ -43,6 +67,7 @@ class DemandaDetalheViewModel extends ChangeNotifier {
     _filhas = [];
     _registros = [];
     _notificar();
+    carregarSprint(demandaId);
 
     try {
       final resultados = await Future.wait<Object?>([
@@ -57,6 +82,12 @@ class DemandaDetalheViewModel extends ChangeNotifier {
 
       if (versao != _versaoCarregamento || _descartado) return;
 
+      acoesViewModel?.dispose();
+      acoesViewModel = DemandasViewModel(
+        repository: _demandaRepository,
+        registroTempoRepository: _registroTempoRepository,
+        demandasIniciais: demandas,
+      );
       _demanda = demanda;
       if (demanda != null) {
         _demandaMae = _encontrarPorId(demandas, demanda.demandaPaiId);
@@ -82,10 +113,97 @@ class DemandaDetalheViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> carregarSprint(int demandaId) async {
+    final versao = ++_versaoSprint;
+    carregandoSprint = true;
+    erroSprint = null;
+    _notificar();
+    final vinculos = await _sprintViewModel
+        .carregarDemandasDeOutrasSprintsAbertas();
+    if (_descartado || versao != _versaoSprint) return;
+    sprint = vinculos?[demandaId];
+    erroSprint = vinculos == null
+        ? 'Não foi possível consultar a Sprint.'
+        : null;
+    carregandoSprint = false;
+    _notificar();
+  }
+
+  Future<void> carregarAnotacoes(int demandaId) async {
+    final versao = ++_versaoAnotacoes;
+    final carregamento = _versaoCarregamento;
+    carregandoAnotacoes = true;
+    erroAnotacoes = null;
+    _notificar();
+    try {
+      final resultado = await _anotacaoRepository.listar(demandaId);
+      if (!_descartado &&
+          versao == _versaoAnotacoes &&
+          carregamento == _versaoCarregamento) {
+        _anotacoes = resultado;
+      }
+    } catch (_) {
+      if (!_descartado &&
+          versao == _versaoAnotacoes &&
+          carregamento == _versaoCarregamento) {
+        erroAnotacoes = 'Não foi possível carregar as anotações.';
+      }
+    } finally {
+      if (versao == _versaoAnotacoes) {
+        carregandoAnotacoes = false;
+        _notificar();
+      }
+    }
+  }
+
+  Future<bool> salvarAnotacao(int demandaId, String conteudo, {int? id}) =>
+      _mutar(() async {
+        if (id == null) {
+          await _anotacaoRepository.criar(demandaId, conteudo);
+        } else {
+          await _anotacaoRepository.editar(id, conteudo);
+        }
+        await carregarAnotacoes(demandaId);
+      });
+
+  Future<bool> excluirAnotacao(int demandaId, int id) => _mutar(() async {
+    await _anotacaoRepository.excluir(id);
+    await carregarAnotacoes(demandaId);
+  });
+
+  Future<bool> salvarObservacao(int id, String texto) => _mutar(() async {
+    final atualizado = await _registroTempoRepository.atualizarObservacao(
+      id,
+      texto,
+    );
+    if (!_descartado) {
+      _registros = [for (final r in _registros) r.id == id ? atualizado : r];
+    }
+  });
+
+  Future<bool> _mutar(Future<void> Function() operacao) async {
+    if (salvando || _descartado) return false;
+    salvando = true;
+    erroMutacao = null;
+    _notificar();
+    try {
+      await operacao();
+      return true;
+    } catch (_) {
+      erroMutacao = 'Não foi possível salvar. Tente novamente.';
+      return false;
+    } finally {
+      salvando = false;
+      _notificar();
+    }
+  }
+
   @override
   void dispose() {
     _descartado = true;
     _versaoCarregamento++;
+    acoesViewModel?.dispose();
+    _sprintViewModel.dispose();
     super.dispose();
   }
 

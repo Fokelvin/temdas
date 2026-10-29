@@ -14,7 +14,6 @@ class DemandaRepository {
     int? demandaPaiId,
     String? descricao,
     backend.Prioridade? prioridade,
-    String? observacoes,
   }) {
     final request = backend.DemandaCreateRequest(
       demandaPaiId: demandaPaiId,
@@ -22,7 +21,6 @@ class DemandaRepository {
       descricao: descricao,
       prioridade: prioridade,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
-      observacoes: observacoes,
     );
 
     return _client.demanda.criarDemanda(request);
@@ -36,7 +34,6 @@ class DemandaRepository {
     String? motivoCancelamento,
     required backend.Prioridade prioridade,
     required int tempoEstimadoMinutos,
-    String? observacoes,
   }) {
     final request = backend.DemandaUpdateRequest(
       id: id,
@@ -46,7 +43,6 @@ class DemandaRepository {
       motivoCancelamento: motivoCancelamento,
       prioridade: prioridade,
       tempoEstimadoMinutos: tempoEstimadoMinutos,
-      observacoes: observacoes,
     );
 
     return _client.demanda.atualizarDemanda(request);

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/demandas_page.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
@@ -363,11 +364,31 @@ Future<_ViewModelObservada> _abrir(
   await tester.pumpAndSettle();
   if (find.textContaining('Alvo').evaluate().isEmpty &&
       find.textContaining('Mãe').evaluate().isNotEmpty) {
-    await tester.tap(find.textContaining('Mãe'));
+    await tester.tap(
+      find.descendant(
+        of: find
+            .ancestor(
+              of: find.textContaining('Mãe'),
+              matching: find.byType(DemandaCard),
+            )
+            .first,
+        matching: find.byIcon(Icons.expand_more),
+      ),
+    );
     await tester.pumpAndSettle();
   }
   await tester.ensureVisible(find.textContaining('Alvo'));
-  await tester.tap(find.textContaining('Alvo'));
+  await tester.tap(
+    find.descendant(
+      of: find
+          .ancestor(
+            of: find.textContaining('Alvo'),
+            matching: find.byType(DemandaCard),
+          )
+          .first,
+      matching: find.byIcon(Icons.expand_more),
+    ),
+  );
   await tester.pumpAndSettle();
   return vm;
 }

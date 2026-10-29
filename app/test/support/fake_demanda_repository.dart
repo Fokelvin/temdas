@@ -333,10 +333,23 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
   Completer<backend.RegistroTempo>? respostaRegistrarPendente;
 
   @override
+  Future<backend.RegistroTempo> atualizarObservacao(
+    int id,
+    String? observacao,
+  ) async {
+    final index = _registros.indexWhere((r) => r.id == id);
+    if (index < 0) throw StateError('Registro não encontrado');
+    return _registros[index] = _registros[index].copyWith(
+      observacao: observacao,
+    );
+  }
+
+  @override
   Future<backend.RegistroTempo> editarRegistroTempo({
     required int id,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) async {
     throw UnsupportedError('Edição não configurada neste fake.');
   }
@@ -346,6 +359,7 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) async {
     chamadasRegistrar++;
     ultimaDemandaId = demandaId;
@@ -362,6 +376,7 @@ class FakeRegistroTempoRepository implements RegistroTempoRepository {
       demandaId: demandaId,
       inicioEm: inicioEm,
       duracaoMinutos: duracaoMinutos,
+      observacao: observacao,
       criadoEm: DateTime.utc(2026, 9, 9, 14),
     );
     _registros.add(registro);

@@ -19,6 +19,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     required this.demandaId,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
     required this.criadoEm,
   });
 
@@ -27,6 +28,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
     required DateTime criadoEm,
   }) = _RegistroTempoImpl;
 
@@ -38,6 +40,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
         jsonSerialization['inicioEm'],
       ),
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
+      observacao: jsonSerialization['observacao'] as String?,
       criadoEm: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['criadoEm'],
       ),
@@ -55,6 +58,8 @@ abstract class RegistroTempo implements _i1.SerializableModel {
 
   int duracaoMinutos;
 
+  String? observacao;
+
   DateTime criadoEm;
 
   /// Returns a shallow copy of this [RegistroTempo]
@@ -65,6 +70,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    String? observacao,
     DateTime? criadoEm,
   });
   @override
@@ -75,6 +81,7 @@ abstract class RegistroTempo implements _i1.SerializableModel {
       'demandaId': demandaId,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -93,12 +100,14 @@ class _RegistroTempoImpl extends RegistroTempo {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
     required DateTime criadoEm,
   }) : super._(
          id: id,
          demandaId: demandaId,
          inicioEm: inicioEm,
          duracaoMinutos: duracaoMinutos,
+         observacao: observacao,
          criadoEm: criadoEm,
        );
 
@@ -111,6 +120,7 @@ class _RegistroTempoImpl extends RegistroTempo {
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    Object? observacao = _Undefined,
     DateTime? criadoEm,
   }) {
     return RegistroTempo(
@@ -118,6 +128,7 @@ class _RegistroTempoImpl extends RegistroTempo {
       demandaId: demandaId ?? this.demandaId,
       inicioEm: inicioEm ?? this.inicioEm,
       duracaoMinutos: duracaoMinutos ?? this.duracaoMinutos,
+      observacao: observacao is String? ? observacao : this.observacao,
       criadoEm: criadoEm ?? this.criadoEm,
     );
   }

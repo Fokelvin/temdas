@@ -5,6 +5,8 @@ import 'package:temdas/view_model/demanda_detalhe_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import 'support/fake_demanda_repository.dart';
+import 'support/fake_sprint_repository.dart';
+import 'package:temdas/view_model/sprint_view_model.dart';
 
 void main() {
   test(
@@ -36,6 +38,9 @@ void main() {
         duracaoMinutos: 30,
       );
       final viewModel = DemandaDetalheViewModel(
+        sprintViewModel: SprintViewModel(
+          repository: FakeSprintRepository(sprints: []),
+        ),
         demandaRepository: FakeDemandaRepository(
           demandas: [filha, demanda, mae],
         ),
@@ -76,6 +81,9 @@ void main() {
       titulo: 'Demanda filha',
     );
     final viewModel = DemandaDetalheViewModel(
+      sprintViewModel: SprintViewModel(
+        repository: FakeSprintRepository(sprints: []),
+      ),
       demandaRepository: FakeDemandaRepository(demandas: [mae, demanda, filha]),
       registroTempoRepository: FakeRegistroTempoRepository(
         registros: [
@@ -102,7 +110,10 @@ void main() {
     expect(find.text('Demanda mãe'), findsOneWidget);
     expect(find.text('Demandas filhas (1)'), findsOneWidget);
     expect(find.text('3 - Demanda filha'), findsOneWidget);
-    expect(find.text('Histórico de tempo (1)'), findsOneWidget);
+    await tester.tap(find.text('Horas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Total: 1h 30min'), findsOneWidget);
+    expect(find.text('Editar observação'), findsOneWidget);
   });
 }
 

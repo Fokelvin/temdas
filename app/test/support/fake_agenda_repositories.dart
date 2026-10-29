@@ -17,11 +17,13 @@ class RegistroCriadoCapturado {
     required this.demandaId,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
   });
 
   final int demandaId;
   final DateTime inicioEm;
   final int duracaoMinutos;
+  final String? observacao;
 }
 
 class RegistroEditadoCapturado {
@@ -29,11 +31,13 @@ class RegistroEditadoCapturado {
     required this.id,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
   });
 
   final int id;
   final DateTime inicioEm;
   final int duracaoMinutos;
+  final String? observacao;
 }
 
 class FakeAgendaDemandaRepository extends DemandaRepository {
@@ -100,6 +104,7 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) async {
     if (erroAoRegistrar case final erro?) throw erro;
     registrosCriados.add(
@@ -107,6 +112,7 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
         demandaId: demandaId,
         inicioEm: inicioEm,
         duracaoMinutos: duracaoMinutos,
+        observacao: observacao,
       ),
     );
     final registro = backend.RegistroTempo(
@@ -114,6 +120,7 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
       demandaId: demandaId,
       inicioEm: inicioEm,
       duracaoMinutos: duracaoMinutos,
+      observacao: observacao,
       criadoEm: DateTime.now().toUtc(),
     );
     _registros.add(registro);
@@ -129,12 +136,14 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
     required int id,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) async {
     registrosEditados.add(
       RegistroEditadoCapturado(
         id: id,
         inicioEm: inicioEm,
         duracaoMinutos: duracaoMinutos,
+        observacao: observacao,
       ),
     );
     if (erroAoEditar case final erro?) throw erro;
@@ -143,7 +152,13 @@ class FakeRegistroTempoRepository extends RegistroTempoRepository {
     final atualizada = resposta == null
         ? _registros
               .firstWhere((registro) => registro.id == id)
-              .copyWith(inicioEm: inicioEm, duracaoMinutos: duracaoMinutos)
+              .copyWith(
+                inicioEm: inicioEm,
+                duracaoMinutos: duracaoMinutos,
+                observacao:
+                    observacao ??
+                    _registros.firstWhere((r) => r.id == id).observacao,
+              )
         : await resposta.future;
     final index = _registros.indexWhere((registro) => registro.id == id);
     if (index == -1) throw StateError('Registro não encontrado.');

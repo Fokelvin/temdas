@@ -200,6 +200,7 @@ class AgendaViewModel extends ChangeNotifier {
     required DateTime data,
     required TimeOfDay hora,
     required double duracaoHoras,
+    String? observacao,
   }) async {
     if (_enviando) return false;
 
@@ -233,6 +234,7 @@ class AgendaViewModel extends ChangeNotifier {
         demandaId: demandaId,
         inicioEm: inicioLocal.toUtc(),
         duracaoMinutos: duracaoMinutos,
+        observacao: observacao,
       );
       if (!_disposed) await carregarAgenda();
       return true;
@@ -258,6 +260,7 @@ class AgendaViewModel extends ChangeNotifier {
     required DateTime data,
     required TimeOfDay hora,
     required double duracaoHoras,
+    String? observacao,
   }) async {
     if (_disposed || _enviando) return false;
 
@@ -285,6 +288,7 @@ class AgendaViewModel extends ChangeNotifier {
         id: id,
         inicioEm: inicioLocal.toUtc(),
         duracaoMinutos: duracaoMinutos,
+        observacao: observacao,
       );
       // Reconsulta o período para refletir mudanças de data e registros
       // absorvidos, usando apenas os valores persistidos pelo backend.

@@ -78,7 +78,7 @@ void main() {
         verificarRecolhido();
         final alturaRecolhida = tester.getSize(card).height;
         expect(alturaRecolhida, lessThan(120));
-        await _tocar(tester, find.text(formatarIdentificacaoDemanda(demanda)));
+        await _tocar(tester, find.byKey(const ValueKey('expandir-demanda-2')));
         expect(tester.getSize(card).height, greaterThan(alturaRecolhida));
         expect(find.byKey(const ValueKey('status-demanda-2')), findsOneWidget);
         expect(
@@ -89,7 +89,7 @@ void main() {
         expect(find.text(filha ? 'Pausada' : 'Aberta'), findsOneWidget);
         expect(find.text('ID: 2'), findsOneWidget);
         expect(find.text('Descrição: Descrição inicial'), findsOneWidget);
-        expect(find.text('Observações: Observação preservada'), findsOneWidget);
+        expect(find.text('Observações: Observação preservada'), findsNothing);
         expect(find.byType(TempoComparacao), findsOneWidget);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(find.byType(TextButton), findsNWidgets(2));
@@ -144,7 +144,7 @@ void main() {
           'mostrar',
           'excluir',
         ]);
-        await _tocar(tester, find.text(formatarIdentificacaoDemanda(demanda)));
+        await _tocar(tester, find.byKey(const ValueKey('expandir-demanda-2')));
         verificarRecolhido();
         expect(tester.getSize(card).height, alturaRecolhida);
         expect(tester.takeException(), isNull);

@@ -221,9 +221,15 @@ Future<void> _preencherIntervalo(WidgetTester tester) async {
 Finder _card(int id) => find.byKey(PageStorageKey('demanda-expansao-$id'));
 
 Future<void> _expandirDemanda(WidgetTester tester, int id) async {
-  final card = _card(id);
-  final tile = find.descendant(of: card, matching: find.byType(ExpansionTile));
+  final tile = find.byKey(ValueKey('expandir-demanda-$id'));
+  expect(
+    tile,
+    findsOneWidget,
+    reason:
+        'Ícone de expansão da Demanda $id; cards disponíveis: ${tester.widgetList<DemandaCard>(find.byType(DemandaCard)).map((c) => c.demanda.id).toList()}',
+  );
   await tester.ensureVisible(tile);
+  await tester.pumpAndSettle();
   await tester.tap(tile);
   await tester.pumpAndSettle();
 }

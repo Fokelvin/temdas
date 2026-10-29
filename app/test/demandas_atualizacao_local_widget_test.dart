@@ -35,7 +35,9 @@ void main() {
         for (final demanda in [mae, filha, independente]) {
           final identificacao = formatarIdentificacaoDemanda(demanda);
           await tester.ensureVisible(find.text(identificacao));
-          await tester.tap(find.text(identificacao));
+          await tester.tap(
+            find.byKey(ValueKey('expandir-demanda-${demanda.id}')),
+          );
           await tester.pumpAndSettle();
         }
 
@@ -189,7 +191,7 @@ void main() {
       addTearDown(vm.dispose);
       await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(formatarIdentificacaoDemanda(alvo)));
+      await tester.tap(find.byKey(ValueKey('expandir-demanda-${alvo.id}')));
       await tester.pumpAndSettle();
       final quadro = tester.element(find.byType(DemandaTree));
       final horizontal = _scroll(tester, Axis.horizontal);
@@ -247,7 +249,7 @@ void main() {
       addTearDown(vm.dispose);
       await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(formatarIdentificacaoDemanda(alvo)));
+      await tester.tap(find.byKey(ValueKey('expandir-demanda-${alvo.id}')));
       await tester.pumpAndSettle();
       final quadro = tester.element(find.byType(DemandaTree));
 

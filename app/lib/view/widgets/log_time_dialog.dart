@@ -12,6 +12,7 @@ class LogTimeDialog extends StatefulWidget {
     required this.demandaTitulo,
     required this.dataInicial,
     this.demandaId,
+    this.observacaoInicial,
     this.onSalvar,
     this.horaInicial,
   }) : duracaoInicialMinutos = LogTimeFormData.duracaoPadraoMinutos,
@@ -25,6 +26,7 @@ class LogTimeDialog extends StatefulWidget {
     required this.duracaoInicialMinutos,
     required Future<String?> Function(LogTimeFormData) this.onSalvar,
     this.demandaId,
+    this.observacaoInicial,
   }) : edicao = true;
 
   final String demandaTitulo;
@@ -33,6 +35,7 @@ class LogTimeDialog extends StatefulWidget {
   final TimeOfDay? horaInicial;
   final int duracaoInicialMinutos;
   final bool edicao;
+  final String? observacaoInicial;
 
   /// Retorna uma mensagem em caso de falha, ou null após salvar com sucesso.
   final Future<String?> Function(LogTimeFormData)? onSalvar;
@@ -43,6 +46,7 @@ class LogTimeDialog extends StatefulWidget {
 
 class _LogTimeDialogState extends State<LogTimeDialog> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _observacao;
   late final TextEditingController _horaInicio;
   late final TextEditingController _minutoInicio;
   late final TextEditingController _horaFim;
@@ -55,6 +59,7 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
   @override
   void initState() {
     super.initState();
+    _observacao = TextEditingController(text: widget.observacaoInicial);
     _data = DateTime(
       widget.dataInicial.year,
       widget.dataInicial.month,
@@ -78,6 +83,7 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
 
   @override
   void dispose() {
+    _observacao.dispose();
     _horaInicio.dispose();
     _minutoInicio.dispose();
     _horaFim.dispose();
@@ -144,6 +150,17 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                 enabled: !_enviando,
                 onChanged: _horarioAlterado,
                 onSubmitted: _submit,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const ValueKey('log-time-observacao'),
+                controller: _observacao,
+                enabled: !_enviando,
+                minLines: 2,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Observação (opcional)',
+                ),
               ),
               if (_intervaloOriginalMultidia) ...[
                 const SizedBox(height: 12),
@@ -218,6 +235,7 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
 
     final dados = LogTimeFormData.doMesmoDia(
       data: _data,
+      observacao: _observacao.text,
       inicio: TimeOfDay(
         hour: int.parse(_horaInicio.text),
         minute: int.parse(_minutoInicio.text),

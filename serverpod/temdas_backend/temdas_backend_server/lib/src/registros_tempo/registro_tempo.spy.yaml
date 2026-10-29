@@ -4,6 +4,8 @@ fields:
   demandaId: int, relation(parent=demandas, onDelete=Cascade)
   inicioEm: DateTime
   duracaoMinutos: int
+  observacao: String?
+  observacaoOrigens: String?, scope=serverOnly
   criadoEm: DateTime
 indexes:
   registros_tempo_inicio_em_idx:

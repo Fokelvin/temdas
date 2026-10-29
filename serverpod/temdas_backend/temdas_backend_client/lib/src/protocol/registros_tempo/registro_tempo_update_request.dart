@@ -18,12 +18,14 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
     required this.id,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
   });
 
   factory RegistroTempoUpdateRequest({
     required int id,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) = _RegistroTempoUpdateRequestImpl;
 
   factory RegistroTempoUpdateRequest.fromJson(
@@ -35,6 +37,7 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
         jsonSerialization['inicioEm'],
       ),
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
+      observacao: jsonSerialization['observacao'] as String?,
     );
   }
 
@@ -44,6 +47,8 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
 
   int duracaoMinutos;
 
+  String? observacao;
+
   /// Returns a shallow copy of this [RegistroTempoUpdateRequest]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -51,6 +56,7 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
     int? id,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    String? observacao,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -59,6 +65,7 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
       'id': id,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
     };
   }
 
@@ -68,15 +75,19 @@ abstract class RegistroTempoUpdateRequest implements _i1.SerializableModel {
   }
 }
 
+class _Undefined {}
+
 class _RegistroTempoUpdateRequestImpl extends RegistroTempoUpdateRequest {
   _RegistroTempoUpdateRequestImpl({
     required int id,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) : super._(
          id: id,
          inicioEm: inicioEm,
          duracaoMinutos: duracaoMinutos,
+         observacao: observacao,
        );
 
   /// Returns a shallow copy of this [RegistroTempoUpdateRequest]
@@ -87,11 +98,13 @@ class _RegistroTempoUpdateRequestImpl extends RegistroTempoUpdateRequest {
     int? id,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    Object? observacao = _Undefined,
   }) {
     return RegistroTempoUpdateRequest(
       id: id ?? this.id,
       inicioEm: inicioEm ?? this.inicioEm,
       duracaoMinutos: duracaoMinutos ?? this.duracaoMinutos,
+      observacao: observacao is String? ? observacao : this.observacao,
     );
   }
 }

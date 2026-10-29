@@ -91,7 +91,6 @@ void main() {
               status: DemandaStatus.concluida,
               prioridade: Prioridade.alta,
               tempoEstimadoMinutos: 90,
-              observacoes: ' observação ',
             ),
           );
           expect(concluida.concluidoEm, isNotNull);
@@ -108,7 +107,6 @@ void main() {
               status: DemandaStatus.aberta,
               prioridade: concluida.prioridade,
               tempoEstimadoMinutos: concluida.tempoEstimadoMinutos,
-              observacoes: concluida.observacoes,
             ),
           );
           expect(reaberta.concluidoEm, isNull);

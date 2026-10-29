@@ -1,4 +1,5 @@
 import '../generated/protocol.dart';
+import 'registro_tempo_observacao_service.dart';
 
 /// Regra de domínio pura: calcula a união sem consultar ou alterar o banco.
 class RegistroTempoNormalizacaoService {
@@ -52,8 +53,13 @@ class RegistroTempoNormalizacaoService {
     final base = novo.id != null || sobrepostos.isEmpty
         ? novo
         : sobrepostos.first;
+    final observacoes = sobrepostos.isEmpty
+        ? (texto: novo.observacao, origens: novo.observacaoOrigens)
+        : RegistroTempoObservacaoService().unir(novo, sobrepostos);
     return NormalizacaoRegistroTempo(
       resultante: base.copyWith(
+        observacao: observacoes.texto,
+        observacaoOrigens: observacoes.origens,
         inicioEm: inicio,
         duracaoMinutos: duracao.inMinutes,
       ),

@@ -3,3 +3,4 @@ fields:
   id: int
   inicioEm: DateTime
   duracaoMinutos: int
+  observacao: String?

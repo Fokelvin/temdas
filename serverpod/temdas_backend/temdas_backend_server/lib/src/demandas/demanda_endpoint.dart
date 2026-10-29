@@ -60,6 +60,11 @@ class DemandaEndpoint extends Endpoint {
     DemandaCreateRequest request,
   ) async {
     final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    if (request.observacoes != null) {
+      throw Exception(
+        'Use o campo descrição; observações antigas foram descontinuadas.',
+      );
+    }
     final titulo = request.titulo.trim();
 
     if (titulo.isEmpty) {
@@ -109,7 +114,6 @@ class DemandaEndpoint extends Endpoint {
         prioridade: request.prioridade ?? Prioridade.media,
         tempoEstimadoMinutos: request.tempoEstimadoMinutos,
         tempoExecutadoMinutos: 0,
-        observacoes: _normalizarTextoOpcional(request.observacoes),
         criadoEm: agora,
         atualizadoEm: agora,
         concluidoEm: null,
@@ -225,6 +229,15 @@ class DemandaEndpoint extends Endpoint {
         );
       }
 
+      // Clientes antigos reenviavam o arquivo legado ao editar metadados.
+      // Aceita apenas o mesmo valor, sem regravá-lo nem anexá-lo novamente.
+      if (request.observacoes != null &&
+          request.observacoes != demandaAtual.observacoes) {
+        throw Exception(
+          'Use o campo descrição; observações antigas foram descontinuadas.',
+        );
+      }
+
       if (demandaAtual.status != request.status) {
         await _statusService.alterarStatus(
           session,
@@ -244,7 +257,6 @@ class DemandaEndpoint extends Endpoint {
           t.descricao(_normalizarTextoOpcional(request.descricao)),
           t.prioridade(request.prioridade),
           t.tempoEstimadoMinutos(request.tempoEstimadoMinutos),
-          t.observacoes(_normalizarTextoOpcional(request.observacoes)),
           t.atualizadoEm(DateTime.now().toUtc()),
         ],
         transaction: transaction,

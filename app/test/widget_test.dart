@@ -801,7 +801,7 @@ void main() {
       expect(topoBarra(), greaterThan(900));
       final topoAntes = topoBarra();
       final alturaAntes = tester.getSize(colunaAlta).height;
-      await tester.tap(find.text('1 - Demanda 1'));
+      await tester.tap(find.byKey(const ValueKey('expandir-demanda-1')));
       await tester.pumpAndSettle();
       final crescimento = tester.getSize(colunaAlta).height - alturaAntes;
       expect(crescimento, greaterThan(0));
@@ -1133,8 +1133,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('mostrar-tudo-42')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Detalhes da demanda'), findsOneWidget);
-    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('Demanda #42'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('demanda-detalhe-dialog')),
+      findsOneWidget,
+    );
   });
 }
 
@@ -1227,7 +1230,14 @@ Future<void> _abrirPagina(
 
 Future<void> _expandirDemanda(WidgetTester tester, String titulo) async {
   await tester.ensureVisible(find.textContaining(titulo));
-  await tester.tap(find.textContaining(titulo));
+  final card = find
+      .ancestor(
+        of: find.textContaining(titulo),
+        matching: find.byType(DemandaCard),
+      )
+      .first;
+  final id = tester.widget<DemandaCard>(card).demanda.id;
+  await tester.tap(find.byKey(ValueKey('expandir-demanda-$id')));
   await tester.pumpAndSettle();
 }
 

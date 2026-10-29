@@ -139,6 +139,10 @@ void main() {
                 .dataInicial,
             day,
           );
+          await tester.enterText(
+            find.byKey(const ValueKey('log-time-observacao')),
+            'Atividade pela agenda',
+          );
           await tester.tap(find.byKey(const ValueKey('salvar-log-time')));
           await tester.pumpAndSettle();
           expect(
@@ -146,6 +150,10 @@ void main() {
             DateTime(day.year, day.month, day.day, 9, 15).toUtc(),
           );
           expect(repository.registrosCriados.single.duracaoMinutos, 30);
+          expect(
+            repository.registrosCriados.single.observacao,
+            'Atividade pela agenda',
+          );
           expect(
             find.byKey(const ValueKey('abrir-lancamento-global')),
             findsOneWidget,

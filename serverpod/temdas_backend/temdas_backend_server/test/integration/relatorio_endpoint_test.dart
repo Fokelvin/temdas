@@ -151,7 +151,6 @@ void main() {
               motivoCancelamento: null,
               prioridade: Prioridade.alta,
               tempoEstimadoMinutos: filha.tempoEstimadoMinutos,
-              observacoes: filha.observacoes,
             ),
           );
           await _registrar(

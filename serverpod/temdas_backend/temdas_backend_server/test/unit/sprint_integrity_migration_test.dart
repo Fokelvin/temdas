@@ -7,12 +7,12 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'corrective migration preserves the complete managed backend target',
+    'latest migration preserves the complete managed backend target',
     () {
       final definition = DatabaseDefinition.fromJson(
         jsonDecode(
               File(
-                'migrations/20261029113025000-sprint-integrity/definition.json',
+                'migrations/20261029183226724-pacote4-demandas/definition.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -31,7 +31,7 @@ void main() {
         definition.installedModules
             .singleWhere((module) => module.module == 'temdas_backend')
             .version,
-        '20261029113025000-sprint-integrity',
+        '20261029183226724-pacote4-demandas',
       );
     },
   );

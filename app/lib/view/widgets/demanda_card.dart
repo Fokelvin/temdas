@@ -23,6 +23,7 @@ class DemandaCard extends StatelessWidget {
     this.onCriarFilha,
     this.onLancarTempo,
     this.onMostrarTudo,
+    this.apenasAcoes = false,
     this.expansionController,
     this.dragHandle,
     this.destacado = false,
@@ -42,6 +43,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onCriarFilha;
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
+  final bool apenasAcoes;
   final ExpansibleController? expansionController;
   final Widget? dragHandle;
   final bool destacado;
@@ -49,6 +51,24 @@ class DemandaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (apenasAcoes) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _menuStatus(context)),
+              IconButton(
+                tooltip: 'Concluir demanda',
+                onPressed: acoesHabilitadas ? onConcluir : null,
+                icon: const Icon(Icons.check),
+              ),
+              _menuAcoes(context),
+            ],
+          ),
+          _botoesAcoes(),
+        ],
+      );
+    }
     final colors = Theme.of(context).colorScheme;
     final cardShape = Theme.of(context).cardTheme.shape;
     final outlinedShape = cardShape is OutlinedBorder
@@ -70,8 +90,10 @@ class DemandaCard extends StatelessWidget {
         child: ListTileTheme.merge(
           minVerticalPadding: densidade.paddingVerticalCabecalho,
           horizontalTitleGap: densidade.espacamentoChevron,
-          child: ExpansionTile(
+          child: _DemandaExpansao(
             controller: expansionController,
+            onAbrir: onMostrarTudo,
+            demandaId: demanda.id,
             leading: dragHandle,
             tilePadding: densidade.paddingCabecalho,
             minTileHeight: densidade.alturaMinimaCabecalho,
@@ -131,13 +153,6 @@ class DemandaCard extends StatelessWidget {
                 estimadoMinutos: demanda.tempoEstimadoMinutos,
                 executadoMinutos: tempoExecutadoTotalMinutos,
               ),
-              if (!densidade.isCompacta ||
-                  (demanda.observacoes?.trim().isNotEmpty ?? false))
-                _Campo(
-                  titulo: 'Observações',
-                  valor: demanda.observacoes ?? 'Não informadas',
-                  densidade: densidade,
-                ),
               SizedBox(height: densidade.espacamentoEntreSecoes),
               _botoesAcoes(),
             ],
@@ -463,4 +478,113 @@ class _Campo extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Somente o botão de expansão altera a altura; o corpo abre os detalhes.
+class _DemandaExpansao extends StatefulWidget {
+  const _DemandaExpansao({
+    this.controller,
+    this.leading,
+    this.onAbrir,
+    required this.demandaId,
+    required this.tilePadding,
+    required this.minTileHeight,
+    required this.title,
+    required this.childrenPadding,
+    required this.expandedCrossAxisAlignment,
+    required this.children,
+  });
+  final ExpansibleController? controller;
+  final Widget? leading;
+  final VoidCallback? onAbrir;
+  final int? demandaId;
+  final EdgeInsetsGeometry tilePadding;
+  final double minTileHeight;
+  final Widget title;
+  final EdgeInsetsGeometry childrenPadding;
+  final CrossAxisAlignment expandedCrossAxisAlignment;
+  final List<Widget> children;
+  @override
+  State<_DemandaExpansao> createState() => _DemandaExpansaoState();
+}
+
+class _DemandaExpansaoState extends State<_DemandaExpansao> {
+  late final ExpansibleController controller =
+      widget.controller ?? ExpansibleController();
+  bool restaurado = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!restaurado) {
+      restaurado = true;
+      if (PageStorage.maybeOf(context)?.readState(context) == true) {
+        controller.expand();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.controller == null) controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: controller,
+    builder: (context, _) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            ?widget.leading,
+            Expanded(
+              child: InkWell(
+                key: ValueKey('abrir-painel-demanda-${widget.demandaId}'),
+                onTap: widget.onAbrir,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: widget.minTileHeight),
+                  child: Padding(
+                    padding: widget.tilePadding,
+                    child: widget.title,
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              key: ValueKey('expandir-demanda-${widget.demandaId}'),
+              tooltip: controller.isExpanded
+                  ? 'Recolher demanda'
+                  : 'Expandir demanda',
+              onPressed: () {
+                controller.toggle();
+                PageStorage.maybeOf(
+                  context,
+                )?.writeState(context, controller.isExpanded);
+              },
+              icon: Icon(
+                controller.isExpanded ? Icons.expand_less : Icons.expand_more,
+              ),
+            ),
+          ],
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          alignment: Alignment.topCenter,
+          child: controller.isExpanded
+              ? InkWell(
+                  onTap: widget.onAbrir,
+                  child: Padding(
+                    padding: widget.childrenPadding,
+                    child: Column(
+                      crossAxisAlignment: widget.expandedCrossAxisAlignment,
+                      children: widget.children,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    ),
+  );
 }

@@ -20,6 +20,8 @@ abstract class RegistroTempo
     required this.demandaId,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
+    this.observacaoOrigens,
     required this.criadoEm,
   });
 
@@ -28,6 +30,8 @@ abstract class RegistroTempo
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
+    String? observacaoOrigens,
     required DateTime criadoEm,
   }) = _RegistroTempoImpl;
 
@@ -39,6 +43,8 @@ abstract class RegistroTempo
         jsonSerialization['inicioEm'],
       ),
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
+      observacao: jsonSerialization['observacao'] as String?,
+      observacaoOrigens: jsonSerialization['observacaoOrigens'] as String?,
       criadoEm: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['criadoEm'],
       ),
@@ -58,6 +64,10 @@ abstract class RegistroTempo
 
   int duracaoMinutos;
 
+  String? observacao;
+
+  String? observacaoOrigens;
+
   DateTime criadoEm;
 
   @override
@@ -71,6 +81,8 @@ abstract class RegistroTempo
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    String? observacao,
+    String? observacaoOrigens,
     DateTime? criadoEm,
   });
   @override
@@ -81,6 +93,8 @@ abstract class RegistroTempo
       'demandaId': demandaId,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
+      if (observacaoOrigens != null) 'observacaoOrigens': observacaoOrigens,
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -93,6 +107,7 @@ abstract class RegistroTempo
       'demandaId': demandaId,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
       'criadoEm': criadoEm.toJson(),
     };
   }
@@ -135,12 +150,16 @@ class _RegistroTempoImpl extends RegistroTempo {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
+    String? observacaoOrigens,
     required DateTime criadoEm,
   }) : super._(
          id: id,
          demandaId: demandaId,
          inicioEm: inicioEm,
          duracaoMinutos: duracaoMinutos,
+         observacao: observacao,
+         observacaoOrigens: observacaoOrigens,
          criadoEm: criadoEm,
        );
 
@@ -153,6 +172,8 @@ class _RegistroTempoImpl extends RegistroTempo {
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    Object? observacao = _Undefined,
+    Object? observacaoOrigens = _Undefined,
     DateTime? criadoEm,
   }) {
     return RegistroTempo(
@@ -160,6 +181,10 @@ class _RegistroTempoImpl extends RegistroTempo {
       demandaId: demandaId ?? this.demandaId,
       inicioEm: inicioEm ?? this.inicioEm,
       duracaoMinutos: duracaoMinutos ?? this.duracaoMinutos,
+      observacao: observacao is String? ? observacao : this.observacao,
+      observacaoOrigens: observacaoOrigens is String?
+          ? observacaoOrigens
+          : this.observacaoOrigens,
       criadoEm: criadoEm ?? this.criadoEm,
     );
   }
@@ -184,6 +209,17 @@ class RegistroTempoUpdateTable extends _i1.UpdateTable<RegistroTempoTable> {
     value,
   );
 
+  _i1.ColumnValue<String, String> observacao(String? value) => _i1.ColumnValue(
+    table.observacao,
+    value,
+  );
+
+  _i1.ColumnValue<String, String> observacaoOrigens(String? value) =>
+      _i1.ColumnValue(
+        table.observacaoOrigens,
+        value,
+      );
+
   _i1.ColumnValue<DateTime, DateTime> criadoEm(DateTime value) =>
       _i1.ColumnValue(
         table.criadoEm,
@@ -207,6 +243,14 @@ class RegistroTempoTable extends _i1.Table<int?> {
       'duracaoMinutos',
       this,
     );
+    observacao = _i1.ColumnString(
+      'observacao',
+      this,
+    );
+    observacaoOrigens = _i1.ColumnString(
+      'observacaoOrigens',
+      this,
+    );
     criadoEm = _i1.ColumnDateTime(
       'criadoEm',
       this,
@@ -221,6 +265,10 @@ class RegistroTempoTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt duracaoMinutos;
 
+  late final _i1.ColumnString observacao;
+
+  late final _i1.ColumnString observacaoOrigens;
+
   late final _i1.ColumnDateTime criadoEm;
 
   @override
@@ -229,6 +277,8 @@ class RegistroTempoTable extends _i1.Table<int?> {
     demandaId,
     inicioEm,
     duracaoMinutos,
+    observacao,
+    observacaoOrigens,
     criadoEm,
   ];
 }

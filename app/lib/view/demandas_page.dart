@@ -41,6 +41,7 @@ class _DemandasPageState extends State<DemandasPage> {
   bool _carregandoSprints = true;
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
+  bool _atualizandoAposPainel = false;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
   backend.Prioridade? _filtroPrioridade;
@@ -597,6 +598,7 @@ class _DemandasPageState extends State<DemandasPage> {
             demanda: demanda,
             inicioEm: dados.inicioEm,
             duracaoMinutos: dados.duracaoMinutos,
+            observacao: dados.observacao,
           );
           return registrado
               ? null
@@ -614,13 +616,21 @@ class _DemandasPageState extends State<DemandasPage> {
     );
   }
 
-  void _mostrarTudo(backend.Demanda demanda) {
+  Future<void> _mostrarTudo(backend.Demanda demanda) async {
     final id = demanda.id;
     if (id == null) {
       _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
       return;
     }
-    mostrarDetalhesDemandaDialog(context, id);
+    await mostrarDetalhesDemandaDialog(context, id);
+    if (!mounted) return;
+    setState(() => _atualizandoAposPainel = true);
+    try {
+      await _viewModel.carregarDemandas();
+      if (mounted) await _carregarSprints();
+    } finally {
+      if (mounted) setState(() => _atualizandoAposPainel = false);
+    }
   }
 
   Future<bool> _moverDemanda(
@@ -846,7 +856,9 @@ class _DemandasPageState extends State<DemandasPage> {
                     icon: const Icon(Icons.refresh),
                   ),
                 ),
-              if (_viewModel.carregando)
+              if (_viewModel.carregando && _atualizandoAposPainel)
+                const LinearProgressIndicator(),
+              if (_viewModel.carregando && !_atualizandoAposPainel)
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
@@ -865,7 +877,9 @@ class _DemandasPageState extends State<DemandasPage> {
                   focoDemandaId: resultadoBusca.focoDemandaId,
                   focoVersao: _filtroVersao,
                   dragHabilitado: !_filtrosAtivos,
-                  acoesHabilitadas: !_viewModel.envioGlobalEmAndamento,
+                  acoesHabilitadas:
+                      !_viewModel.envioGlobalEmAndamento &&
+                      !_viewModel.carregando,
                   demandasEmProcessamento: {
                     ..._viewModel.demandasEmProcessamento,
                     if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,

@@ -110,7 +110,7 @@ void main() {
         expect(repository.chamadasAtualizar, 1);
         expect(repository.chamadasListar, 1);
         expect(repository.ultimaAtualizacao?.tempoEstimadoMinutos, 90);
-        expect(repository.ultimaAtualizacao?.observacoes, original.observacoes);
+        expect(repository.ultimaAtualizacao?.observacoes, isNull);
         expect(viewModel.demandas.map((item) => item.id), [1, 2]);
         expect(viewModel.demandas.last, same(mae));
         expect(viewModel.demandas.first.titulo, 'Demanda atualizada');

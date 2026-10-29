@@ -19,12 +19,14 @@ abstract class RegistroTempoCreateRequest
     required this.demandaId,
     required this.inicioEm,
     required this.duracaoMinutos,
+    this.observacao,
   });
 
   factory RegistroTempoCreateRequest({
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) = _RegistroTempoCreateRequestImpl;
 
   factory RegistroTempoCreateRequest.fromJson(
@@ -36,6 +38,7 @@ abstract class RegistroTempoCreateRequest
         jsonSerialization['inicioEm'],
       ),
       duracaoMinutos: jsonSerialization['duracaoMinutos'] as int,
+      observacao: jsonSerialization['observacao'] as String?,
     );
   }
 
@@ -45,6 +48,8 @@ abstract class RegistroTempoCreateRequest
 
   int duracaoMinutos;
 
+  String? observacao;
+
   /// Returns a shallow copy of this [RegistroTempoCreateRequest]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -52,6 +57,7 @@ abstract class RegistroTempoCreateRequest
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    String? observacao,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -60,6 +66,7 @@ abstract class RegistroTempoCreateRequest
       'demandaId': demandaId,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
     };
   }
 
@@ -70,6 +77,7 @@ abstract class RegistroTempoCreateRequest
       'demandaId': demandaId,
       'inicioEm': inicioEm.toJson(),
       'duracaoMinutos': duracaoMinutos,
+      if (observacao != null) 'observacao': observacao,
     };
   }
 
@@ -79,15 +87,19 @@ abstract class RegistroTempoCreateRequest
   }
 }
 
+class _Undefined {}
+
 class _RegistroTempoCreateRequestImpl extends RegistroTempoCreateRequest {
   _RegistroTempoCreateRequestImpl({
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) : super._(
          demandaId: demandaId,
          inicioEm: inicioEm,
          duracaoMinutos: duracaoMinutos,
+         observacao: observacao,
        );
 
   /// Returns a shallow copy of this [RegistroTempoCreateRequest]
@@ -98,11 +110,13 @@ class _RegistroTempoCreateRequestImpl extends RegistroTempoCreateRequest {
     int? demandaId,
     DateTime? inicioEm,
     int? duracaoMinutos,
+    Object? observacao = _Undefined,
   }) {
     return RegistroTempoCreateRequest(
       demandaId: demandaId ?? this.demandaId,
       inicioEm: inicioEm ?? this.inicioEm,
       duracaoMinutos: duracaoMinutos ?? this.duracaoMinutos,
+      observacao: observacao is String? ? observacao : this.observacao,
     );
   }
 }

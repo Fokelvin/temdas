@@ -3,3 +3,4 @@ fields:
   demandaId: int
   inicioEm: DateTime
   duracaoMinutos: int
+  observacao: String?

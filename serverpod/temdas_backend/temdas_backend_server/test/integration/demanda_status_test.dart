@@ -64,7 +64,6 @@ void main() {
         motivoCancelamento: motivo,
         prioridade: demanda.prioridade,
         tempoEstimadoMinutos: demanda.tempoEstimadoMinutos,
-        observacoes: demanda.observacoes,
       ),
     );
 
@@ -116,7 +115,6 @@ void main() {
                 status: status,
                 prioridade: Prioridade.alta,
                 tempoEstimadoMinutos: 90,
-                observacoes: ' observações editadas ',
               ),
             );
 
@@ -129,7 +127,6 @@ void main() {
                     descricao: 'descrição editada',
                     prioridade: Prioridade.alta,
                     tempoEstimadoMinutos: 90,
-                    observacoes: 'observações editadas',
                     atualizadoEm: editada.atualizadoEm,
                   )
                   .toJson(),

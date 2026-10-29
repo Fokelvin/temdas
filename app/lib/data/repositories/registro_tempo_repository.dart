@@ -12,11 +12,13 @@ class RegistroTempoRepository {
     required int demandaId,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) {
     final request = backend.RegistroTempoCreateRequest(
       demandaId: demandaId,
       inicioEm: inicioEm,
       duracaoMinutos: duracaoMinutos,
+      observacao: observacao,
     );
 
     return _client.registroTempo.registrarTempo(request);
@@ -26,15 +28,22 @@ class RegistroTempoRepository {
     required int id,
     required DateTime inicioEm,
     required int duracaoMinutos,
+    String? observacao,
   }) {
     final request = backend.RegistroTempoUpdateRequest(
       id: id,
       inicioEm: inicioEm,
       duracaoMinutos: duracaoMinutos,
+      observacao: observacao,
     );
 
     return _client.registroTempo.editarRegistroTempo(request);
   }
+
+  Future<backend.RegistroTempo> atualizarObservacao(
+    int id,
+    String? observacao,
+  ) => _client.registroTempo.atualizarObservacao(id, observacao);
 
   Future<List<backend.RegistroTempo>> listarPorPeriodo({
     required DateTime inicio,

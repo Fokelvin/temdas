@@ -401,7 +401,8 @@ desta seção autoriza implementação automática.
 - **Descrição:** permitir informar uma descrição opcional em cada lançamento de
   Log Time, registrando de forma curta o que foi realizado naquele apontamento.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** implementado no Pacote 4 (branch de trabalho); pendente de
+  homologação/publicação.
 - **Dependências:** definir limite e apresentação do texto sem prejudicar a
   leitura da agenda e dos detalhes da Demanda.
 - **Critérios de aceite:** ao criar ou editar um lançamento, o usuário pode
@@ -410,8 +411,9 @@ desta seção autoriza implementação automática.
 
 ### Pacote 4 — Painel lateral de Demandas
 
-- **Estado:** escopo aprovado; implementação aguardando decisões de negócio
-  identificadas na inspeção do código em 29/10/2026.
+- **Estado:** implementado na branch do Pacote 4; validação local e plano de
+  aplicação em [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
+  Homologação e aplicação/publicação em PROD dependem de autorização específica.
 - **Interface:** painel à direita com aproximadamente metade da largura no
   desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas
   Visão geral, Anotações e Horas. Corpo do card abre o painel; expansão continua
@@ -430,15 +432,12 @@ desta seção autoriza implementação automática.
   quando ambas existirem; não gerar anotações artificiais. Descontinuar o campo
   antigo somente após validar a preservação dos dados. Preparar migrations
   Serverpod para anotações e observação opcional em `RegistroTempo`.
-- **Decisões pendentes:**
-  - `UsuarioScope` limita acesso à Demanda ao seu proprietário (`usuarioId`).
-    Não existe permissão compartilhada de consulta. Definir se “outros usuários
-    autorizados” fica reservado a evolução futura, mantendo o ownership atual,
-    ou exige um novo modelo de autorização; não abrir acesso implicitamente.
-  - `RegistroTempoNormalizacaoService` une registros adjacentes/sobrepostos e
-    `RegistroTempoEndpoint` exclui os absorvidos. Definir como preservar todas
-    as observações nessa união, inclusive em criação e edição, antes de
-    acrescentar o campo; manter apenas o texto do registro base perderia dados.
+- **Decisões aprovadas e implementadas:** acesso apenas ao proprietário via
+  `UsuarioScope`; compartilhamento, organizações, equipes e permissões
+  colaborativas ficam para evolução futura. Uniões de Log Time concatenam
+  textos integrais com intervalos de origem, ordem determinística e deduplicação,
+  preservados transacionalmente. Metadados privados impedem duplicação em
+  uniões consecutivas; observações vazias não produzem cabeçalhos artificiais.
 - **Validação e aplicação:** testes de permissões/AAL2, persistência, migração,
   observações e interações/regressões do painel; análise, testes e build; ensaio
   de migration em banco isolado quando disponível. Nenhuma migration, publicação
