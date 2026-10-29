@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.dump
+*.cms
+*.pem
+*.sql
+*.tar
+*.partial
+pgpass
+config.json
+state.json
+events.jsonl
+restore-evidence.json

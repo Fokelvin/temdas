@@ -1,0 +1,17 @@
+{
+  "project_ref": "vberbygddnootjcbkajc",
+  "host": "db.vberbygddnootjcbkajc.supabase.co",
+  "port": 5432,
+  "database": "postgres",
+  "user": "postgres",
+  "password_file": "/home/kelvin/.config/temdas-backup/pgpass",
+  "ca_file": "/home/kelvin/.config/temdas-backup/ca.pem",
+  "recipient_cert": "/home/kelvin/.config/temdas-backup/recovery/recipient.pem",
+  "recovery_key": "/home/kelvin/.config/temdas-backup/recovery/private.pem",
+  "data_dir": "/home/kelvin/.local/share/temdas-backup",
+  "pg_bin": "/home/kelvin/.local/share/temdas-backup/tools/usr/lib/postgresql/17/bin",
+  "pg_lib": "/home/kelvin/.local/share/temdas-backup/tools/usr/lib/x86_64-linux-gnu",
+  "external_dir": null,
+  "daily_keep": 7,
+  "weekly_keep": 4
+}
