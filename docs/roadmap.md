@@ -481,6 +481,71 @@ desta seção autoriza implementação automática.
   e identificador do build efetivamente carregado, com fallback no desenvolvimento.
 
 
+
+## Pacote 5 — Redesign visual e aproveitamento da área útil
+
+**Estado:** Aprovado / pendente de implementação, somente após a conclusão
+do Pacote 4 (painel lateral de Demandas, anotações e horas). Este pacote é
+de UX/UI; não antecipa mudanças de negócio, backend, banco ou migrations.
+Respeitar os componentes funcionais entregues pelo Pacote 4.
+
+### UX-P5-01 — Barra superior compartilhada e contextual
+
+- **Descrição:** evoluir o `PageScaffold` para uma toolbar comum às telas
+  principais, usando o espaço horizontal entre o título da página e as ações
+  à direita. O botão de alternância de tema claro/escuro por ícone permanece
+  **fixo no canto superior direito em todas as páginas**. Os demais controles
+  são contextuais: Demandas (busca, filtros, Kanban/Lista, criar); Sprint
+  (ações e controles existentes); Log Time (navegação de datas, Dia/Semana e
+  ações da agenda); Relatórios (período, filtros e exportação); Perfil (apenas
+  ações aplicáveis). Evitar duplicar controles acima e abaixo da barra.
+- **Estado:** Aprovado / pendente.
+- **Critérios de aceite:** a região central da barra é flexível e preenche o
+  espaço disponível, sem grande vazio entre título e busca; controles úteis
+  ficam na barra superior no desktop; tema está sempre na mesma posição; em
+  tablet/celular a toolbar se reorganiza sem truncar ações ou reduzir áreas
+  de toque; não alterar a regra de negócio de nenhuma tela.
+- **Dependências:** usar preferências de tema já existentes, preservando a
+  opção Sistema em configuração secundária e sua persistência.
+
+### UX-P5-02 — Kanban denso e opção Lista de Demandas
+
+- **Descrição:** manter o Kanban como modo principal/padrão, com drag-and-drop
+  e hierarquia atuais; renovar os cards compactos com menos altura, padding
+  e ruído visual, preservando título, ID, prioridade, tempos e indicação de
+  Sprint de forma hierarquizada. Adicionar uma visualização **Lista**, inspirada
+  na densidade e na leitura do Pipeline iVertex, agrupada por status, com
+  apresentação da hierarquia mãe/filha. Um seletor Kanban/Lista fica na
+  toolbar superior da página; a opção escolhida persiste no navegador.
+  Ambas as visualizações abrem o mesmo painel lateral do Pacote 4.
+- **Estado:** Aprovado / pendente.
+- **Critérios de aceite:** mais Demandas visíveis sem perder legibilidade
+  nem ações essenciais; Kanban mantém drag-and-drop e expansão hierárquica;
+  Lista oferece abertura dos detalhes e controle de status conforme as regras
+  atuais, sem exigir drag-and-drop na primeira entrega; visualizações usam
+  os mesmos dados, busca e filtros, sem duplicar lógica de negócio.
+- **Dependências:** conclusão do painel lateral do Pacote 4; preservar temas,
+  densidades, ownership e regras atuais de status e de Sprint.
+
+### UX-P5-03 — Busca e filtros consolidados na toolbar
+
+- **Descrição:** na página Demandas, campo de busca sempre visível e
+  **expansível para ocupar a largura disponível**, seguido de botão único
+  de filtros, seletor Kanban/Lista e ação Criar Demanda; botão de tema fixo
+  no extremo direito. O botão de filtros agrupa Prioridade, Sprint e futuros
+  critérios, mostra a quantidade de filtros ativos e oferece Limpar filtros.
+  A busca considera ID/título sem diferenciar maiúsculas ou acentos e combina
+  com os filtros, preservando o contexto mãe/filha nos resultados.
+- **Estado:** Aprovado / pendente.
+- **Critérios de aceite:** busca e filtros funcionam em ambas as visualizações;
+  nenhum filtro isolado ocupa permanentemente espaço na toolbar; layout usa
+  efetivamente a área horizontal livre da barra superior; responsividade e
+  acessibilidade preservadas.
+
+**Sequenciamento:** Pacote 4 em desenvolvimento separado; iniciar este
+Pacote 5 apenas após entrega/revisão do Pacote 4. Não modificar o trabalho
+em andamento do Codex sem nova decisão.
+
 ## Pós-produção — Estabilização do MVP
 
 Esta seção reúne as ações operacionais acordadas após a primeira publicação.
