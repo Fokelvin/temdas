@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/data/repositories/anotacao_demanda_repository.dart';
 import 'package:temdas/view/demanda_detalhe_page.dart';
@@ -117,6 +118,47 @@ Future<void> abrir(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets('ampliar e arrastar preservam aba e consulta de anotações', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final notes = Notes()
+      ..items.add(
+        b.AnotacaoDemanda(
+          id: 1,
+          demandaId: 1,
+          autorId: 1,
+          conteudo: 'Anotação preservada',
+          criadoEm: DateTime.utc(2026),
+        ),
+      );
+    final vm = model(notes: notes);
+    addTearDown(vm.dispose);
+    await abrir(tester, vm);
+    await tester.tap(find.text('Anotações'));
+    await tester.pumpAndSettle();
+    expect(notes.consultas, 1);
+    final controller = DefaultTabController.of(
+      tester.element(find.byType(TabBar)),
+    );
+    expect(controller.index, 1);
+    await tester.tap(find.byTooltip('Ampliar painel'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('redimensionar-painel-demanda')),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.index, 1);
+    expect(notes.consultas, 1);
+    expect(find.text('Anotação preservada'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test(
     'consulta atrasada de anotações não sobrescreve uma resposta mais recente',
     () async {
@@ -157,7 +199,7 @@ void main() {
         final painel = find.byKey(const ValueKey('demanda-detalhe-dialog'));
         expect(
           tester.getSize(painel).width,
-          tamanho.width < 840 ? tamanho.width : tamanho.width / 2,
+          tamanho.width < 840 ? tamanho.width : 420,
         );
         expect(tester.getTopRight(painel).dx, tamanho.width);
         expect(find.text('Visão geral'), findsOneWidget);

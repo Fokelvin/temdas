@@ -77,3 +77,30 @@ Revisar o diff e homologar visualmente toolbar, filtros, Kanban/Lista e controle
 responsivos antes de autorizar publicação. A integração do Pacote 4 permanece
 intacta. Publicação futura é exclusivamente frontend, sem migration ou deploy de
 backend exigidos por este pacote.
+
+## Fechamento UX-P5-04 e autorização de publicação
+
+O registro anterior corresponde à implementação inicial `b3e67ad`. Em nova
+etapa, o responsável autorizou concluir UX-P5-04 e publicar todo o Pacote 5.
+
+- Painel desktop inicia em 420 px, com mínimo de 360 px e máximo de cerca de 70%
+  da viewport. Em telas abaixo de 840 px, permanece em tela cheia.
+- Borda esquerda arrastável, cursor horizontal e botão ampliar/reduzir. Teclado:
+  setas esquerda/direita ajustam 20 px; Home restaura 420 px e End amplia ao limite.
+  O controle informa valor e ajustes aos leitores de tela.
+- Largura salva em `temdas.demanda.painel.largura` via SharedPreferences; gravação
+  ao terminar o arraste, após teclado ou ícone. Carga inicial não sobrescreve
+  interação; gravações são serializadas. Resize da viewport limita apresentação
+  sem substituir a preferência desktop pela largura mobile.
+- Conteúdo permanece montado durante resize: abas, consultas e texto não salvo
+  são preservados. Fechar, nova aba e URL direta continuam disponíveis.
+- Visão geral: identificação, prioridade e ações/status agrupados; descrição,
+  tempos e metadados condensados, sem duplicar informações já exibidas. Sprint,
+  hierarquia, ações e as abas Anotações/Horas mantêm suas operações anteriores.
+- Análise completa sem problemas; **72 testes afetados aprovados**, cobrindo o
+  refinamento e sua integração com os componentes existentes do Pacote 5.
+  Validação principal anterior (202 testes) reutilizada, sem repetir suíte completa.
+- Build Web release aprovado com os defines públicos existentes; apenas o aviso
+  de fonte CupertinoIcons já documentado permanece não bloqueante.
+- Atualização da main/roadmap e publicação condicionadas aos gates acima. Nenhuma
+  mudança de backend, migration, dados ou configuração sensível foi necessária.

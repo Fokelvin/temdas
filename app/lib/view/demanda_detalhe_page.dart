@@ -7,6 +7,7 @@ import '../app/nova_aba.dart';
 import 'formatters/demanda_identificacao.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/demanda_painel_redimensionavel.dart';
 import 'widgets/tempo_comparacao.dart';
 import 'widgets/demanda_painel_acoes.dart';
 import 'widgets/demanda_texto_dialog.dart';
@@ -53,67 +54,29 @@ Future<void> mostrarDetalhesDemandaDialog(
   context: context,
   barrierDismissible: true,
   barrierLabel: 'Fechar detalhes da demanda',
-  pageBuilder: (dialogContext, _, _) {
-    final size = MediaQuery.sizeOf(dialogContext);
-    return Align(
-      alignment: Alignment.centerRight,
-      child: SizedBox(
-        width: size.width < 840 ? size.width : size.width * .5,
-        height: size.height,
-        child: Material(
-          key: const ValueKey('demanda-detalhe-dialog'),
-          color: Theme.of(dialogContext).colorScheme.surface,
-          elevation: 12,
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Demanda #$demandaId',
-                          style: Theme.of(dialogContext).textTheme.titleLarge,
-                        ),
-                      ),
-                      if (kIsWeb)
-                        IconButton(
-                          key: const ValueKey('abrir-demanda-nova-aba'),
-                          tooltip: 'Abrir em nova aba',
-                          icon: const Icon(Icons.open_in_new),
-                          onPressed: () => abrirRotaEmNovaAba(
-                            AppRoutes.detalheDaDemanda(demandaId),
-                          ),
-                        ),
-                      IconButton(
-                        tooltip: 'Fechar detalhes',
-                        onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: _DemandaDetalheConteudo(
-                    demandaId: demandaId,
-                    viewModel: viewModel,
-                    painel: true,
-                    onVoltar: () => Navigator.pop(dialogContext),
-                    onAbrirDemanda: (id) {
-                      if (id != null) {
-                        mostrarDetalhesDemandaDialog(dialogContext, id);
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+  pageBuilder: (dialogContext, _, _) => DemandaPainelRedimensionavel(
+    title: 'Demanda #$demandaId',
+    onClose: () => Navigator.pop(dialogContext),
+    actions: [
+      if (kIsWeb)
+        IconButton(
+          key: const ValueKey('abrir-demanda-nova-aba'),
+          tooltip: 'Abrir em nova aba',
+          icon: const Icon(Icons.open_in_new),
+          onPressed: () =>
+              abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
         ),
-      ),
-    );
-  },
+    ],
+    child: _DemandaDetalheConteudo(
+      demandaId: demandaId,
+      viewModel: viewModel,
+      painel: true,
+      onVoltar: () => Navigator.pop(dialogContext),
+      onAbrirDemanda: (id) {
+        if (id != null) mostrarDetalhesDemandaDialog(dialogContext, id);
+      },
+    ),
+  ),
 );
 
 // A página e o popup compartilham carregamento e apresentação dos detalhes.
@@ -239,7 +202,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
   Widget _visaoGeral(backend.Demanda demanda) => SelectionArea(
     child: ListView(
       key: const PageStorageKey('demanda-visao-geral'),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       children: [
         if (!widget.painel)
           Align(
@@ -250,16 +213,16 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
               label: const Text('Voltar'),
             ),
           ),
-        _Cabecalho(demanda: demanda),
-        if (_viewModel.acoesViewModel case final vm?)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: DemandaPainelAcoes(
-              demanda: demanda,
-              viewModel: vm,
-              onAtualizar: () => _viewModel.carregar(widget.demandaId),
-            ),
-          ),
+        _Cabecalho(
+          demanda: demanda,
+          acoes: _viewModel.acoesViewModel != null
+              ? DemandaPainelAcoes(
+                  demanda: demanda,
+                  viewModel: _viewModel.acoesViewModel!,
+                  onAtualizar: () => _viewModel.carregar(widget.demandaId),
+                )
+              : null,
+        ),
         _Secao(
           titulo: 'Estimado x executado',
           child: TempoComparacao(
@@ -267,7 +230,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
             executadoMinutos: _viewModel.tempoExecutadoMinutos,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         _Secao(
           titulo: 'Sprint',
           child: _viewModel.carregandoSprint
@@ -284,15 +247,12 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
                   label: Text(_viewModel.sprint?.nome ?? 'Sem Sprint'),
                 ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         _Secao(
           titulo: 'Informações',
-          child: _Informacoes(
-            demanda: demanda,
-            executadoMinutos: _viewModel.tempoExecutadoMinutos,
-          ),
+          child: _Informacoes(demanda: demanda),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         _Secao(
           titulo: 'Demanda mãe',
           child: _DemandaMae(
@@ -301,7 +261,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
             onAbrir: widget.onAbrirDemanda,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         _Secao(
           titulo: 'Demandas filhas (${_viewModel.filhas.length})',
           child: _DemandasFilhas(
@@ -455,14 +415,15 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
 }
 
 class _Cabecalho extends StatelessWidget {
-  const _Cabecalho({required this.demanda});
+  const _Cabecalho({required this.demanda, this.acoes});
 
   final backend.Demanda demanda;
+  final Widget? acoes;
 
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -473,17 +434,20 @@ class _Cabecalho extends StatelessWidget {
             children: [
               Text(
                 formatarIdentificacaoDemanda(demanda),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
-              Chip(label: Text(_statusLabel(demanda.status))),
+              Chip(label: Text(_prioridadeLabel(demanda.prioridade))),
+              if (acoes == null)
+                Chip(label: Text(_statusLabel(demanda.status))),
             ],
           ),
-          const SizedBox(height: 12),
+          ?acoes,
+          const SizedBox(height: 6),
           Text(
             _textoOuFallback(demanda.descricao, 'Descrição não informada.'),
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),
@@ -500,7 +464,7 @@ class _Secao extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -508,9 +472,9 @@ class _Secao extends StatelessWidget {
             titulo,
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
           child,
         ],
       ),
@@ -519,68 +483,46 @@ class _Secao extends StatelessWidget {
 }
 
 class _Informacoes extends StatelessWidget {
-  const _Informacoes({required this.demanda, required this.executadoMinutos});
-
+  const _Informacoes({required this.demanda});
   final backend.Demanda demanda;
-  final int executadoMinutos;
 
   @override
-  Widget build(BuildContext context) {
-    final itens = <({String label, String valor})>[
-      (label: 'ID', valor: '#${demanda.id ?? '—'}'),
-      (label: 'Status', valor: _statusLabel(demanda.status)),
-      (label: 'Prioridade', valor: _prioridadeLabel(demanda.prioridade)),
-      (
-        label: 'Tempo estimado',
-        valor: _formatarDuracao(demanda.tempoEstimadoMinutos),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _CampoInformacao(
+        label: 'Criada em',
+        valor: _formatarDataHora(demanda.criadoEm),
       ),
-      (label: 'Tempo executado', valor: _formatarDuracao(executadoMinutos)),
-      (label: 'Criada em', valor: _formatarDataHora(demanda.criadoEm)),
-      (label: 'Atualizada em', valor: _formatarDataHora(demanda.atualizadoEm)),
-      (
+      _CampoInformacao(
+        label: 'Atualizada em',
+        valor: _formatarDataHora(demanda.atualizadoEm),
+      ),
+      _CampoInformacao(
         label: 'Concluída em',
         valor: demanda.concluidoEm == null
             ? 'Não concluída'
             : _formatarDataHora(demanda.concluidoEm!),
       ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final largura = constraints.maxWidth >= 680
-            ? (constraints.maxWidth - 16) / 2
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: 16,
-          runSpacing: 18,
-          children: itens
-              .map(
-                (item) => SizedBox(
-                  width: largura,
-                  child: _CampoInformacao(label: item.label, valor: item.valor),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
+    ],
+  );
 }
 
 class _CampoInformacao extends StatelessWidget {
   const _CampoInformacao({required this.label, required this.valor});
-
   final String label;
   final String valor;
-
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: Theme.of(context).textTheme.labelMedium),
-      const SizedBox(height: 3),
-      Text(valor, style: const TextStyle(fontWeight: FontWeight.w600)),
-    ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 2,
+      children: [
+        Text('$label:', style: Theme.of(context).textTheme.labelMedium),
+        Text(valor, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    ),
   );
 }
 
