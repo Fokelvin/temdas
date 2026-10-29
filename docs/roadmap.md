@@ -386,7 +386,9 @@ desta seção autoriza implementação automática.
   modais e ações para smartphones e tablets, com layouts e interações
   apropriados a toque; não apenas reduzir fontes.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Parcial / contínuo — melhorias responsivas entregues nos Pacotes 1–4; refinamentos globais do Pacote 5 implementados em branch, aguardando homologação/publicação.
+- **Estado:** Parcial / contínuo — melhorias já entregues nos Pacotes 1–5;
+  fechamento transversal de responsividade aprovado para o Pacote 6, ainda
+  pendente de implementação e homologação em dispositivos reais.
 - **Dependências:** definir breakpoints e comportamentos por tela após
   avaliação; preservar a experiência desktop.
 - **Critérios de aceite:** funções principais permanecem utilizáveis em
@@ -633,6 +635,29 @@ Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
 a implementação existente do Pacote 5; gates de validação aprovados e roadmap
 atualizado da main integrado. Publicação de todo o Pacote 5 autorizada pelo
 responsável, exclusivamente frontend, com confirmação do workflow e HTTPS.
+
+## Pacote 6 — Modernização de Sprints e fechamento responsivo
+
+- **Estado:** Escopo direcionador aprovado, pendente de implementação.
+- **Objetivo 1 — Sprints (P1):** modernizar a interface de Sprints e concluir os
+  itens UX-P1-01 (Sprint ativa e histórico), UX-P1-02 (navegação e vínculos com
+  Demandas), UX-P1-04 (painel lateral igual ao de Demandas, com largura ajustável
+  e ações contextuais) e UX-P1-05 (feedback de carregamento e erros). Preservar
+  as regras de negócio, as transições e os vínculos atuais.
+- **Objetivo 2 — Responsividade global (UX-CONT-01):** revisar e corrigir a
+  experiência em smartphones e tablets de **todas as telas relevantes**, não
+  somente Sprints: Demandas, painel lateral, Log Time, Relatórios, Perfil,
+  navegação, login/MFA, formulários e diálogos. Reaproveitar os componentes e
+  padrões visuais dos Pacotes 4/5. Evitar cortes, sobreposição, rolagem
+  horizontal indevida e controles inacessíveis ao toque.
+- **Validação:** conferir fluxos principais em larguras de celular, tablet
+  e desktop, temas claro/escuro e interações por toque e teclado; alinhar
+  evidências com UX-P1-06 (validação da V1). Preservar as funcionalidades
+  existentes, sem antecipar recursos de equipes ou organizações.
+- **Sequenciamento:** após o Pacote 5. Antes de implementar, confirmar apenas
+  eventuais decisões novas de UX/negócio; usar um prompt Codex objetivo para
+  implementar, testar o necessário e, se aprovado, commitar na main e publicar,
+  respeitando autorização específica para migrations ou operações sensíveis.
 
 ## Pós-produção — Estabilização do MVP
 
