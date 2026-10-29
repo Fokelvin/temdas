@@ -331,6 +331,29 @@ def extract_payload(payload, destination):
         tar.extractall(destination, filter='data')
 
 
+def restore_extension_sql(c, dump, toc, work):
+    """Prepare only the reviewed Sprint dependency in a disposable restore.
+
+    pg_restore --schema filters omit extension entries. Read just that entry
+    offline, reject unsupported placement, and return fixed SQL (not dump SQL).
+    No remote connection, grants, unknown extension or arbitrary SQL execution.
+    """
+    entries = [line for line in toc.splitlines()
+               if re.search(r'\bEXTENSION - btree_gist(?:\s|$)', line)]
+    if not entries:
+        return ''
+    if len(entries) != 1:
+        raise BackupError('btree_gist_restore_entry_ambiguous')
+    selection = work / 'sprint-extension.list'
+    selection.write_text(entries[0] + '\n')
+    ddl = command([c['pg_bin'] + '/pg_restore', '--use-list=' + str(selection),
+                   '--schema-only', '--file=-', str(dump)], 'inspect_sprint_extension', pg_env(c, False)).decode()
+    if not re.search(r'CREATE EXTENSION IF NOT EXISTS "?btree_gist"? WITH SCHEMA "?extensions"?;', ddl):
+        raise BackupError('btree_gist_restore_schema_unsupported')
+    return ("CREATE SCHEMA IF NOT EXISTS extensions;\n"
+            "CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions VERSION '1.7';\n")
+
+
 def restore_check(c, from_external=False):
     root = Path(c['data_dir'])
     state = json.loads((root / 'state.json').read_text())
@@ -383,6 +406,12 @@ def restore_check(c, from_external=False):
             # Validate application/Auth/Storage/migration objects. Managed service
             # extensions and platform infrastructure require a fresh Supabase baseline.
             toc = command([c['pg_bin'] + '/pg_restore', '--list', str(work / 'database.dump')], 'restore_toc', local).decode()
+            extension_sql = restore_extension_sql(c, work / 'database.dump', toc, work)
+            if extension_sql:
+                extension_file = work / 'sprint-extension.sql'
+                extension_file.write_text(extension_sql)
+                command([c['pg_bin'] + '/psql', '-X', '-v', 'ON_ERROR_STOP=1', '-f', str(extension_file)],
+                        'restore_sprint_extension', local)
             toc_file = work / 'restore.list'
             toc_file.write_text('\n'.join(line for line in toc.splitlines() if not re.search(r'\bSCHEMA - (public|auth|storage|supabase_migrations)\b', line)))
             args = [c['pg_bin'] + '/pg_restore', '--use-list=' + str(toc_file), '--exit-on-error', '--no-owner', '--no-privileges', '--dbname=' + local['PGDATABASE']]

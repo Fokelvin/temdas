@@ -79,6 +79,8 @@ copiar dump, inventários de dados, config ou chave de recuperação ao reposit�
    desconhecidas bloqueiam. Comentários aninhados e strings são tratados sem
    confundi-los com comandos. SQL bloqueado exige análise específica e teste
    dedicado; não existe flag para ignorar o bloqueio.
+   A única exceção revisada é a correção Sprint descrita abaixo, vinculada à
+   versão, aos hashes dos cinco artefatos e ao estado inicial auditado.
 8. Executar os arquivos SQL transacionais na ordem validada, com lock timeout
    de 5s e statement timeout de 60s. O Serverpod 3.4.11 usa esse mesmo SQL e ordenação;
    o aplicativo não é iniciado e nenhuma configuração DEV/PROD é carregada.
@@ -94,6 +96,8 @@ copiar dump, inventários de dados, config ou chave de recuperação ao reposit�
     customizados esperados são `sprints_uma_ativa_por_usuario_idx` e
     `sprints_periodos_sem_sobreposicao_por_usuario`. Não reparar nem recriar
     automaticamente objetos faltantes.
+    Para a correção específica, admitir apenas o baseline incompleto exato e
+    exigir os dois objetos corretos ao final, sem outra alteração de schema.
 11. Remover somente o container cujo ID/nome/label/imagem conferem. Comparar
     fingerprints dos metadados de containers/volumes originais antes/depois. Não
     iniciar, consultar ou executar SQL nos bancos originais. Apagar temporários
@@ -147,7 +151,7 @@ Executar sequencialmente, sem outro ensaio Docker concorrente:
 
 ```bash
 python3 -m unittest discover -s scripts/backup -v
-TEMDAS_MIGRATION_DOCKER_TESTS=1 python3 -m unittest discover -s scripts/migrations -v
+TEMDAS_MIGRATION_DOCKER_TESTS=1 TEMDAS_MIGRATION_BACKUP_TESTS=1 python3 -m unittest discover -s scripts/migrations -v
 git diff --check
 ```
 
@@ -158,17 +162,97 @@ preservação de dados/histórico, divergência do target, isolamento e regras r
 de exclusão/uma Sprint ativa por proprietário. Os testes unitários cobrem falha
 Docker, concorrência, SQL perigoso/malformado, backup ausente/antigo/futuro,
 segunda cópia inválida, identidade de cleanup e logs sem saída sensível.
+`TEMDAS_MIGRATION_BACKUP_TESTS=1` habilita explicitamente o teste do backup
+existente com idade <=24h e cópia F: verificada; não coleta backup novo. Ele
+exige o snapshot anterior à correção, aplica somente no clone e testa conflitos
+usando dados sintéticos revertidos por rollback. Depois de atualizar PROD, esse
+cenário exige conservar um baseline anterior dedicado e revisado; não deve ser
+interpretado como autorização para voltar o histórico de um banco existente.
 
-## Resultado inicial e limitação registrada
+## Resultado inicial, antes da correção
 
 O ensaio do backup existente confirmou integridade nas duas cópias, restauração
 em PG17.11, inventário idêntico ao manifesto e nenhuma migration pendente no
-snapshot diante do registro atual. O baseline, porém, não contém os
+snapshot diante do registro então vigente. O baseline, porém, não contém os
 dois objetos customizados de Sprint esperados. A rotina retorna
 `baseline_sprint_custom_objects_missing` e bloqueia aprovação. Isso é uma
 observação **do snapshot**, não uma consulta atual ao Supabase. Nenhum objeto foi
-criado/corrigido em PROD ou DEV. É necessária investigação somente leitura do
-schema atual e do histórico antes de propor qualquer correção separada.
+criado/corrigido em PROD ou DEV. A investigação posterior e o ensaio da correção
+estão registrados abaixo; esse resultado inicial não deve ser confundido com o
+resultado do novo ensaio.
+
+## Correção Sprint preparada em 29/10/2026
+
+Versão: `20261029113025000-sprint-integrity`. A definição completa de
+`convite-cooldown` omitiu os dois objetos presentes na versão anterior. Seu SQL
+incremental não os remove. A criação inicial pela definição incompleta explica
+o estado observado, mas não comprova qual comando histórico foi executado.
+
+A nova migration instala `btree_gist` 1.7 em `extensions`, cria o índice único
+parcial e a exclusion constraint descritos no [schema Sprint](schema-sprints-serverpod.md)
+e atualiza somente o módulo TEMDAS. A definição completa também contém esses
+objetos. Nenhuma migration histórica foi alterada.
+
+O gate permite ensaiar **somente essa versão**, isoladamente, com os cinco
+artefatos e SHA-256 fixados em `SPRINT_ARTIFACTS`. Os bytes executados são os
+mesmos que foram verificados. Alterar SQL/JSON, incluir arquivo extra, renomear
+a migration ou agrupá-la com outra impede o uso dessa exceção. O analisador SQL
+geral continua bloqueando comandos privilegiados e blocos `DO` desconhecidos.
+
+O preflight exige histórico cooldown/serverpod conhecido, schema gerenciado
+compatível, os dois índices e as duas constraints originais de Sprint, ausência
+dos dois objetos customizados e de `btree_gist`. O resultado exige predicados,
+elementos, métodos e propriedades exatos dos objetos novos, extensão no schema e
+versão esperados, histórico correto, dados preservados e nenhuma outra alteração
+nos objetos inventariados. `production_authorized=false` permanece obrigatório.
+
+### Evidências e pré-requisitos Supabase
+
+Foram aprovados 53 testes de migrations, incluindo instalação limpa, upgrade do
+backup PROD existente em PostgreSQL 17.11 isolado, conflitos, isolamento entre
+proprietários, rollback e restauração de dump contendo os novos objetos. Também
+passaram 26 testes de backup e dois testes Dart de schema/target; Dart analyze
+não apresentou problemas nos arquivos verificados. Contagens e hashes do clone
+foram preservados, exceto a atualização esperada do histórico Serverpod. Os
+containers e volumes originais permaneceram inalterados.
+
+A consulta PROD somente leitura de 29/10 confirmou PostgreSQL 17.11,
+`btree_gist` 1.7 disponível e trusted, schema `extensions` existente, permissões
+CREATE no banco e CREATE/USAGE no schema e propriedade suficiente sobre Sprint
+e histórico. O teste local com role sem superuser e esses privilégios passou;
+sem CREATE no banco houve rejeição e rollback. Não foi executado DDL remoto.
+Docker não reproduz todos os serviços/event triggers da plataforma Supabase:
+reconferir extensão, permissões, histórico e integridade atuais antes da aplicação.
+Qualquer divergência bloqueia a execução até nova análise.
+
+### Locks, aprovação e recuperação
+
+A transação usa `ACCESS EXCLUSIVE` em Sprint e `SHARE ROW EXCLUSIVE` no histórico.
+O lock de Sprint bloqueia inclusive leituras até o fim da transação. O limite de
+5s é de **espera por lock**, não da duração total do bloqueio; o statement timeout
+de 60s vale por comando. Escolher janela de baixo tráfego e verificar transações
+longas. O tamanho pequeno do clone não garante o tempo de execução em PROD.
+
+Antes de solicitar aprovação separada, repetir o ensaio com backup <=24h e cópia
+F: verificada, reconferir as precondições atuais e registrar versão, hashes,
+backend compatível, relatório e janela. Usar o SQL incremental revisado;
+`definition.sql` é apenas para banco vazio. Não reativar Pre-Deploy nem aplicar
+esta versão por inicialização normal do backend. Nenhum deploy é necessário
+para preparar os arquivos, e nenhum foi executado nesta tarefa.
+
+Falha antes do COMMIT desfaz extensão/schema novos, índice, constraint e alteração
+de histórico. Em perda de conexão com resultado do COMMIT desconhecido, inspecionar
+schema/histórico antes de qualquer repetição. Depois do COMMIT, preferir correção
+aditiva revisada; não remover proteções nem voltar o histórico automaticamente.
+Restauração real é último recurso, exige autorização própria e plano para
+preservar gravações posteriores ao backup.
+
+O restaurador agora prepara exclusivamente a dependência `btree_gist` conhecida
+em um destino descartável antes do restore filtrado por schema. A coleta diária
+e o script instalado do Agendador não foram modificados. Para restaurar backups
+posteriores à correção, usar a versão do repositório conforme o
+[runbook de backup](backup-restauracao-prod.md); a cópia instalada antiga não
+inclui esse novo suporte.
 
 O `pubspec.yaml` do servidor ainda contém um atalho local `serverpod run start`
 com `--apply-migrations`. Ele não foi executado nem alterado nesta tarefa e não é
@@ -181,6 +265,9 @@ isso é independente do Pre-Deploy removido do Railway.
 - Implementação instalada 3.4.11: `migration_manager.dart`, `_loadMigrationSQL` e
   `_migrateToLatestModule` (registro conhecido + execução do SQL gerado).
 - [PostgreSQL 17 — SQL dump e restore](https://www.postgresql.org/docs/17/backup-dump.html)
+- [PostgreSQL 17 — btree_gist](https://www.postgresql.org/docs/17/btree-gist.html)
+- [PostgreSQL 17 — CREATE EXTENSION](https://www.postgresql.org/docs/17/sql-createextension.html)
+- [Supabase — extensões](https://supabase.com/docs/guides/database/extensions)
 - [Docker — container run](https://docs.docker.com/reference/cli/docker/container/run/)
 - [Supabase — backup e restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)
 - [Backup PROD-01](backup-restauracao-prod.md) e

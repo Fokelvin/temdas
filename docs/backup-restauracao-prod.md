@@ -56,6 +56,24 @@ os caminhos reais permanecem fora do checkout. Não versionar `state.json`.
 
 ## Execução, integridade e retenção
 
+### Restauração após a correção de integridade de Sprint
+
+Backups que incluam a migration `20261029113025000-sprint-integrity` dependem de
+`btree_gist` 1.7 em `extensions`. O restore filtrado por schema não inclui
+automaticamente a entrada da extensão. O restaurador versionado inspeciona essa
+entrada offline e prepara somente essa dependência conhecida no banco descartável,
+antes de restaurar os objetos. Schema inesperado ou entrada ambígua bloqueia o
+restore. Nenhum SQL arbitrário extraído dessa entrada é executado.
+
+Usar `python3 scripts/backup/backup.py restore-check` a partir do checkout
+atualizado para validar esses backups, inclusive com `--from-external` quando
+aplicável. O ensaio PROD-02 usa o mesmo suporte em Docker e validou uma restauração
+real de dump local com as duas proteções. A coleta diária instalada e seu
+agendamento permanecem iguais; a cópia antiga instalada do script não incorpora
+esse suporte de restauração. Isso não autoriza restaurar sobre PROD ou DEV.
+
+### Comandos existentes
+
 Comandos locais (configuração privada já preparada neste ambiente):
 
 ```sh

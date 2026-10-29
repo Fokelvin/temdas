@@ -31,6 +31,17 @@ IMAGE = 'postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a
 LABEL = 'br.com.temdas.migration-validation'
 CUSTOM = {'sprints_uma_ativa_por_usuario_idx',
           'sprints_periodos_sem_sobreposicao_por_usuario'}
+SPRINT_BASELINE = '20261009000123093-convite-cooldown'
+SPRINT_CORRECTION = '20261029113025000-sprint-integrity'
+# Reviewed exception for ONE SQL-only migration, not a generic SQL bypass.
+# Changing any artifact requires review of this pin and all correction tests.
+SPRINT_ARTIFACTS = {
+    'definition.json': '5f3553068ec38af03ab97ac8f9ff9947f4398383371f7ab772a62a7f624034f7',
+    'definition.sql': '99358d0ca3132717ed27026d8ca7ed74c28619e97eb59b88891d2940bae620b1',
+    'definition_project.json': '476ece184d747e195b42d3b490edab22b6e465578279aeef3aa1e8e8c03375fb',
+    'migration.json': '5f269a504f0fee5ddda966c1055ebe30d57585c0e9edfe7afc42dc1f175c0500',
+    'migration.sql': 'e46a7e8013f1c51069c3e31a5faf1ff0a6f8d3b7c46028181f199822a8f8e230',
+}
 
 
 class ValidationError(Exception):
@@ -64,6 +75,11 @@ def call(args, *, data=None, stage='docker', timeout=600):
     except (OSError, subprocess.TimeoutExpired):
         raise ValidationError(stage + '_unavailable') from None
     if r.returncode:
+        if stage == 'isolated_sql':
+            # psql VERBOSITY=sqlstate; only predefined classifications escape.
+            for state in ('23505', '23P01', '42501', '55P03', '57014', 'P0001'):
+                if re.search(rb'\b' + state.encode() + rb'\b', r.stderr):
+                    raise ValidationError(stage + '_failed_' + state)
         raise ValidationError(stage + '_failed')
     return r.stdout
 
@@ -238,6 +254,91 @@ def sprint_check(before, after=None):
         raise ValidationError('sprint_custom_objects_changed')
 
 
+def correction_artifacts():
+    folder = MIGRATIONS / SPRINT_CORRECTION
+    artifacts = {}
+    if folder.is_symlink() or {p.name for p in folder.iterdir()} != set(SPRINT_ARTIFACTS):
+        raise ValidationError('sprint_correction_artifacts_unexpected')
+    for name, digest in SPRINT_ARTIFACTS.items():
+        path = folder / name
+        if path.is_symlink() or not path.is_file():
+            raise ValidationError('sprint_correction_artifact_hash_mismatch')
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != digest:
+            raise ValidationError('sprint_correction_artifact_hash_mismatch')
+        artifacts[name] = content
+    return artifacts
+
+
+def correction_preflight(db, before, versions):
+    correction_artifacts()
+    if versions != [SPRINT_CORRECTION] or history(db) != {
+        'temdas_backend': SPRINT_BASELINE, 'serverpod': '20260129180959368'
+    }:
+        raise ValidationError('sprint_correction_baseline_or_sequence_mismatch')
+    indexes = [r for r in before['structure']['indexes'] if r[:2] == ['public', 'sprints']]
+    constraints = [r for r in before['structure']['constraints'] if r[:2] == ['public', 'sprints']]
+    if indexes != [
+        ['public', 'sprints', 'sprints_nome_normalizado_idx', 'CREATE UNIQUE INDEX sprints_nome_normalizado_idx ON public.sprints USING btree ("usuarioId", "nomeNormalizado")'],
+        ['public', 'sprints', 'sprints_pkey', 'CREATE UNIQUE INDEX sprints_pkey ON public.sprints USING btree (id)'],
+    ] or constraints != [
+        ['public', 'sprints', 'sprints_fk_0', 'FOREIGN KEY ("usuarioId") REFERENCES usuarios(id)', True],
+        ['public', 'sprints', 'sprints_pkey', 'PRIMARY KEY (id)', True],
+    ]:
+        raise ValidationError('sprint_correction_unexpected_initial_objects')
+    if db.query("SELECT to_json(EXISTS(SELECT 1 FROM pg_extension WHERE extname='btree_gist'))"):
+        raise ValidationError('sprint_correction_unexpected_initial_extension')
+    check_definition(db, json.loads((MIGRATIONS / SPRINT_BASELINE / 'definition.json').read_text()))
+
+
+def correction_final(db):
+    objects = db.query("""SELECT json_agg(json_build_object('name',c.relname,'method',am.amname,
+      'unique',i.indisunique,'exclusion',i.indisexclusion,'valid',i.indisvalid,'ready',i.indisready,
+      'predicate',pg_get_expr(i.indpred,i.indrelid),
+      'elements',(SELECT json_agg(pg_get_indexdef(i.indexrelid,s,true) ORDER BY s)
+                  FROM generate_series(1,i.indnkeyatts) s)) ORDER BY c.relname)
+      FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid JOIN pg_am am ON am.oid=c.relam
+      WHERE i.indrelid='public.sprints'::regclass
+        AND c.relname IN ('sprints_uma_ativa_por_usuario_idx','sprints_periodos_sem_sobreposicao_por_usuario')""")
+    common = {'valid': True, 'ready': True}
+    expected = [
+        dict(common, name='sprints_periodos_sem_sobreposicao_por_usuario', method='gist', unique=False,
+             exclusion=True, predicate="(status = ANY (ARRAY['planejada'::text, 'ativa'::text, 'concluida'::text]))",
+             elements=['"usuarioId"', 'daterange("dataInicio"::date, "dataFim"::date, \'[]\'::text)']),
+        dict(common, name='sprints_uma_ativa_por_usuario_idx', method='btree', unique=True,
+             exclusion=False, predicate="(status = 'ativa'::text)", elements=['"usuarioId"']),
+    ]
+    if objects != expected:
+        raise ValidationError('sprint_correction_final_index_semantics_mismatch')
+    extension = db.query("""SELECT json_build_array(n.nspname,e.extversion)
+      FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='btree_gist'""")
+    if extension != ['extensions', '1.7']:
+        raise ValidationError('sprint_correction_final_extension_mismatch')
+    constraint_ok = db.query("""SELECT to_json(count(*)=1) FROM pg_constraint
+      WHERE conrelid='public.sprints'::regclass
+      AND conname='sprints_periodos_sem_sobreposicao_por_usuario' AND contype='x'
+      AND convalidated AND NOT condeferrable AND NOT condeferred""")
+    if not constraint_ok:
+        raise ValidationError('sprint_correction_final_constraint_mismatch')
+
+
+def correction_delta(db, before, after):
+    # Exactly two indexes + one exclusion constraint; no other selected-schema
+    # object may disappear/change. Extension members live outside public.
+    for kind, original in before['structure'].items():
+        current = after['structure'][kind]
+        if kind in ('indexes', 'constraints'):
+            current = [r for r in current if not (r[:2] == ['public', 'sprints'] and r[2] in CUSTOM)]
+        if current != original:
+            raise ValidationError('sprint_correction_unexpected_schema_change')
+    if before['tables'].keys() != after['tables'].keys():
+        raise ValidationError('sprint_correction_unexpected_table_change')
+    if before['tables']['public.serverpod_migrations']['rows'] != after['tables']['public.serverpod_migrations']['rows']:
+        raise ValidationError('sprint_correction_unexpected_history_rows')
+    preserved_data(db, before)
+    correction_final(db)
+
+
 class IsolatedDatabase:
     def __init__(self):
         self.identity = uuid.uuid4().hex
@@ -286,6 +387,7 @@ class IsolatedDatabase:
 
     def execute(self, sql):
         return docker('exec', '-i', self.cid, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1',
+                      '-v', 'VERBOSITY=sqlstate',
                       '-h', '/var/run/postgresql', '-U', 'postgres', '-d', 'validation',
                       data=("SET extra_float_digits=3; SET datestyle='ISO,YMD'; SET intervalstyle='postgres';\n" + sql).encode(),
                       stage='isolated_sql')
@@ -308,6 +410,9 @@ def restore(db, c, work):
     db.execute('\n'.join('CREATE ROLE ' + role + ' NOLOGIN NOSUPERUSER;' for role in roles if role not in ('postgres', '"postgres"')))
     db.execute('\n'.join('CREATE SCHEMA IF NOT EXISTS ' + b.ident(s) + ';' for s in b.VALIDATION_SCHEMAS))
     toc = b.command([c['pg_bin'] + '/pg_restore', '--list', str(work / 'database.dump')], 'restore_toc', b.pg_env(c, False)).decode()
+    extension_sql = b.restore_extension_sql(c, work / 'database.dump', toc, work)
+    if extension_sql:
+        db.execute(extension_sql)
     toc = '\n'.join(line for line in toc.splitlines() if not re.search(r'\bSCHEMA - (public|auth|storage|supabase_migrations)\b', line))
     docker('exec', '-i', db.cid, 'sh', '-c', 'umask 077; cat > /validation/restore.list', data=toc.encode())
     args = ['exec', '-i', db.cid, 'pg_restore', '--use-list=/validation/restore.list', '--exit-on-error',
@@ -398,16 +503,28 @@ def rehearsal(db, versions, before):
     for version in versions:
         folder = MIGRATIONS / version
         sql = (folder / 'migration.sql').read_text()
-        risks = inspect_sql(sql)
-        migration = json.loads((folder / 'migration.json').read_text())
-        definition = json.loads((folder / 'definition.json').read_text())
+        corrective = version == SPRINT_CORRECTION
+        if corrective:
+            correction_preflight(db, before, versions)
+            artifacts = correction_artifacts()
+            sql = artifacts['migration.sql'].decode()
+            migration = json.loads(artifacts['migration.json'])
+            definition = json.loads(artifacts['definition.json'])
+            risks = ['reviewed_sprint_correction', 'access_exclusive_lock_wait_timeout_5s', 'trusted_extension_1_7_in_extensions']
+        else:
+            risks = inspect_sql(sql)
+            migration = json.loads((folder / 'migration.json').read_text())
+            definition = json.loads((folder / 'definition.json').read_text())
         if (migration.get('warnings') or definition.get('moduleName') != 'temdas_backend' or
             migration.get('migrationApiVersion') != 1 or definition.get('migrationApiVersion') != 1):
             raise ValidationError('migration_metadata_requires_review')
         # Same transaction-wrapped files and registry ordering as Serverpod 3.4.11.
         db.execute("SET lock_timeout='5s'; SET statement_timeout='60s';\n" + sql)
         after = b.inventory(db)
-        sprint_check(before, after)
+        if corrective:
+            correction_delta(db, before, after)
+        else:
+            sprint_check(before, after)
         preserved_data(db, before)
         if history(db).get('temdas_backend') != version:
             raise ValidationError('serverpod_history_not_updated')
@@ -447,7 +564,10 @@ def _validate(c):
                 evidence['baseline_restored_inventory_verified'] = True
                 versions = pending(registry, history(db).get('temdas_backend'))
                 evidence['pending_versions_in_snapshot'] = versions
-                sprint_check(before)
+                if versions == [SPRINT_CORRECTION]:
+                    correction_preflight(db, before, versions)
+                else:
+                    sprint_check(before)
                 results = rehearsal(db, versions, before)
     except ValidationError as error:
         error.evidence = evidence
