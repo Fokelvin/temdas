@@ -408,6 +408,43 @@ desta seção autoriza implementação automática.
   registrar uma descrição; a descrição fica associada ao apontamento correto e
   pode ser consultada posteriormente de forma clara.
 
+### Pacote 4 — Painel lateral de Demandas
+
+- **Estado:** escopo aprovado; implementação aguardando decisões de negócio
+  identificadas na inspeção do código em 29/10/2026.
+- **Interface:** painel à direita com aproximadamente metade da largura no
+  desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas
+  Visão geral, Anotações e Horas. Corpo do card abre o painel; expansão continua
+  independente. Preservar detalhes por URL/nova aba, ações existentes, Sprint,
+  hierarquia, tempos, temas e responsividade.
+- **Anotações:** entidade `AnotacaoDemanda` com Demanda, autor, conteúdo,
+  criação, última edição e exclusão lógica; ordem mais recente primeiro,
+  edição/exclusão apenas pelo autor com validação no backend. Permitir anotações
+  em Demandas concluídas/canceladas; históricos de mãe e filhas separados.
+- **Horas:** exibir registros e total; nesta aba permitir somente edição isolada
+  da observação opcional, inclusive em Demandas concluídas/canceladas. Manter
+  correções de horários e exclusões exclusivamente no Log Time e acrescentar
+  observação aos formulários existentes, sem alterar regras temporais.
+- **Dados:** tornar `Demanda.descricao` oficial. Migrar `observacoes` para a
+  descrição vazia ou acrescentar integralmente sob “Observações anteriores”
+  quando ambas existirem; não gerar anotações artificiais. Descontinuar o campo
+  antigo somente após validar a preservação dos dados. Preparar migrations
+  Serverpod para anotações e observação opcional em `RegistroTempo`.
+- **Decisões pendentes:**
+  - `UsuarioScope` limita acesso à Demanda ao seu proprietário (`usuarioId`).
+    Não existe permissão compartilhada de consulta. Definir se “outros usuários
+    autorizados” fica reservado a evolução futura, mantendo o ownership atual,
+    ou exige um novo modelo de autorização; não abrir acesso implicitamente.
+  - `RegistroTempoNormalizacaoService` une registros adjacentes/sobrepostos e
+    `RegistroTempoEndpoint` exclui os absorvidos. Definir como preservar todas
+    as observações nessa união, inclusive em criação e edição, antes de
+    acrescentar o campo; manter apenas o texto do registro base perderia dados.
+- **Validação e aplicação:** testes de permissões/AAL2, persistência, migração,
+  observações e interações/regressões do painel; análise, testes e build; ensaio
+  de migration em banco isolado quando disponível. Nenhuma migration, publicação
+  PROD ou merge na main está autorizada nesta etapa. Branch específica, sem
+  mudanças de infraestrutura ou secrets.
+
 ### UX-CONT-05 — Inclusão de Log Time diretamente pela agenda
 
 - **Descrição:** facilitar a criação de apontamentos a partir da própria agenda.
