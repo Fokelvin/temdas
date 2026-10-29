@@ -101,17 +101,36 @@ de escopo.
   aplicáveis à Demanda sem exigir que o usuário volte ao card para executá-las; as
   ações produzem os mesmos resultados e validações já definidos no fluxo atual.
 
-### UX-P1-04 — Ações contextuais nos popups de Sprint
+### UX-P1-04 — Painel lateral de Sprint e ações contextuais
 
-- **Descrição:** ações contextuais em resumos e painéis de Sprint, respeitando
-  as regras de negócio, incluindo “Iniciar Sprint” e “Adicionar Demanda”.
+- **Descrição:** ao clicar no corpo do card/item de uma Sprint, abrir **painel
+  lateral à direita**, reutilizando o mesmo componente e os mesmos comportamentos
+  do painel de Demandas (Pacotes 4/5), adaptando apenas o conteúdo ao domínio
+  de Sprint. Não abrir modal central para os detalhes. Se existir controle de
+  expandir/recolher o item, seu acionamento permanece independente da abertura
+  do painel.
+- **Comportamento visual:** largura inicial **420 px** no desktop; ajuste
+  horizontal arrastando a borda esquerda, ícone no cabeçalho para ampliar/reduzir
+  (até cerca de 70% da viewport) e preferência de largura persistida no
+  navegador. Em telas pequenas, painel em tela cheia. Cabeçalho fixo, conteúdo
+  com rolagem própria, informações condensadas, temas claro/escuro e fechamento
+  previsível. Preservar navegação por URL e abertura em nova aba quando aplicável.
+- **Conteúdo e ações:** mostrar resumo da Sprint, status, período, progresso,
+  horas, Demandas vinculadas e ações contextuais existentes, incluindo
+  “Iniciar Sprint” e “Adicionar Demanda” somente quando permitidas. Usar
+  organização interna apropriada à Sprint, sem copiar literalmente as três
+  abas específicas de Demanda (Visão geral/Anotações/Horas).
 - **Prioridade:** P1.
-- **Estado:** Parcial; o resumo e o painel permitem consultar Demandas e ações
-  de vínculo são limitadas a Sprints planejadas ou ativas.
-- **Dependências:** regras atuais do backend e do ciclo de vida da Sprint.
-- **Critérios de aceite:** “Iniciar Sprint” e “Adicionar Demanda” são
-  oferecidas apenas quando permitidas pelo status e pelas regras atuais;
-  remoções seguem as regras de hierarquia e vínculo existentes.
+- **Estado:** Parcial — resumos e ações de Sprint já existem; painel lateral
+  padronizado conforme Demandas ainda não implementado.
+- **Dependências:** reutilizar componentes de painel e redimensionamento dos
+  Pacotes 4/5, `SprintDemanda` e regras atuais do backend/ciclo de vida da Sprint.
+  Sem antecipar mudança de schema ou regras de negócio.
+- **Critérios de aceite:** clique no item abre o painel; expansão inline,
+  quando existente, continua independente; experiência de largura, arraste,
+  ampliação, persistência, responsividade e fechamento é consistente com
+  Demandas; ações são oferecidas apenas nos status permitidos; remoções
+  respeitam hierarquia e vínculos; dados e indicadores permanecem corretos.
 
 ### UX-P1-05 — Indicadores de carregamento em Sprints
 
