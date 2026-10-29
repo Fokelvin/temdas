@@ -37,6 +37,8 @@ usa prioridade operacional, conforme sua relação com homologação e produçã
   confirmação explícita do link e TOTP quando há fator verificado; convites
   preservam o onboarding sem privilégio administrativo automático.
 - Interface com sistema visual, temas claro/escuro e densidade de cards.
+- Pacote 4 em PROD: painel lateral de Demandas com Visão geral, Anotações e Horas;
+  observações opcionais de Log Time e migration aplicada com preservação de dados.
 - Publicação em `https://temdas.com.br` (Cloudflare Pages), backend Railway e
   Supabase PROD; SMTP Resend e callbacks alinhados ao domínio oficial.
 - Backup PROD automático criptografado no WSL e F:, restauração SQL isolada
@@ -91,7 +93,7 @@ de escopo.
   atual de expansão/recolhimento inline, sem abrir o popup. O popup deve exibir de
   forma visível todas as ações disponíveis para aquela Demanda e seu estado.
 - **Prioridade:** P1.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado em PROD no Pacote 4; popup entregue como painel lateral responsivo, preservando clique no card e expansão independente.
 - **Dependências:** preservar o comportamento atual de expansão do card, as
   permissões e as regras de status, hierarquia, Sprint e exclusão já existentes.
 - **Critérios de aceite:** clicar no card abre o popup da Demanda; clicar no ícone
@@ -352,7 +354,7 @@ desta seção autoriza implementação automática.
 - **Descrição:** corrigir o botão de mostrar/ocultar senha no campo de login,
   atualmente sem funcionamento adequado.
 - **Prioridade:** P1 — correção de UX existente.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado em PROD (Pacote 1).
 - **Dependências:** preservar a autenticação, segurança e acessibilidade;
   conferir componentes compartilhados antes de corrigir outras telas.
 - **Critérios de aceite:** o botão alterna entre senha visível e oculta sem
@@ -365,7 +367,7 @@ desta seção autoriza implementação automática.
   modais e ações para smartphones e tablets, com layouts e interações
   apropriados a toque; não apenas reduzir fontes.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Parcial / contínuo — melhorias responsivas entregues nos Pacotes 1–4; refinamentos globais do Pacote 5 implementados em branch, aguardando homologação/publicação.
 - **Dependências:** definir breakpoints e comportamentos por tela após
   avaliação; preservar a experiência desktop.
 - **Critérios de aceite:** funções principais permanecem utilizáveis em
@@ -378,7 +380,7 @@ desta seção autoriza implementação automática.
   tamanho da fonte, ajustando altura dos cards, espaçamentos, padding,
   margens, disposição e hierarquia das informações.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Implementado no Pacote 5 (branch `feat/pacote-5-toolbar-demandas`, commit `b3e67ad`); pendente de homologação visual e publicação.
 - **Dependências:** manter os estados, ações e a legibilidade do modo normal;
   definir quais informações podem ser condensadas ou ocultadas.
 - **Critérios de aceite:** mais Demandas cabem na área visível sem perda de
@@ -389,7 +391,7 @@ desta seção autoriza implementação automática.
 - **Descrição:** oferecer um botão acessível para alternar manualmente entre
   os temas claro e escuro já existentes no TEMDAS.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Alternância e preferência de tema já disponíveis em PROD; botão por ícone fixo na toolbar implementado no Pacote 5, pendente de homologação/publicação.
 - **Dependências:** reaproveitar o sistema visual atual e decidir o escopo
   de persistência da preferência.
 - **Critérios de aceite:** o controle altera o tema das telas principais,
@@ -401,8 +403,7 @@ desta seção autoriza implementação automática.
 - **Descrição:** permitir informar uma descrição opcional em cada lançamento de
   Log Time, registrando de forma curta o que foi realizado naquele apontamento.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** implementado no Pacote 4 (branch de trabalho); pendente de
-  homologação/publicação.
+- **Estado:** Concluído e homologado em PROD no Pacote 4, com observação opcional no registro e edição isolada de texto.
 - **Dependências:** definir limite e apresentação do texto sem prejudicar a
   leitura da agenda e dos detalhes da Demanda.
 - **Critérios de aceite:** ao criar ou editar um lançamento, o usuário pode
@@ -411,12 +412,13 @@ desta seção autoriza implementação automática.
 
 ### Pacote 4 — Painel lateral de Demandas
 
-- **Estado:** implementado na branch do Pacote 4; validação local e plano de
-  aplicação em [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
-  Validação complementar de volume, timeouts, origens e fuso registrada em
-  [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md).
-  Aplicação/publicação em PROD autorizadas pelo responsável, condicionadas aos
-  gates de backup, ensaio e integridade em [pacote4-publicacao.md](pacote4-publicacao.md).
+- **Estado:** Concluído, publicado e homologado em PROD (29/10/2026). Migration
+  do Pacote 4 e correção dos objetos SQL customizados aplicadas com backup
+  verificado e preservação de dados; deploy Railway → Cloudflare validado.
+  Implementação: [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
+  Ensaios complementares: [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md).
+  Publicação: [pacote4-publicacao.md](pacote4-publicacao.md).
+  A largura de 50% corresponde à versão entregue e será refinada no UX-P5-04.
 - **Interface:** painel à direita com aproximadamente metade da largura no
   desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas
   Visão geral, Anotações e Horas. Corpo do card abre o painel; expansão continua
@@ -442,11 +444,9 @@ desta seção autoriza implementação automática.
   preservados transacionalmente. Metadados privados impedem duplicação em
   uniões consecutivas; observações vazias não produzem cabeçalhos artificiais.
 - **Validação e aplicação:** testes de permissões/AAL2, persistência, migração,
-  observações e interações/regressões do painel; análise, testes e build; ensaio
-  de migration em banco isolado quando disponível. Nenhuma migration, publicação
-  PROD ou merge na main estava autorizada na etapa de implementação. A autorização
-  posterior e a ordem de publicação estão em `pacote4-publicacao.md`. Branch específica, sem
-  mudanças de infraestrutura ou secrets.
+  observações, concorrência, fusos e interações do painel aprovados; ensaios
+  de migration no clone e verificação pós-publicação concluídos. Homologação
+  manual em PROD confirmada. Evoluções visuais posteriores ficam no Pacote 5.
 
 ### UX-CONT-05 — Inclusão de Log Time diretamente pela agenda
 
@@ -455,7 +455,7 @@ desta seção autoriza implementação automática.
   discreta, como ícone de `+` ou texto de ação, permitindo iniciar o cadastro
   de Log Time naquele horário.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado em PROD (Pacote 3).
 - **Dependências:** preservar navegação, rolagem e interação com lançamentos já
   existentes; definir comportamento equivalente para dispositivos de toque.
 - **Critérios de aceite:** em desktop, o horário oferece uma ação contextual
@@ -469,7 +469,7 @@ desta seção autoriza implementação automática.
   reduzindo, reorganizando ou tornando mais compactas informações secundárias
   para priorizar a visualização temporal.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado em PROD (Pacote 3).
 - **Dependências:** preservar as informações necessárias ao uso diário e a
   responsividade; avaliar separadamente desktop, tablet e celular.
 - **Critérios de aceite:** a agenda ocupa uma parcela maior e mais útil da tela,
@@ -482,7 +482,7 @@ desta seção autoriza implementação automática.
   Log Time para reforçar a separação visual entre itens, mantendo o design
   system e evitando aumento de ruído visual.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Concluído e homologado em PROD (Pacotes 1–3).
 - **Dependências:** reutilizar tokens, `ColorScheme` e temas existentes; validar
   contraste nos temas claro e escuro e nas densidades normal e compacta.
 - **Critérios de aceite:** cards adjacentes são distinguíveis com mais clareza
@@ -524,10 +524,12 @@ desta seção autoriza implementação automática.
 
 ## Pacote 5 — Redesign visual e aproveitamento da área útil
 
-**Estado:** Aprovado / pendente de implementação, somente após a conclusão
-do Pacote 4 (painel lateral de Demandas, anotações e horas). Este pacote é
-de UX/UI; não antecipa mudanças de negócio, backend, banco ou migrations.
-Respeitar os componentes funcionais entregues pelo Pacote 4.
+**Estado:** Implementação principal concluída na branch local
+`feat/pacote-5-toolbar-demandas` (commit informado `b3e67ad`), com análise,
+202 testes afetados e build Web release aprovados, segundo relatório do Codex.
+**Ainda não publicado nem homologado em PROD.** Refinamento visual do painel
+lateral (UX-P5-04) aprovado e pendente de implementação. Pacote exclusivamente
+frontend, sem migrations nem alterações do backend.
 
 ### UX-P5-01 — Barra superior compartilhada e contextual
 
@@ -539,7 +541,7 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   (ações e controles existentes); Log Time (navegação de datas, Dia/Semana e
   ações da agenda); Relatórios (período, filtros e exportação); Perfil (apenas
   ações aplicáveis). Evitar duplicar controles acima e abaixo da barra.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Implementado na branch do Pacote 5 (`b3e67ad`), com validação automatizada; pendente de homologação visual e publicação.
 - **Critérios de aceite:** a região central da barra é flexível e preenche o
   espaço disponível, sem grande vazio entre título e busca; controles úteis
   ficam na barra superior no desktop; tema está sempre na mesma posição; em
@@ -558,7 +560,7 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   apresentação da hierarquia mãe/filha. Um seletor Kanban/Lista fica na
   toolbar superior da página; a opção escolhida persiste no navegador.
   Ambas as visualizações abrem o mesmo painel lateral do Pacote 4.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Implementado na branch do Pacote 5 (`b3e67ad`), com validação automatizada; pendente de homologação visual e publicação.
 - **Critérios de aceite:** mais Demandas visíveis sem perder legibilidade
   nem ações essenciais; Kanban mantém drag-and-drop e expansão hierárquica;
   Lista oferece abertura dos detalhes e controle de status conforme as regras
@@ -576,15 +578,40 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   critérios, mostra a quantidade de filtros ativos e oferece Limpar filtros.
   A busca considera ID/título sem diferenciar maiúsculas ou acentos e combina
   com os filtros, preservando o contexto mãe/filha nos resultados.
-- **Estado:** Aprovado / pendente.
+- **Estado:** Implementado na branch do Pacote 5 (`b3e67ad`), com validação automatizada; pendente de homologação visual e publicação.
 - **Critérios de aceite:** busca e filtros funcionam em ambas as visualizações;
   nenhum filtro isolado ocupa permanentemente espaço na toolbar; layout usa
   efetivamente a área horizontal livre da barra superior; responsividade e
   acessibilidade preservadas.
 
-**Sequenciamento:** Pacote 4 em desenvolvimento separado; iniciar este
-Pacote 5 apenas após entrega/revisão do Pacote 4. Não modificar o trabalho
-em andamento do Codex sem nova decisão.
+### UX-P5-04 — Painel lateral estreito, condensado e redimensionável
+
+- **Estado:** Aprovado / pendente de implementação; o painel funcional do
+  Pacote 4 já está homologado em PROD.
+- **Descrição:** substituir a largura inicial de 50% do desktop por **420 px**
+  como padrão, respeitando a largura efetivamente disponível. Permitir
+  redimensionamento horizontal arrastando a borda esquerda; oferecer ícone
+  `move-horizontal` no cabeçalho para alternar entre tamanho padrão e ampliado.
+  Persistir a largura escolhida no navegador. Limitar ampliação a cerca de
+  **70% da viewport** e evitar largura maior que a tela; no celular, painel
+  permanece em tela cheia.
+- **Visão geral:** condensar cartões, margens, paddings e informações repetidas.
+  Agrupar título, prioridade e status; exibir descrição de maneira econômica;
+  concentrar estimado/realizado/restante em um bloco enxuto; apresentar Sprint,
+  metadados e ações em linhas compactas. Preservar informações e operações do
+  Pacote 4, bem como Anotações e Horas.
+- **Critérios de aceite:** painel inicia significativamente menor e deixa o
+  Kanban/Lista visível ao fundo; largura ajusta-se pelo arraste e pelo ícone
+  sem cortes, saltos ou perda de estado; tamanho persiste após recarga;
+  Visão geral tem menos rolagem e nenhuma duplicação desnecessária; bom
+  funcionamento em temas claro/escuro e em telas menores.
+- **Escopo:** somente frontend Flutter, sem alteração de dados, endpoints,
+  migrations ou regras de negócio.
+
+**Sequenciamento:** Pacote 4 concluído em PROD. Concluir UX-P5-04 sobre a
+implementação do Pacote 5, testar os componentes afetados e então avaliar
+homologação/publicação de todo o Pacote 5. Preservar o trabalho já existente
+na branch e integrar atualizações documentais da main antes do merge.
 
 ## Pós-produção — Estabilização do MVP
 
