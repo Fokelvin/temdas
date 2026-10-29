@@ -32,6 +32,17 @@ void main() {
       minutoDestino: 10 * 60 + 8,
     );
     expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget.key is ValueKey<String> &&
+            (widget.key! as ValueKey<String>).value.startsWith(
+              'adicionar-horario-',
+            ),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
       tester
           .widget<Text>(find.byKey(const ValueKey('log-time-drop-preview')))
           .data,

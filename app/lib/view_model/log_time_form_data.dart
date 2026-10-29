@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 /// Intervalo informado no formulário, com duração inteira em minutos.
 class LogTimeFormData {
+  static const duracaoPadraoMinutos = 30;
+
   const LogTimeFormData({
     required this.data,
     required this.hora,

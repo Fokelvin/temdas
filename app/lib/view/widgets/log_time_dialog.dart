@@ -13,8 +13,8 @@ class LogTimeDialog extends StatefulWidget {
     required this.dataInicial,
     this.demandaId,
     this.onSalvar,
-  }) : horaInicial = null,
-       duracaoInicialMinutos = 30,
+    this.horaInicial,
+  }) : duracaoInicialMinutos = LogTimeFormData.duracaoPadraoMinutos,
        edicao = false;
 
   const LogTimeDialog.editar({

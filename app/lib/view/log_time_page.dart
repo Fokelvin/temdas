@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import '../theme/app_theme.dart';
 import 'formatters/demanda_identificacao.dart';
 import '../view_model/agenda_view_model.dart';
 import 'widgets/app_drawer.dart';
@@ -23,6 +24,7 @@ class LogTimePage extends StatefulWidget {
 class _LogTimePageState extends State<LogTimePage> {
   late final AgendaViewModel _viewModel;
   late final bool _possuiViewModel;
+  bool _abrindoLancamento = false;
 
   @override
   void initState() {
@@ -44,31 +46,37 @@ class _LogTimePageState extends State<LogTimePage> {
     builder: (context, _) => PageScaffold(
       title: 'Log time',
       route: AppRoutes.logTime,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Header(
-                  viewModel: _viewModel,
-                  onLancarTempo: _demandasSelecionaveis.isEmpty
-                      ? null
-                      : _abrirLancamento,
-                ),
-                const SizedBox(height: 16),
-                _Summary(viewModel: _viewModel),
-                const SizedBox(height: 20),
-                Expanded(child: _conteudo()),
-              ],
-            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) => Padding(
+          padding: EdgeInsets.all(
+            constraints.maxWidth < 600
+                ? TemdasTokens.smallGap
+                : TemdasTokens.contentGap,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                viewModel: _viewModel,
+                onLancarTempo: _podeLancar ? () => _abrirLancamento() : null,
+              ),
+              const SizedBox(height: TemdasTokens.smallGap),
+              _Summary(viewModel: _viewModel),
+              const SizedBox(height: TemdasTokens.smallGap),
+              Expanded(child: _conteudo()),
+            ],
           ),
         ),
       ),
     ),
   );
+
+  bool get _podeLancar =>
+      !_abrindoLancamento &&
+      !_viewModel.carregando &&
+      !_viewModel.enviando &&
+      _viewModel.erro == null &&
+      _viewModel.demandas.any((demanda) => demanda.id != null);
 
   List<backend.Demanda> get _demandasSelecionaveis {
     final demandas = _viewModel.demandas
@@ -93,6 +101,11 @@ class _LogTimePageState extends State<LogTimePage> {
       );
     }
     return LogTimeCalendar(
+      key: const ValueKey('agenda-calendario'),
+      onCriar: _podeLancar
+          ? (data, hora) =>
+                _abrirLancamento(dataInicial: data, horaInicial: hora)
+          : null,
       viewModel: _viewModel,
       onEditar: _abrirEdicao,
       onExcluir: _confirmarExclusao,
@@ -123,55 +136,63 @@ class _LogTimePageState extends State<LogTimePage> {
     return false;
   }
 
-  Future<void> _abrirLancamento() async {
+  Future<void> _abrirLancamento({
+    DateTime? dataInicial,
+    TimeOfDay? horaInicial,
+  }) async {
+    if (!_podeLancar) return;
     final demandas = _demandasSelecionaveis;
-    if (demandas.isEmpty || _viewModel.enviando) return;
-
-    final demandaId = await showDialog<int>(
-      context: context,
-      builder: (_) => _SelecionarDemandaDialog(demandas: demandas),
-    );
-    if (demandaId == null || !mounted) return;
-
-    final demanda = _viewModel.demandaPorId(demandaId);
-    if (demanda == null) {
-      _mostrarFeedback(
-        'A demanda selecionada não está mais disponível.',
-        erro: true,
+    setState(() => _abrindoLancamento = true);
+    try {
+      final demandaId = await showDialog<int>(
+        context: context,
+        builder: (_) => _SelecionarDemandaDialog(demandas: demandas),
       );
-      return;
+      if (demandaId == null || !mounted) return;
+
+      final demanda = _viewModel.demandaPorId(demandaId);
+      if (demanda == null) {
+        _mostrarFeedback(
+          'A demanda selecionada não está mais disponível.',
+          erro: true,
+        );
+        return;
+      }
+
+      final dados = await showDialog<LogTimeFormData>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => LogTimeDialog(
+          demandaId: demandaId,
+          demandaTitulo: formatarIdentificacaoDemanda(demanda),
+          dataInicial: dataInicial ?? _viewModel.dataSelecionada,
+          horaInicial: horaInicial,
+          onSalvar: (dados) async {
+            final salvo = await _viewModel.registrarTempo(
+              demandaId: demandaId,
+              data: dados.data,
+              hora: dados.hora,
+              duracaoHoras: dados.duracaoHoras,
+            );
+            return salvo
+                ? null
+                : _viewModel.erro ?? 'Não foi possível lançar o tempo.';
+          },
+        ),
+      );
+      if (dados == null || !mounted) return;
+
+      final falhaAoAtualizar = _viewModel.erro != null;
+      _mostrarFeedback(
+        falhaAoAtualizar
+            ? 'Tempo lançado, mas não foi possível atualizar a agenda. '
+                  'Tente carregar a agenda novamente.'
+            : 'Tempo lançado com sucesso.',
+        erro: falhaAoAtualizar,
+      );
+    } finally {
+      if (mounted) setState(() => _abrindoLancamento = false);
     }
-
-    final dados = await showDialog<LogTimeFormData>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => LogTimeDialog(
-        demandaId: demandaId,
-        demandaTitulo: formatarIdentificacaoDemanda(demanda),
-        dataInicial: _viewModel.dataSelecionada,
-        onSalvar: (dados) async {
-          final salvo = await _viewModel.registrarTempo(
-            demandaId: demandaId,
-            data: dados.data,
-            hora: dados.hora,
-            duracaoHoras: dados.duracaoHoras,
-          );
-          return salvo
-              ? null
-              : _viewModel.erro ?? 'Não foi possível lançar o tempo.';
-        },
-      ),
-    );
-    if (dados == null || !mounted) return;
-
-    final falhaAoAtualizar = _viewModel.erro != null;
-    _mostrarFeedback(
-      falhaAoAtualizar
-          ? 'Tempo lançado, mas não foi possível atualizar a agenda. '
-                'Tente carregar a agenda novamente.'
-          : 'Tempo lançado com sucesso.',
-      erro: falhaAoAtualizar,
-    );
   }
 
   Future<void> _abrirEdicao(backend.RegistroTempo registro) async {
@@ -281,8 +302,8 @@ class _Header extends StatelessWidget {
         : '${_shortDate(viewModel.diasDaSemana.first)} – '
               '${_shortDate(viewModel.diasDaSemana.last)}';
     return Wrap(
-      spacing: 16,
-      runSpacing: 12,
+      spacing: TemdasTokens.smallGap,
+      runSpacing: TemdasTokens.smallGap,
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
@@ -293,9 +314,8 @@ class _Header extends StatelessWidget {
               label,
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
-            const Text('Agenda dos tempos lançados nas demandas'),
           ],
         ),
         Wrap(
@@ -361,34 +381,55 @@ class _Summary extends StatelessWidget {
   final AgendaViewModel viewModel;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth < 700
-          ? constraints.maxWidth
-          : (constraints.maxWidth - 12) / 2;
-      return Wrap(
-        spacing: 12,
-        runSpacing: 12,
+  Widget build(BuildContext context) => Card(
+    key: const ValueKey('agenda-indicadores'),
+    child: Padding(
+      padding: const EdgeInsets.all(TemdasTokens.smallGap),
+      child: Wrap(
+        spacing: TemdasTokens.pagePadding,
+        runSpacing: TemdasTokens.smallGap,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          SizedBox(
-            width: width,
-            child: ResumoCard(
-              titulo: 'Lançamentos no período',
-              valor: '${viewModel.lancamentosDoPeriodo}',
-              icone: Icons.event_note,
-            ),
+          _metrica(
+            context,
+            'Lançamentos no período',
+            '${viewModel.lancamentosDoPeriodo}',
+            Icons.event_note,
           ),
-          SizedBox(
-            width: width,
-            child: ResumoCard(
-              titulo: 'Tempo executado',
-              valor: formatDuration(viewModel.executadoDoPeriodo),
-              icone: Icons.timer_outlined,
-            ),
+          _metrica(
+            context,
+            'Tempo executado',
+            formatDuration(viewModel.executadoDoPeriodo),
+            Icons.timer_outlined,
           ),
         ],
-      );
-    },
+      ),
+    ),
+  );
+
+  Widget _metrica(
+    BuildContext context,
+    String titulo,
+    String valor,
+    IconData icone,
+  ) => MergeSemantics(
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icone, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: TemdasTokens.smallGap),
+        Flexible(
+          child: Text(titulo, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const SizedBox(width: TemdasTokens.smallGap),
+        Text(
+          valor,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+    ),
   );
 }
 

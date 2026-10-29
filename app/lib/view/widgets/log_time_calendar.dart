@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../view_model/agenda_view_model.dart';
+import '../../view_model/log_time_form_data.dart';
 import '../../theme/app_theme.dart';
 import '../formatters/demanda_identificacao.dart';
 
@@ -26,12 +27,14 @@ class LogTimeCalendar extends StatefulWidget {
     required this.onEditar,
     required this.onExcluir,
     required this.onMover,
+    this.onCriar,
   });
 
   final AgendaViewModel viewModel;
   final LogTimeCalendarAction onEditar;
   final LogTimeCalendarAction onExcluir;
   final LogTimeCalendarMove onMover;
+  final Future<void> Function(DateTime data, TimeOfDay hora)? onCriar;
 
   @override
   State<LogTimeCalendar> createState() => _LogTimeCalendarState();
@@ -113,6 +116,17 @@ class _LogTimeCalendarState extends State<LogTimeCalendar> {
                               (day) => _DayColumn(
                                 key: ValueKey('log-time-day-${_dateKey(day)}'),
                                 day: day,
+                                onCriar:
+                                    !widget.viewModel.carregando &&
+                                        !widget.viewModel.enviando &&
+                                        widget.viewModel.erro == null &&
+                                        _registroArrastado == null &&
+                                        widget.viewModel.demandas.any(
+                                          (demanda) => demanda.id != null,
+                                        )
+                                    ? widget.onCriar
+                                    : null,
+                                registrosDoPeriodo: widget.viewModel.registros,
                                 dayKey: _dayKey(day),
                                 columnWidth: columnWidth,
                                 registros: widget.viewModel.registrosDoDia(day),
@@ -214,17 +228,23 @@ _RegistroDropPreview _previewFromLocalOffset(
   DateTime day,
   double localOffset,
 ) {
+  final inicioMinutos = _inicioMinutosFromLocalOffset(localOffset);
+  return _RegistroDropPreview(
+    registro: registro,
+    day: day,
+    inicioMinutos: inicioMinutos,
+  );
+}
+
+// Mesmo arredondamento usado para mover e criar registros na grade.
+int _inicioMinutosFromLocalOffset(double localOffset) {
   final minutos =
       (localOffset * Duration.minutesPerHour / _LogTimeCalendarState.hourHeight)
           .round();
   final inicioMinutos =
       (minutos / _LogTimeCalendarState.snapMinutes).round() *
       _LogTimeCalendarState.snapMinutes;
-  return _RegistroDropPreview(
-    registro: registro,
-    day: day,
-    inicioMinutos: inicioMinutos,
-  );
+  return inicioMinutos;
 }
 
 class _CalendarHeaders extends StatelessWidget {
@@ -233,39 +253,50 @@ class _CalendarHeaders extends StatelessWidget {
   final double columnWidth;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 64,
-    child: Row(
-      children: [
-        const SizedBox(width: 72),
-        ...days.map((day) {
-          final hoje = _sameDay(day, DateTime.now());
-          return SizedBox(
-            width: columnWidth,
-            child: Container(
-              margin: const EdgeInsets.only(right: 1),
-              color: hoje
-                  ? Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: .35)
-                  : null,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_weekday(day.weekday)),
-                  Text(
-                    '${day.day.toString().padLeft(2, '0')}/'
-                    '${day.month.toString().padLeft(2, '0')}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scaler = MediaQuery.textScalerOf(context);
+    double alturaLinha(TextStyle style) =>
+        scaler.scale(style.fontSize!) * (style.height ?? 1.4);
+    return SizedBox(
+      height: math.max(
+        48,
+        alturaLinha(text.bodyMedium!) +
+            alturaLinha(text.titleMedium!) +
+            TemdasTokens.smallGap / 2,
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 72),
+          ...days.map((day) {
+            final hoje = _sameDay(day, DateTime.now());
+            return SizedBox(
+              width: columnWidth,
+              child: Container(
+                margin: const EdgeInsets.only(right: 1),
+                color: hoje
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer.withValues(alpha: .35)
+                    : null,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_weekday(day.weekday), style: text.bodyMedium),
+                    Text(
+                      '${day.day.toString().padLeft(2, '0')}/'
+                      '${day.month.toString().padLeft(2, '0')}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
-      ],
-    ),
-  );
+            );
+          }),
+        ],
+      ),
+    );
+  }
 }
 
 class _TimeAxis extends StatelessWidget {
@@ -295,6 +326,8 @@ class _DayColumn extends StatelessWidget {
   const _DayColumn({
     super.key,
     required this.day,
+    required this.onCriar,
+    required this.registrosDoPeriodo,
     required this.dayKey,
     required this.columnWidth,
     required this.registros,
@@ -312,6 +345,8 @@ class _DayColumn extends StatelessWidget {
   });
 
   final DateTime day;
+  final Future<void> Function(DateTime, TimeOfDay)? onCriar;
+  final List<backend.RegistroTempo> registrosDoPeriodo;
   final GlobalKey dayKey;
   final double columnWidth;
   final List<backend.RegistroTempo> registros;
@@ -378,6 +413,14 @@ class _DayColumn extends StatelessWidget {
                 ),
               ),
             ),
+            Positioned.fill(
+              child: _HorariosLivres(
+                key: ValueKey('horarios-livres-${_dateKey(day)}'),
+                day: day,
+                registros: registrosDoPeriodo,
+                onCriar: onCriar,
+              ),
+            ),
             ...registros.map(
               (registro) => _CalendarBlock(
                 registro: registro,
@@ -407,6 +450,132 @@ class _DayColumn extends StatelessWidget {
   bool _atualizarPreview(backend.RegistroTempo registro, double localOffset) {
     return onDragMove(registro, day, localOffset);
   }
+}
+
+/// Superfície atrás dos blocos: toque e mouse usam o mesmo ponto temporal.
+class _HorariosLivres extends StatefulWidget {
+  const _HorariosLivres({
+    super.key,
+    required this.day,
+    required this.registros,
+    required this.onCriar,
+  });
+  final DateTime day;
+  final List<backend.RegistroTempo> registros;
+  final Future<void> Function(DateTime, TimeOfDay)? onCriar;
+
+  @override
+  State<_HorariosLivres> createState() => _HorariosLivresState();
+}
+
+class _HorariosLivresState extends State<_HorariosLivres> {
+  int? _minutoHover;
+
+  @override
+  void didUpdateWidget(covariant _HorariosLivres oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.onCriar == null) _minutoHover = null;
+  }
+
+  bool _disponivel(int minutos) {
+    if (widget.onCriar == null ||
+        minutos < 0 ||
+        minutos + LogTimeFormData.duracaoPadraoMinutos >=
+            _LogTimeCalendarState.minutesPerDay) {
+      return false;
+    }
+    final inicio = DateTime(
+      widget.day.year,
+      widget.day.month,
+      widget.day.day,
+      minutos ~/ 60,
+      minutos % 60,
+    );
+    final fim = inicio.add(
+      const Duration(minutes: LogTimeFormData.duracaoPadraoMinutos),
+    );
+    return !widget.registros.any(
+      (registro) =>
+          registro.inicioEm.isBefore(fim) &&
+          registro.inicioEm
+              .add(Duration(minutes: registro.duracaoMinutos))
+              .isAfter(inicio),
+    );
+  }
+
+  void _hover(PointerEvent event) {
+    final minutos = _inicioMinutosFromLocalOffset(event.localPosition.dy);
+    final novo = _disponivel(minutos) ? minutos : null;
+    if (_minutoHover != novo) setState(() => _minutoHover = novo);
+  }
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    onEnter: _hover,
+    onHover: _hover,
+    onExit: (_) {
+      if (_minutoHover != null) setState(() => _minutoHover = null);
+    },
+    cursor: _minutoHover == null ? MouseCursor.defer : SystemMouseCursors.click,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      // O botão global continua sendo o acesso sem coordenadas da agenda.
+      excludeFromSemantics: true,
+      onTapUp: widget.onCriar == null
+          ? null
+          : (details) {
+              final minutos = _inicioMinutosFromLocalOffset(
+                details.localPosition.dy,
+              );
+              if (_disponivel(minutos)) {
+                unawaited(
+                  widget.onCriar!(
+                    widget.day,
+                    TimeOfDay(hour: minutos ~/ 60, minute: minutos % 60),
+                  ),
+                );
+              }
+            },
+      child: Stack(
+        children: [
+          const SizedBox.expand(),
+          if (_minutoHover case final minutos? when _disponivel(minutos))
+            Positioned(
+              top: minutos * _LogTimeCalendarState.hourHeight / 60,
+              left: 5,
+              right: 5,
+              height:
+                  _LogTimeCalendarState.hourHeight *
+                  _LogTimeCalendarState.snapMinutes /
+                  60,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  key: ValueKey(
+                    'adicionar-horario-${_dateKey(widget.day)}-$minutos',
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(
+                      TemdasTokens.controlRadius,
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(
+                      Icons.add,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _CalendarBlock extends StatelessWidget {
