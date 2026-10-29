@@ -5,7 +5,9 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
 import 'formatters/demanda_identificacao.dart';
-import '../theme/app_theme.dart';
+import 'formatters/texto_busca.dart';
+import '../view_model/demandas_visualizacao.dart';
+import '../view_model/tempo_executado_total.dart';
 import '../view_model/demandas_view_model.dart';
 import '../view_model/sprint_view_model.dart';
 import 'sprint_page.dart';
@@ -46,12 +48,16 @@ class _DemandasPageState extends State<DemandasPage> {
   backend.Prioridade _prioridade = backend.Prioridade.media;
   backend.Prioridade? _filtroPrioridade;
   DensidadeDemanda _densidade = DensidadeDemanda.compacta;
+  int?
+  _filtroSprint; // null: todas; -1: sem Sprint aberta; demais: SprintDemanda.
+  final _visualizacao = DemandasVisualizacao();
   int _filtroVersao = 0;
   final Set<int> _demandasEmStatus = {};
 
   @override
   void initState() {
     super.initState();
+    unawaited(_visualizacao.load());
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? DemandasViewModel();
     _viewModel.carregarDemandas();
@@ -64,6 +70,7 @@ class _DemandasPageState extends State<DemandasPage> {
   void dispose() {
     _sprintViewModel.removeListener(_consultarSprintsQuandoLivre);
     if (widget.sprintViewModel == null) _sprintViewModel.dispose();
+    _visualizacao.dispose();
     _tituloController.dispose();
     _descricaoController.dispose();
     _tempoController.dispose();
@@ -125,7 +132,10 @@ class _DemandasPageState extends State<DemandasPage> {
         key: ValueKey('sprint-da-demanda-${demanda.id}'),
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
-          minimumSize: const Size(0, 32),
+          minimumSize: Size(
+            0,
+            MediaQuery.sizeOf(context).width < 900 ? 32 : 24,
+          ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           textStyle: Theme.of(context).textTheme.bodySmall,
         ),
@@ -153,7 +163,10 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   bool get _filtrosAtivos =>
-      _buscaController.text.trim().isNotEmpty || _filtroPrioridade != null;
+      _buscaController.text.trim().isNotEmpty || _quantidadeFiltros > 0;
+
+  int get _quantidadeFiltros =>
+      (_filtroPrioridade == null ? 0 : 1) + (_filtroSprint == null ? 0 : 1);
 
   void _alterarBusca(String valor) {
     setState(() => _filtroVersao++);
@@ -167,19 +180,24 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   void _limparFiltros() {
-    _buscaController.clear();
     setState(() {
       _filtroPrioridade = null;
+      _filtroSprint = null;
       _filtroVersao++;
     });
   }
 
   _ResultadoBusca _resultadoBusca() {
-    final busca = _buscaController.text.trim().toLowerCase();
-    final idBuscado = int.tryParse(busca);
+    final busca = normalizarTextoBusca(_buscaController.text.trim());
+    final idBuscado = int.tryParse(busca.replaceFirst(RegExp(r'^#'), ''));
     final demandasComPrioridade = _viewModel.demandas.where(
       (demanda) =>
-          _filtroPrioridade == null || demanda.prioridade == _filtroPrioridade,
+          (_filtroPrioridade == null ||
+              demanda.prioridade == _filtroPrioridade) &&
+          (_filtroSprint == null ||
+              (_filtroSprint == -1
+                  ? !_sprintsPorDemanda.containsKey(demanda.id)
+                  : _sprintsPorDemanda[demanda.id]?.id == _filtroSprint)),
     );
     final candidatas = demandasComPrioridade.toList();
     List<backend.Demanda> correspondentes;
@@ -192,7 +210,12 @@ class _DemandasPageState extends State<DemandasPage> {
           .toList();
     } else {
       correspondentes = candidatas
-          .where((demanda) => demanda.titulo.toLowerCase().contains(busca))
+          .where(
+            (demanda) =>
+                normalizarTextoBusca(demanda.titulo).contains(busca) ||
+                (demanda.id?.toString().contains(busca.replaceFirst('#', '')) ??
+                    false),
+          )
           .toList();
     }
 
@@ -212,7 +235,9 @@ class _DemandasPageState extends State<DemandasPage> {
     final idsExpandir = <int>{};
     for (final correspondente in correspondentes) {
       var atual = correspondente;
+      final visitados = <int>{};
       while (true) {
+        if (atual.id != null && !visitados.add(atual.id!)) break;
         final id = atual.id;
         if (id != null) idsVisiveis.add(id);
         final paiId = atual.demandaPaiId;
@@ -688,28 +713,20 @@ class _DemandasPageState extends State<DemandasPage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _viewModel,
+      listenable: Listenable.merge([_viewModel, _visualizacao]),
       builder: (context, _) {
         final resultadoBusca = _resultadoBusca();
         return PageScaffold(
           title: 'Demandas',
           route: AppRoutes.demandas,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: TemdasTokens.contentGap),
-              child: FilledButton.icon(
-                key: const ValueKey('abrir-criar-demanda'),
-                onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
-                    ? null
-                    : _abrirFormulario,
-                icon: const Icon(Icons.add),
-                label: const Text('Criar demanda'),
-              ),
-            ),
-          ],
+          toolbar: _toolbar(),
           body: ListView(
             key: const ValueKey('demandas-pagina-scroll'),
-            padding: _densidade.paddingPagina,
+            padding:
+                (_visualizacao.value == VisualizacaoDemandas.lista
+                        ? DensidadeDemanda.compacta
+                        : _densidade)
+                    .paddingPagina,
             children: [
               if (_viewModel.erro != null) ...[
                 const SizedBox(height: 16),
@@ -725,123 +742,6 @@ class _DemandasPageState extends State<DemandasPage> {
                   ),
                 ),
               ],
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Demandas salvas',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(
-                        TemdasTokens.controlRadius,
-                      ),
-                    ),
-                    child: ToggleButtons(
-                      isSelected: [
-                        for (final densidade in DensidadeDemanda.values)
-                          densidade == _densidade,
-                      ],
-                      onPressed: (index) => setState(
-                        () => _densidade = DensidadeDemanda.values[index],
-                      ),
-                      children: const [
-                        Tooltip(
-                          message: 'Visualização normal',
-                          child: Icon(Icons.density_medium, size: 20),
-                        ),
-                        Tooltip(
-                          message: 'Visualização compacta',
-                          child: Icon(Icons.density_small, size: 20),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'Recarregar demandas',
-                    onPressed:
-                        _viewModel.carregando ||
-                            _viewModel.enviando ||
-                            _demandasEmStatus.isNotEmpty
-                        ? null
-                        : _viewModel.carregarDemandas,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
-              ),
-              SizedBox(height: _densidade.espacamentoEntreSecoes),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final larguraBusca = constraints.maxWidth < 500
-                      ? constraints.maxWidth
-                      : 420.0;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: larguraBusca,
-                        child: TextField(
-                          key: const ValueKey('buscar-demandas'),
-                          controller: _buscaController,
-                          onChanged: _alterarBusca,
-                          decoration: InputDecoration(
-                            labelText: 'Buscar por ID ou título...',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _buscaController.text.isEmpty
-                                ? null
-                                : IconButton(
-                                    tooltip: 'Limpar busca',
-                                    onPressed: () {
-                                      _buscaController.clear();
-                                      _alterarBusca('');
-                                    },
-                                    icon: const Icon(Icons.clear),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 190,
-                        child: DropdownButtonFormField<backend.Prioridade?>(
-                          key: const ValueKey('filtro-prioridade'),
-                          initialValue: _filtroPrioridade,
-                          decoration: const InputDecoration(
-                            labelText: 'Prioridade',
-                          ),
-                          items: [
-                            const DropdownMenuItem<backend.Prioridade?>(
-                              value: null,
-                              child: Text('Todas'),
-                            ),
-                            ...backend.Prioridade.values.map(
-                              (prioridade) =>
-                                  DropdownMenuItem<backend.Prioridade?>(
-                                    value: prioridade,
-                                    child: Text(_prioridadeLabel(prioridade)),
-                                  ),
-                            ),
-                          ],
-                          onChanged: _alterarPrioridadeFiltro,
-                        ),
-                      ),
-                      if (_filtrosAtivos)
-                        IconButton(
-                          key: const ValueKey('limpar-filtros-demandas'),
-                          tooltip: 'Limpar filtros',
-                          onPressed: _limparFiltros,
-                          icon: const Icon(Icons.filter_alt_off),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              SizedBox(height: _densidade.espacamentoEntreSecoes),
               if (_carregandoSprints)
                 const LinearProgressIndicator(
                   key: ValueKey('carregando-sprints-demandas'),
@@ -865,14 +765,25 @@ class _DemandasPageState extends State<DemandasPage> {
                     child: CircularProgressIndicator(),
                   ),
                 )
+              else if (resultadoBusca.demandas.isEmpty && _filtrosAtivos)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Nenhuma demanda encontrada. Ajuste a busca ou os filtros.',
+                  ),
+                )
               else
                 DemandaTree(
                   // Preserva o quadro quando o aviso de erro muda os índices da lista.
                   key: const ValueKey('demandas-arvore'),
                   horizontalController: _quadroHorizontalController,
                   densidade: _densidade,
+                  lista: _visualizacao.value == VisualizacaoDemandas.lista,
                   sprintBuilder: _vinculoSprint,
                   demandas: resultadoBusca.demandas,
+                  temposExecutadosTotais: calcularTemposExecutadosTotais(
+                    _viewModel.demandas,
+                  ),
                   autoExpandIds: resultadoBusca.autoExpandIds,
                   focoDemandaId: resultadoBusca.focoDemandaId,
                   focoVersao: _filtroVersao,
@@ -902,6 +813,237 @@ class _DemandasPageState extends State<DemandasPage> {
         );
       },
     );
+  }
+
+  Widget _toolbar() => PageToolbar(
+    search: TextField(
+      key: const ValueKey('buscar-demandas'),
+      controller: _buscaController,
+      onChanged: _alterarBusca,
+      decoration: InputDecoration(
+        labelText: 'Buscar por ID ou título...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _buscaController.text.isEmpty
+            ? null
+            : IconButton(
+                key: const ValueKey('limpar-busca-demandas'),
+                tooltip: 'Limpar busca',
+                onPressed: () {
+                  _buscaController.clear();
+                  _alterarBusca('');
+                },
+                icon: const Icon(Icons.clear),
+              ),
+      ),
+    ),
+    children: [
+      OutlinedButton.icon(
+        key: const ValueKey('abrir-filtros-demandas'),
+        onPressed: _abrirFiltros,
+        icon: Badge(
+          isLabelVisible: _quantidadeFiltros > 0,
+          label: Text('$_quantidadeFiltros'),
+          child: const Icon(Icons.filter_alt_outlined),
+        ),
+        label: Text(
+          _quantidadeFiltros == 0 ? 'Filtros' : 'Filtros ($_quantidadeFiltros)',
+        ),
+      ),
+      SegmentedButton<VisualizacaoDemandas>(
+        key: const ValueKey('visualizacao-demandas'),
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(
+            value: VisualizacaoDemandas.kanban,
+            label: Text('Kanban'),
+            icon: Icon(Icons.view_kanban_outlined),
+          ),
+          ButtonSegment(
+            value: VisualizacaoDemandas.lista,
+            label: Text('Lista'),
+            icon: Icon(Icons.view_list_outlined),
+          ),
+        ],
+        selected: {_visualizacao.value},
+        onSelectionChanged: (values) async {
+          final saved = await _visualizacao.select(values.single);
+          if (!saved && mounted) {
+            _mostrarFeedback(
+              'Não foi possível salvar a visualização neste dispositivo.',
+              erro: true,
+            );
+          }
+        },
+      ),
+      FilledButton.icon(
+        key: const ValueKey('abrir-criar-demanda'),
+        onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
+            ? null
+            : _abrirFormulario,
+        icon: const Icon(Icons.add),
+        label: const Text('Criar demanda'),
+      ),
+      if (_visualizacao.value == VisualizacaoDemandas.kanban)
+        PopupMenuButton<DensidadeDemanda>(
+          tooltip: 'Densidade dos cards',
+          initialValue: _densidade,
+          icon: Icon(
+            _densidade.isCompacta ? Icons.density_small : Icons.density_medium,
+          ),
+          onSelected: (value) => setState(() => _densidade = value),
+          itemBuilder: (_) => [
+            for (final value in DensidadeDemanda.values)
+              CheckedPopupMenuItem(
+                value: value,
+                checked: _densidade == value,
+                child: Text(
+                  value.isCompacta
+                      ? 'Visualização compacta'
+                      : 'Visualização normal',
+                ),
+              ),
+          ],
+        ),
+      IconButton(
+        tooltip: 'Recarregar demandas',
+        onPressed:
+            _viewModel.carregando ||
+                _viewModel.enviando ||
+                _demandasEmStatus.isNotEmpty
+            ? null
+            : () async {
+                await _viewModel.carregarDemandas();
+                if (mounted) await _carregarSprints();
+              },
+        icon: const Icon(Icons.refresh),
+      ),
+    ],
+  );
+
+  Future<void> _abrirFiltros() => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => ListenableBuilder(
+      listenable: _sprintViewModel,
+      builder: (context, _) => StatefulBuilder(
+        builder: (context, updateDialog) => AlertDialog(
+          title: const Text('Filtrar Demandas'),
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<backend.Prioridade?>(
+                    key: ValueKey('filtro-prioridade-$_filtroPrioridade'),
+                    initialValue: _filtroPrioridade,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Prioridade'),
+                    items: [
+                      const DropdownMenuItem<backend.Prioridade?>(
+                        value: null,
+                        child: Text('Todas'),
+                      ),
+                      for (final prioridade in backend.Prioridade.values)
+                        DropdownMenuItem(
+                          value: prioridade,
+                          child: Text(_prioridadeLabel(prioridade)),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      _alterarPrioridadeFiltro(value);
+                      updateDialog(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int?>(
+                    key: ValueKey('filtro-sprint-$_filtroSprint'),
+                    initialValue: _filtroSprint,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Sprint aberta',
+                      helperText: _carregandoSprints
+                          ? 'Consultando vínculos…'
+                          : _erroSprints != null
+                          ? 'Vínculos indisponíveis. Tente novamente na página.'
+                          : null,
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Todas'),
+                      ),
+                      const DropdownMenuItem<int?>(
+                        value: -1,
+                        child: Text('Sem Sprint'),
+                      ),
+                      if (_filtroSprint != null &&
+                          _filtroSprint != -1 &&
+                          !_sprintsDisponiveis.any(
+                            (s) => s.id == _filtroSprint,
+                          ))
+                        DropdownMenuItem(
+                          value: _filtroSprint,
+                          child: const Text('Sprint sem vínculos abertos'),
+                        ),
+                      for (final sprint in _sprintsDisponiveis)
+                        DropdownMenuItem(
+                          value: sprint.id,
+                          child: Text(
+                            sprint.nome,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _carregandoSprints || _erroSprints != null
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _filtroSprint = value;
+                              _filtroVersao++;
+                            });
+                            updateDialog(() {});
+                          },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('limpar-filtros-demandas'),
+              onPressed: _quantidadeFiltros == 0
+                  ? null
+                  : () {
+                      _limparFiltros();
+                      updateDialog(() {});
+                    },
+              child: const Text('Limpar filtros'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Concluir'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  List<backend.Sprint> get _sprintsDisponiveis {
+    final porId = {
+      for (final sprint in _sprintViewModel.sprints)
+        if (sprint.status == backend.SprintStatus.planejada ||
+            sprint.status == backend.SprintStatus.ativa)
+          sprint.id: sprint,
+      for (final sprint in _sprintsPorDemanda.values) sprint.id: sprint,
+    };
+    final sprints = porId.values.toList()
+      ..sort(
+        (a, b) => normalizarTextoBusca(
+          a.nome,
+        ).compareTo(normalizarTextoBusca(b.nome)),
+      );
+    return sprints;
   }
 
   Widget _buildFormulario(BuildContext context) {

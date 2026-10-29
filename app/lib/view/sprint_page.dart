@@ -1852,6 +1852,16 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
     builder: (context, _) => PageScaffold(
       title: 'Sprint',
       route: AppRoutes.sprint,
+      toolbar: _viewModel.sprintSelecionada?.id == widget.sprintId
+          ? _acoesCabecalho(_viewModel.sprintSelecionada!)
+          : null,
+      actions: [
+        TextButton.icon(
+          onPressed: _voltar,
+          icon: const Icon(Icons.arrow_back),
+          label: const Text('Voltar para Sprints'),
+        ),
+      ],
       body: _conteudo(context),
     ),
   );
@@ -1902,14 +1912,6 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
           key: const ValueKey('sprint-detalhe-scroll'),
           padding: const EdgeInsets.all(TemdasTokens.pagePadding),
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: _voltar,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Voltar para Sprints'),
-              ),
-            ),
             if (_carregandoContexto || _viewModel.carregando)
               const LinearProgressIndicator(
                 key: ValueKey('carregando-contexto-sprint'),
@@ -1941,7 +1943,6 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
                             if (_sprintAtrasada(sprint)) const _AtrasadaChip(),
                           ],
                         ),
-                        _acoesCabecalho(sprint),
                       ],
                     ),
                     const SizedBox(height: 12),

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'widgets/theme_toggle_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_routes.dart';
@@ -417,6 +419,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
               'Verifique a conexão e abra novamente o link recebido por e-mail.',
           };
     return Scaffold(
+      appBar: const ThemeToolbar(),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

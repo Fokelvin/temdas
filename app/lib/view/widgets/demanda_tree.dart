@@ -26,6 +26,8 @@ class DemandaTree extends StatefulWidget {
     required this.onConcluir,
     this.onReabrir,
     this.sprintBuilder,
+    this.lista = false,
+    this.temposExecutadosTotais,
     this.onMover,
     this.demandasEmProcessamento = const {},
     this.autoExpandIds = const {},
@@ -35,6 +37,8 @@ class DemandaTree extends StatefulWidget {
     this.densidade = DensidadeDemanda.normal,
   });
 
+  final bool lista;
+  final Map<int, int>? temposExecutadosTotais;
   final List<backend.Demanda> demandas;
   final ScrollController horizontalController;
   final bool acoesHabilitadas;
@@ -71,6 +75,9 @@ class _DemandaTreeState extends State<DemandaTree> {
   ({backend.DemandaStatus status, int posicao})? _dropHover;
   _DemandaMovimentoPendente? _movimentoPendente;
 
+  DensidadeDemanda get _densidade =>
+      widget.lista ? DensidadeDemanda.compacta : widget.densidade;
+
   String _chaveExpansao(backend.Demanda demanda) =>
       'demanda-expansao-${demanda.id ?? demanda.titulo}';
 
@@ -97,7 +104,8 @@ class _DemandaTreeState extends State<DemandaTree> {
   @override
   void didUpdateWidget(covariant DemandaTree oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.focoVersao != widget.focoVersao ||
+    if (oldWidget.lista != widget.lista ||
+        oldWidget.focoVersao != widget.focoVersao ||
         oldWidget.focoDemandaId != widget.focoDemandaId) {
       _agendarFoco();
     }
@@ -171,7 +179,9 @@ class _DemandaTreeState extends State<DemandaTree> {
   @override
   Widget build(BuildContext context) {
     final demandas = widget.demandas;
-    final temposTotais = calcularTemposExecutadosTotais(demandas);
+    final temposTotais =
+        widget.temposExecutadosTotais ??
+        calcularTemposExecutadosTotais(demandas);
     final ids = demandas.map((demanda) => demanda.id).whereType<int>().toSet();
     final porPai = <int, List<backend.Demanda>>{};
     for (final demanda in demandas) {
@@ -223,10 +233,40 @@ class _DemandaTreeState extends State<DemandaTree> {
       );
     }
 
+    if (widget.lista) {
+      return Column(
+        key: const ValueKey('demandas-lista-status'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final grupo in porStatus.entries) ...[
+            _cabecalhoColuna(
+              grupo.key,
+              grupo.value.where((no) => no.nivel == 0).length,
+            ),
+            if (grupo.value.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Nenhuma demanda neste status.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              )
+            else
+              for (final no in grupo.value)
+                _construirNo(
+                  no,
+                  temposTotais[no.demanda.id] ??
+                      no.demanda.tempoExecutadoMinutos,
+                ),
+          ],
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final espacamento = widget.densidade.espacamentoEntreColunas;
-        final larguraColuna = widget.densidade.larguraColunaPara(
+        final espacamento = _densidade.espacamentoEntreColunas;
+        final larguraColuna = _densidade.larguraColunaPara(
           constraints.maxWidth,
           porStatus.length,
         );
@@ -305,7 +345,7 @@ class _DemandaTreeState extends State<DemandaTree> {
       key: ValueKey('demanda-status-${status.name}'),
       padding: EdgeInsets.only(
         top: TemdasTokens.smallGap,
-        bottom: widget.densidade.espacamentoEntreCards,
+        bottom: _densidade.espacamentoEntreCards,
       ),
       child: Semantics(
         header: true,
@@ -378,15 +418,15 @@ class _DemandaTreeState extends State<DemandaTree> {
     final emProcessamento = widget.demandasEmProcessamento.contains(demanda.id);
     final nivel = no.nivel;
     final recuo = math.min(
-      nivel * widget.densidade.recuoPorNivel,
-      widget.densidade.recuoMaximo,
+      nivel * _densidade.recuoPorNivel,
+      _densidade.recuoMaximo,
     );
 
     return Padding(
       key: ValueKey('demanda-tree-node-${demanda.id ?? demanda.titulo}-$nivel'),
       padding: EdgeInsets.only(
         left: recuo,
-        bottom: widget.densidade.espacamentoEntreCards,
+        bottom: _densidade.espacamentoEntreCards,
       ),
       child: KeyedSubtree(
         key: _chaveDoNo(demanda),
@@ -403,13 +443,14 @@ class _DemandaTreeState extends State<DemandaTree> {
           ),
           child: Padding(
             padding: EdgeInsets.only(
-              left: nivel == 0 ? 0 : widget.densidade.espacoAposLinhaArvore,
+              left: nivel == 0 ? 0 : _densidade.espacoAposLinhaArvore,
             ),
             child: DemandaCard(
               // A expansão acompanha a demanda quando ela muda de coluna.
               key: PageStorageKey(_chaveExpansao(demanda)),
               expansionController: _expansaoDe(demanda),
-              densidade: widget.densidade,
+              densidade: _densidade,
+              emLista: widget.lista,
               demanda: demanda,
               sprintContexto: widget.sprintBuilder?.call(demanda),
               tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
@@ -709,9 +750,11 @@ class _DemandaTreeState extends State<DemandaTree> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Movendo demanda...',
-                    style: TextStyle(color: colors.onPrimaryContainer),
+                  Flexible(
+                    child: Text(
+                      'Movendo demanda...',
+                      style: TextStyle(color: colors.onPrimaryContainer),
+                    ),
                   ),
                 ],
               )

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../view/widgets/theme_toggle_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
@@ -29,7 +31,9 @@ _AuthFingerprint _fingerprint(SupabaseSession? session) {
   if (current == null) return (userId: null, aal: null, factors: '');
   AuthenticatorAssuranceLevels? aal;
   try {
-    aal = session!.client.auth.mfa.getAuthenticatorAssuranceLevel().currentLevel;
+    aal = session!.client.auth.mfa
+        .getAuthenticatorAssuranceLevel()
+        .currentLevel;
   } catch (_) {
     // The evaluation reports malformed sessions through the gate error state.
   }
@@ -41,11 +45,7 @@ _AuthFingerprint _fingerprint(SupabaseSession? session) {
           )
           .toList()
         ..sort();
-  return (
-    userId: current.user.id,
-    aal: aal,
-    factors: factors.join('|'),
-  );
+  return (userId: current.user.id, aal: aal, factors: factors.join('|'));
 }
 
 AuthGateState resolveAuthGateState({
@@ -334,6 +334,7 @@ class _GateLoading extends StatelessWidget {
   const _GateLoading();
   @override
   Widget build(BuildContext context) => const Scaffold(
+    appBar: ThemeToolbar(),
     body: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -358,6 +359,7 @@ class _GateError extends StatelessWidget {
   final Future<void> Function() onSignOut;
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: const ThemeToolbar(),
     body: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),

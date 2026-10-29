@@ -184,6 +184,13 @@ class _MeuPerfilPageState extends State<MeuPerfilPage> {
   Widget build(BuildContext context) => PageScaffold(
     title: 'Meu Perfil',
     route: AppRoutes.perfil,
+    actions: [
+      IconButton(
+        tooltip: 'Atualizar perfil',
+        onPressed: _loading ? null : _load,
+        icon: const Icon(Icons.refresh),
+      ),
+    ],
     body: _loading
         ? const Center(
             child: CircularProgressIndicator(

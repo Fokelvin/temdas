@@ -44,6 +44,10 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
     builder: (context, _) => PageScaffold(
       title: 'Relatórios',
       route: AppRoutes.relatorios,
+      toolbar: _Filtros(
+        viewModel: _viewModel,
+        onGerar: _viewModel.gerarRelatorio,
+      ),
       actions: [
         IconButton(
           key: const ValueKey('exportar-relatorio-csv'),
@@ -66,10 +70,6 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Filtros(
-                  viewModel: _viewModel,
-                  onGerar: _viewModel.gerarRelatorio,
-                ),
                 if (_viewModel.erro case final erro?) ...[
                   const SizedBox(height: 12),
                   _MensagemErro(mensagem: erro),
@@ -150,134 +150,112 @@ class _Filtros extends StatelessWidget {
   final VoidCallback onGerar;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Filtros do relatório',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              SizedBox(
-                width: 210,
-                child: DropdownButtonFormField<RelatorioPeriodoTipo>(
-                  key: const ValueKey('relatorio-periodo'),
-                  initialValue: viewModel.tipo,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Período'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: RelatorioPeriodoTipo.semana,
-                      child: Text('Esta semana'),
-                    ),
-                    DropdownMenuItem(
-                      value: RelatorioPeriodoTipo.mes,
-                      child: Text('Este mês'),
-                    ),
-                    DropdownMenuItem(
-                      value: RelatorioPeriodoTipo.personalizado,
-                      child: Text('Personalizado'),
-                    ),
-                  ],
-                  onChanged: (tipo) {
-                    if (tipo != null) viewModel.selecionarTipo(tipo);
-                  },
-                ),
-              ),
-              if (viewModel.tipo == RelatorioPeriodoTipo.personalizado) ...[
-                _DataButton(
-                  key: const ValueKey('relatorio-data-inicial'),
-                  label: 'Data inicial',
-                  data: viewModel.dataInicialPersonalizada,
-                  onPressed: () => _selecionarData(
-                    context,
-                    dataInicial: true,
-                    viewModel: viewModel,
-                  ),
-                ),
-                _DataButton(
-                  key: const ValueKey('relatorio-data-final'),
-                  label: 'Data final',
-                  data: viewModel.dataFinalPersonalizada,
-                  onPressed: () => _selecionarData(
-                    context,
-                    dataInicial: false,
-                    viewModel: viewModel,
-                  ),
-                ),
-              ],
-              SizedBox(
-                width: 190,
-                child: DropdownButtonFormField<backend.DemandaStatus?>(
-                  key: const ValueKey('relatorio-status'),
-                  initialValue: viewModel.status,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Status'),
-                  items: [
-                    const DropdownMenuItem<backend.DemandaStatus?>(
-                      value: null,
-                      child: Text('Todos'),
-                    ),
-                    ...backend.DemandaStatus.values.map(
-                      (status) => DropdownMenuItem<backend.DemandaStatus?>(
-                        value: status,
-                        child: Text(statusLabelRelatorio(status)),
-                      ),
-                    ),
-                  ],
-                  onChanged: viewModel.selecionarStatus,
-                ),
-              ),
-              SizedBox(
-                width: 190,
-                child: DropdownButtonFormField<backend.Prioridade?>(
-                  key: const ValueKey('relatorio-prioridade'),
-                  initialValue: viewModel.prioridade,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Prioridade'),
-                  items: [
-                    const DropdownMenuItem<backend.Prioridade?>(
-                      value: null,
-                      child: Text('Todas'),
-                    ),
-                    ...backend.Prioridade.values.map(
-                      (prioridade) => DropdownMenuItem<backend.Prioridade?>(
-                        value: prioridade,
-                        child: Text(prioridadeLabelRelatorio(prioridade)),
-                      ),
-                    ),
-                  ],
-                  onChanged: viewModel.selecionarPrioridade,
-                ),
-              ),
-              FilledButton.icon(
-                key: const ValueKey('gerar-relatorio'),
-                onPressed: viewModel.carregando ? null : onGerar,
-                icon: viewModel.carregando
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-                label: Text(
-                  viewModel.carregando ? 'Carregando...' : 'Gerar relatório',
-                ),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => Wrap(
+    spacing: 12,
+    runSpacing: 12,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      SizedBox(
+        width: 180,
+        child: DropdownButtonFormField<RelatorioPeriodoTipo>(
+          key: const ValueKey('relatorio-periodo'),
+          initialValue: viewModel.tipo,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Período'),
+          items: const [
+            DropdownMenuItem(
+              value: RelatorioPeriodoTipo.semana,
+              child: Text('Esta semana'),
+            ),
+            DropdownMenuItem(
+              value: RelatorioPeriodoTipo.mes,
+              child: Text('Este mês'),
+            ),
+            DropdownMenuItem(
+              value: RelatorioPeriodoTipo.personalizado,
+              child: Text('Personalizado'),
+            ),
+          ],
+          onChanged: (tipo) {
+            if (tipo != null) viewModel.selecionarTipo(tipo);
+          },
+        ),
       ),
-    ),
+      if (viewModel.tipo == RelatorioPeriodoTipo.personalizado) ...[
+        _DataButton(
+          key: const ValueKey('relatorio-data-inicial'),
+          label: 'Data inicial',
+          data: viewModel.dataInicialPersonalizada,
+          onPressed: () =>
+              _selecionarData(context, dataInicial: true, viewModel: viewModel),
+        ),
+        _DataButton(
+          key: const ValueKey('relatorio-data-final'),
+          label: 'Data final',
+          data: viewModel.dataFinalPersonalizada,
+          onPressed: () => _selecionarData(
+            context,
+            dataInicial: false,
+            viewModel: viewModel,
+          ),
+        ),
+      ],
+      SizedBox(
+        width: 160,
+        child: DropdownButtonFormField<backend.DemandaStatus?>(
+          key: const ValueKey('relatorio-status'),
+          initialValue: viewModel.status,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Status'),
+          items: [
+            const DropdownMenuItem<backend.DemandaStatus?>(
+              value: null,
+              child: Text('Todos'),
+            ),
+            ...backend.DemandaStatus.values.map(
+              (status) => DropdownMenuItem<backend.DemandaStatus?>(
+                value: status,
+                child: Text(statusLabelRelatorio(status)),
+              ),
+            ),
+          ],
+          onChanged: viewModel.selecionarStatus,
+        ),
+      ),
+      SizedBox(
+        width: 160,
+        child: DropdownButtonFormField<backend.Prioridade?>(
+          key: const ValueKey('relatorio-prioridade'),
+          initialValue: viewModel.prioridade,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Prioridade'),
+          items: [
+            const DropdownMenuItem<backend.Prioridade?>(
+              value: null,
+              child: Text('Todas'),
+            ),
+            ...backend.Prioridade.values.map(
+              (prioridade) => DropdownMenuItem<backend.Prioridade?>(
+                value: prioridade,
+                child: Text(prioridadeLabelRelatorio(prioridade)),
+              ),
+            ),
+          ],
+          onChanged: viewModel.selecionarPrioridade,
+        ),
+      ),
+      FilledButton.icon(
+        key: const ValueKey('gerar-relatorio'),
+        onPressed: viewModel.carregando ? null : onGerar,
+        icon: viewModel.carregando
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.refresh),
+        label: Text(viewModel.carregando ? 'Carregando...' : 'Gerar relatório'),
+      ),
+    ],
   );
 
   Future<void> _selecionarData(

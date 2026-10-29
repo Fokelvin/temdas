@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_preference.dart';
+import 'theme_toggle_button.dart';
 import '../../data/supabase_session.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -135,26 +136,143 @@ class PageScaffold extends StatelessWidget {
     required this.route,
     required this.body,
     this.actions,
+    this.toolbar,
   });
   final String title;
   final String route;
   final Widget body;
   final List<Widget>? actions;
 
+  final Widget? toolbar;
+
   @override
   Widget build(BuildContext context) => Scaffold(
     drawer: AppDrawer(currentRoute: route),
-    appBar: AppBar(
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu),
-          tooltip: 'Abrir menu',
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
+    body: SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide =
+              constraints.maxWidth >= 1100 &&
+              MediaQuery.textScalerOf(context).scale(14) <= 20;
+          final contextual = toolbar != null || (actions?.isNotEmpty ?? false);
+          Widget controls() => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ?toolbar,
+              if (!wide && (actions?.isNotEmpty ?? false))
+                Wrap(spacing: 8, runSpacing: 8, children: actions!),
+            ],
+          );
+          Widget boundedControls() => ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: constraints.maxHeight * .4),
+            child: SingleChildScrollView(child: controls()),
+          );
+          return Column(
+            children: [
+              Material(
+                key: const ValueKey('page-toolbar'),
+                color: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Builder(
+                            builder: (context) => IconButton(
+                              icon: const Icon(Icons.menu),
+                              tooltip: 'Abrir menu',
+                              onPressed: () =>
+                                  Scaffold.of(context).openDrawer(),
+                            ),
+                          ),
+                          if (wide) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 10, 20, 8),
+                              child: Text(
+                                title,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            Expanded(
+                              child: contextual
+                                  ? boundedControls()
+                                  : const SizedBox(),
+                            ),
+                            if (actions != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: actions!,
+                                ),
+                              ),
+                          ] else
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+                                child: Text(
+                                  title,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              ),
+                            ),
+                          const ThemeToggleButton(),
+                        ],
+                      ),
+                      if (!wide && contextual)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+                          child: boundedControls(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(child: body),
+            ],
+          );
+        },
       ),
-      title: Text(title),
-      actions: actions,
     ),
-    body: SafeArea(child: body),
+  );
+}
+
+/// Flexible search plus contextual controls, wrapping without horizontal clipping.
+class PageToolbar extends StatelessWidget {
+  const PageToolbar({super.key, this.search, required this.children});
+  final Widget? search;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      if (search != null && constraints.maxWidth >= 820 * scale) {
+        return Row(
+          children: [
+            Expanded(child: search!),
+            for (final child in children) ...[const SizedBox(width: 8), child],
+          ],
+        );
+      }
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (search != null) ...[search!, const SizedBox(height: 8)],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: children,
+          ),
+        ],
+      );
+    },
   );
 }

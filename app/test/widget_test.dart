@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/theme/app_theme.dart';
 import 'package:temdas/view/demandas_page.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
+import 'package:temdas/view/widgets/densidade_demanda.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
@@ -27,7 +28,10 @@ void main() {
         expect(find.byType(Form), findsNothing);
         final abrir = find.byKey(const ValueKey('abrir-criar-demanda'));
         expect(
-          find.descendant(of: find.byType(AppBar), matching: abrir),
+          find.descendant(
+            of: find.byKey(const ValueKey('page-toolbar')),
+            matching: abrir,
+          ),
           findsOneWidget,
         );
         await tester.tap(abrir);
@@ -509,7 +513,7 @@ void main() {
 
   for (final largura in [390.0, 1200.0, 2400.0]) {
     testWidgets(
-      'quadro inicia compacto com colunas de 304 px em largura $largura',
+      'quadro inicia compacto com colunas de 288 px em largura $largura',
       (tester) async {
         await tester.binding.setSurfaceSize(Size(largura, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -519,15 +523,19 @@ void main() {
         addTearDown(vm.dispose);
         await _abrirPagina(tester, vm);
         expect(
-          tester.widget<ToggleButtons>(find.byType(ToggleButtons)).isSelected,
-          [false, true],
+          tester
+              .widget<PopupMenuButton<DensidadeDemanda>>(
+                find.byType(PopupMenuButton<DensidadeDemanda>),
+              )
+              .initialValue,
+          DensidadeDemanda.compacta,
         );
         for (final status in backend.DemandaStatus.values) {
           expect(
             tester
                 .getSize(find.byKey(ValueKey('demanda-coluna-${status.name}')))
                 .width,
-            304,
+            288,
           );
         }
         final board = find.byKey(const ValueKey('demandas-quadro-status'));
@@ -560,7 +568,14 @@ void main() {
         final viewModel = DemandasViewModel(repository: repository);
         addTearDown(viewModel.dispose);
         await _abrirPagina(tester, viewModel);
-        await tester.tap(find.byTooltip('Visualização normal'));
+        await tester.tap(find.byTooltip('Densidade dos cards'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(
+            CheckedPopupMenuItem<DensidadeDemanda>,
+            'Visualização normal',
+          ),
+        );
         await tester.pumpAndSettle();
 
         final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
@@ -584,10 +599,13 @@ void main() {
         expect(barra.trackVisibility, isFalse);
         expect(barra.scrollbarOrientation, ScrollbarOrientation.bottom);
         expect(barra.interactive, isTrue);
-        final scrollVertical = find.byWidgetPredicate(
-          (widget) =>
-              widget is Scrollable &&
-              axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
+        final scrollVertical = find.descendant(
+          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
+          ),
         );
         expect(scrollVertical, findsOneWidget);
         expect(
@@ -652,7 +670,7 @@ void main() {
           findsOneWidget,
         );
 
-        final tituloPagina = find.text('Demandas salvas');
+        final tituloPagina = find.text('Demandas');
         final posicaoTitulo = tester.getTopLeft(tituloPagina);
         if (largura < 2000) {
           expect(horizontal.position.maxScrollExtent, greaterThan(0));
@@ -713,10 +731,13 @@ void main() {
       );
       final controller = tester.widget<Scrollbar>(barra).controller!;
       final pagina = tester.state<ScrollableState>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Scrollable &&
-              widget.axisDirection == AxisDirection.down,
+        find.descendant(
+          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down,
+          ),
         ),
       );
       expect(controller.offset, 0);
@@ -809,10 +830,13 @@ void main() {
       verificarAbaixoDasColunas();
 
       final pagina = tester.state<ScrollableState>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Scrollable &&
-              widget.axisDirection == AxisDirection.down,
+        find.descendant(
+          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down,
+          ),
         ),
       );
       final topoAntesDoScroll = topoBarra();

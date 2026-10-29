@@ -46,6 +46,10 @@ class _LogTimePageState extends State<LogTimePage> {
     builder: (context, _) => PageScaffold(
       title: 'Log time',
       route: AppRoutes.logTime,
+      toolbar: _Header(
+        viewModel: _viewModel,
+        onLancarTempo: _podeLancar ? () => _abrirLancamento() : null,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) => Padding(
           padding: EdgeInsets.all(
@@ -56,11 +60,6 @@ class _LogTimePageState extends State<LogTimePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(
-                viewModel: _viewModel,
-                onLancarTempo: _podeLancar ? () => _abrirLancamento() : null,
-              ),
-              const SizedBox(height: TemdasTokens.smallGap),
               _Summary(viewModel: _viewModel),
               const SizedBox(height: TemdasTokens.smallGap),
               Expanded(child: _conteudo()),
@@ -320,7 +319,7 @@ class _Header extends StatelessWidget {
               label,
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),

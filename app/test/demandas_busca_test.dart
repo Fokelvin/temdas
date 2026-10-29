@@ -133,7 +133,7 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.byKey(const ValueKey('limpar-filtros-demandas')));
+    await tester.tap(find.byKey(const ValueKey('limpar-busca-demandas')));
     await tester.pump();
     expect(find.byType(DemandaCard), findsNWidgets(2));
     expect(

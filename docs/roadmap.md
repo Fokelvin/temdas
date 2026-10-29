@@ -524,10 +524,11 @@ desta seção autoriza implementação automática.
 
 ## Pacote 5 — Redesign visual e aproveitamento da área útil
 
-**Estado:** Aprovado / pendente de implementação, somente após a conclusão
-do Pacote 4 (painel lateral de Demandas, anotações e horas). Este pacote é
-de UX/UI; não antecipa mudanças de negócio, backend, banco ou migrations.
-Respeitar os componentes funcionais entregues pelo Pacote 4.
+**Estado:** implementado na branch `feat/pacote-5-toolbar-demandas`, partindo
+da main com Pacote 4 publicado (`2253910`). Pendente de revisão/homologação e
+autorização específica para merge/publicação. Detalhes e validação em
+[pacote5-toolbar-demandas.md](pacote5-toolbar-demandas.md). Somente UX/UI Flutter;
+nenhuma alteração de backend, banco, migrations ou dependências.
 
 ### UX-P5-01 — Barra superior compartilhada e contextual
 
@@ -539,7 +540,7 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   (ações e controles existentes); Log Time (navegação de datas, Dia/Semana e
   ações da agenda); Relatórios (período, filtros e exportação); Perfil (apenas
   ações aplicáveis). Evitar duplicar controles acima e abaixo da barra.
-- **Estado:** Aprovado / pendente.
+- **Estado:** implementado; pendente de homologação/publicação.
 - **Critérios de aceite:** a região central da barra é flexível e preenche o
   espaço disponível, sem grande vazio entre título e busca; controles úteis
   ficam na barra superior no desktop; tema está sempre na mesma posição; em
@@ -558,7 +559,7 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   apresentação da hierarquia mãe/filha. Um seletor Kanban/Lista fica na
   toolbar superior da página; a opção escolhida persiste no navegador.
   Ambas as visualizações abrem o mesmo painel lateral do Pacote 4.
-- **Estado:** Aprovado / pendente.
+- **Estado:** implementado; pendente de homologação/publicação.
 - **Critérios de aceite:** mais Demandas visíveis sem perder legibilidade
   nem ações essenciais; Kanban mantém drag-and-drop e expansão hierárquica;
   Lista oferece abertura dos detalhes e controle de status conforme as regras
@@ -576,15 +577,14 @@ Respeitar os componentes funcionais entregues pelo Pacote 4.
   critérios, mostra a quantidade de filtros ativos e oferece Limpar filtros.
   A busca considera ID/título sem diferenciar maiúsculas ou acentos e combina
   com os filtros, preservando o contexto mãe/filha nos resultados.
-- **Estado:** Aprovado / pendente.
+- **Estado:** implementado; pendente de homologação/publicação.
 - **Critérios de aceite:** busca e filtros funcionam em ambas as visualizações;
   nenhum filtro isolado ocupa permanentemente espaço na toolbar; layout usa
   efetivamente a área horizontal livre da barra superior; responsividade e
   acessibilidade preservadas.
 
-**Sequenciamento:** Pacote 4 em desenvolvimento separado; iniciar este
-Pacote 5 apenas após entrega/revisão do Pacote 4. Não modificar o trabalho
-em andamento do Codex sem nova decisão.
+**Sequenciamento:** Pacote 4 preservado. Implementação do Pacote 5 autorizada
+em branch própria; nenhum merge, push ou deploy de produção nesta execução.
 
 ## Pós-produção — Estabilização do MVP
 

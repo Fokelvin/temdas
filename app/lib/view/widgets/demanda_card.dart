@@ -24,6 +24,7 @@ class DemandaCard extends StatelessWidget {
     this.onLancarTempo,
     this.onMostrarTudo,
     this.apenasAcoes = false,
+    this.emLista = false,
     this.expansionController,
     this.dragHandle,
     this.destacado = false,
@@ -44,6 +45,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
   final bool apenasAcoes;
+  final bool emLista;
   final ExpansibleController? expansionController;
   final Widget? dragHandle;
   final bool destacado;
@@ -69,6 +71,13 @@ class DemandaCard extends StatelessWidget {
         ],
       );
     }
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _card(context, statusLargo: constraints.maxWidth >= 650),
+    );
+  }
+
+  Widget _card(BuildContext context, {required bool statusLargo}) {
     final colors = Theme.of(context).colorScheme;
     final cardShape = Theme.of(context).cardTheme.shape;
     final outlinedShape = cardShape is OutlinedBorder
@@ -95,6 +104,27 @@ class DemandaCard extends StatelessWidget {
             onAbrir: onMostrarTudo,
             demandaId: demanda.id,
             leading: dragHandle,
+            trailing: emLista
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: SizedBox(
+                          width: statusLargo ? 152 : 48,
+                          child: _menuStatus(
+                            context,
+                            apenasIcone: !statusLargo,
+                          ),
+                        ),
+                      ),
+                      SizedBox.square(
+                        dimension: 48,
+                        child: _menuAcoes(context),
+                      ),
+                    ],
+                  )
+                : null,
             tilePadding: densidade.paddingCabecalho,
             minTileHeight: densidade.alturaMinimaCabecalho,
             title: Column(
@@ -112,7 +142,7 @@ class DemandaCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(child: _menuStatus(context)),
+                  if (!emLista) Expanded(child: _menuStatus(context)),
                   IconButton(
                     key: ValueKey('concluir-demanda-${demanda.id}'),
                     tooltip: 'Concluir demanda',
@@ -126,7 +156,7 @@ class DemandaCard extends StatelessWidget {
                           )
                         : const Icon(Icons.check),
                   ),
-                  _menuAcoes(context),
+                  if (!emLista) _menuAcoes(context),
                 ],
               ),
               if (!densidade.isCompacta)
@@ -217,7 +247,7 @@ class DemandaCard extends StatelessWidget {
               child: Text(
                 formatarIdentificacaoDemanda(demanda),
                 style: text.titleSmall,
-                maxLines: 1,
+                maxLines: emLista ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
               ),
             );
@@ -234,8 +264,9 @@ class DemandaCard extends StatelessWidget {
                 _prioridadeLabel(demanda.prioridade),
                 style: text.labelMedium?.copyWith(color: prioridade.cor),
               ),
-              Text('Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)}'),
-              Text('Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}'),
+              Text(
+                'Est. ${_formatarHoras(demanda.tempoEstimadoMinutos)} · Real. ${_formatarHoras(tempoExecutadoTotalMinutos)}',
+              ),
             ],
           ),
         ),
@@ -286,7 +317,7 @@ class DemandaCard extends StatelessWidget {
     return Row(children: [for (final botao in botoes) Expanded(child: botao)]);
   }
 
-  Widget _menuStatus(BuildContext context) {
+  Widget _menuStatus(BuildContext context, {bool apenasIcone = false}) {
     final colors = Theme.of(context).colorScheme;
     final semantic = TemdasSemanticColors.of(context);
     final cor = switch (demanda.status) {
@@ -298,7 +329,9 @@ class DemandaCard extends StatelessWidget {
     };
     return PopupMenuButton<backend.DemandaStatus>(
       key: ValueKey('status-demanda-${demanda.id}'),
-      tooltip: 'Alterar status',
+      tooltip: apenasIcone
+          ? 'Alterar status: ${_statusLabel(demanda.status)}'
+          : 'Alterar status',
       enabled: acoesHabilitadas,
       initialValue: demanda.status,
       onSelected: onAlterarStatus,
@@ -311,32 +344,40 @@ class DemandaCard extends StatelessWidget {
             child: Text(_statusLabel(status)),
           ),
       ],
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Color.alphaBlend(cor.withValues(alpha: 0.10), colors.surface),
-          border: Border.all(
-            color: cor.withValues(alpha: 0.20),
-            width: TemdasTokens.borderWidth,
-          ),
-          borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
-        ),
-        child: Padding(
-          padding: densidade.paddingStatus,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _statusLabel(demanda.status),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(color: cor),
+      child: apenasIcone
+          ? SizedBox.square(
+              dimension: 48,
+              child: Center(child: Icon(Icons.circle, size: 14, color: cor)),
+            )
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  cor.withValues(alpha: 0.10),
+                  colors.surface,
+                ),
+                border: Border.all(
+                  color: cor.withValues(alpha: 0.20),
+                  width: TemdasTokens.borderWidth,
+                ),
+                borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
+              ),
+              child: Padding(
+                padding: densidade.paddingStatus,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _statusLabel(demanda.status),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelLarge?.copyWith(color: cor),
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down, size: 18, color: cor),
+                  ],
                 ),
               ),
-              Icon(Icons.arrow_drop_down, size: 18, color: cor),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -485,6 +526,7 @@ class _DemandaExpansao extends StatefulWidget {
   const _DemandaExpansao({
     this.controller,
     this.leading,
+    this.trailing,
     this.onAbrir,
     required this.demandaId,
     required this.tilePadding,
@@ -496,6 +538,7 @@ class _DemandaExpansao extends StatefulWidget {
   });
   final ExpansibleController? controller;
   final Widget? leading;
+  final Widget? trailing;
   final VoidCallback? onAbrir;
   final int? demandaId;
   final EdgeInsetsGeometry tilePadding;
@@ -551,6 +594,7 @@ class _DemandaExpansaoState extends State<_DemandaExpansao> {
                 ),
               ),
             ),
+            ?widget.trailing,
             IconButton(
               key: ValueKey('expandir-demanda-${widget.demandaId}'),
               tooltip: controller.isExpanded

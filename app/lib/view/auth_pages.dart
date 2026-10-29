@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'widgets/theme_toggle_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_routes.dart';
@@ -612,6 +614,7 @@ class _AuthLayout extends StatelessWidget {
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: const ThemeToolbar(),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(

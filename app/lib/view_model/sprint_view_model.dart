@@ -94,6 +94,10 @@ class SprintViewModel extends ChangeNotifier {
       carregar: true,
       executar: () async {
         final sprints = await _repository.listarSprints();
+        // Reaproveita a lista já consultada, inclusive Sprints sem vínculos.
+        _sprints
+          ..clear()
+          ..addAll(sprints);
         final resultado = <int, backend.Sprint>{};
         for (final sprint in sprints) {
           if (sprint.id == null || sprint.id == sprintIdAtual) continue;

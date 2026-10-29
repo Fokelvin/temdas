@@ -11,8 +11,8 @@ enum DensidadeDemanda {
 
   bool get isCompacta => this == compacta;
 
-  double get larguraMinimaColuna => isCompacta ? 304 : 360;
-  double get espacamentoEntreColunas => isCompacta ? 10 : 16;
+  double get larguraMinimaColuna => isCompacta ? 288 : 360;
+  double get espacamentoEntreColunas => isCompacta ? 8 : 16;
 
   double larguraColunaPara(double larguraDisponivel, int quantidadeColunas) {
     // Compacto mantém sua largura também em telas grandes. Normal conserva
@@ -32,19 +32,19 @@ enum DensidadeDemanda {
   double get recuoMaximo => isCompacta ? 48 : 100;
   double get espacoAposLinhaArvore => isCompacta ? 6 : 10;
 
-  double get alturaMinimaCabecalho => isCompacta ? 48 : 80;
+  double get alturaMinimaCabecalho => isCompacta ? 44 : 80;
   double get paddingVerticalCabecalho => isCompacta ? 2 : 12;
   double get espacamentoChevron => isCompacta ? 4 : 12;
   EdgeInsets get paddingCabecalho =>
-      EdgeInsets.symmetric(horizontal: isCompacta ? 10 : 12);
+      EdgeInsets.symmetric(horizontal: isCompacta ? 8 : 12);
 
   EdgeInsets get paddingConteudo => isCompacta
       ? const EdgeInsets.fromLTRB(10, 0, 10, 8)
       : const EdgeInsets.fromLTRB(16, 0, 16, 16);
 
-  double get espacamentoEntreCards => isCompacta ? 6 : 12;
+  double get espacamentoEntreCards => isCompacta ? 4 : 12;
   double get espacamentoEntreCampos => isCompacta ? 4 : 8;
-  double get espacamentoEntreSecoes => isCompacta ? 6 : 12;
+  double get espacamentoEntreSecoes => isCompacta ? 4 : 12;
 
   EdgeInsets get paddingStatus =>
       EdgeInsets.symmetric(horizontal: 8, vertical: isCompacta ? 4 : 8);

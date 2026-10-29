@@ -173,7 +173,10 @@ void main() {
         verificarTotal(3, idAlvo == 3 ? 120 : 30);
         verificarTotal(4, 15);
         expect(
-          find.descendant(of: _card(1), matching: find.text('Real. 3,5 h')),
+          find.descendant(
+            of: _card(1),
+            matching: find.textContaining('Real. 3,5 h'),
+          ),
           findsOneWidget,
         );
         expect(
