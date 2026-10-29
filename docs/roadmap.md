@@ -449,19 +449,31 @@ desta seção autoriza implementação automática.
   sem depender de cores hardcoded; as bordas permanecem sutis, consistentes nos
   temas claro/escuro e coerentes entre Demandas e Log Time.
 
-### UX-FUT-06 — Página inicial de boas-vindas e login lateral
+### UX-FUT-06 — Página inicial, login lateral e Aviso de Privacidade
 
 - **Descrição:** ao final das melhorias de UX previstas, substituir a
   experiência de entrada atual por uma página inicial real, com apresentação
   e boas-vindas ao TEMDAS na área central e formulário de login lateral.
+  Incluir link público para uma página de **Aviso de Privacidade**, acessível
+  sem autenticação e também a usuários autenticados. O aviso deve explicar
+  o tratamento dos dados, as finalidades, o armazenamento no navegador
+  (incluindo sessão e preferências), serviços envolvidos e os direitos dos
+  titulares, com conteúdo conferido antes da publicação.
 - **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
-- **Estado:** Aprovado / pendente de definição visual.
+- **Estado:** Aprovado / pendente de definição visual e do conteúdo de privacidade.
 - **Dependências:** evolução responsiva, temas e preservação do fluxo AuthGate,
-  senha, recuperação, convite, callback e MFA.
+  senha, recuperação, convite, callback e MFA; verificar os tratamentos
+  efetivos e fornecedores antes de redigir/publicar o aviso. Não implementar
+  banner de consentimento de cookies sem necessidade comprovada para
+  tecnologias opcionais; reavaliar se forem introduzidos rastreamento,
+  publicidade ou outras finalidades que o exijam.
 - **Critérios de aceite:** visitante não autenticado vê a apresentação e o
   login lateral em desktop; o layout se reorganiza em telas menores; o usuário
   autenticado segue normalmente para o app; os fluxos de autenticação
-  existentes continuam funcionando.
+  existentes continuam funcionando; o Aviso de Privacidade é acessível
+  publicamente e pelo app, apresenta informações verificadas e compreensíveis
+  sobre dados e armazenamento, sem exigir login.
+
 
 ## Pós-produção — Estabilização do MVP
 
