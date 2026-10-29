@@ -11,7 +11,7 @@
   "data_dir": "/home/kelvin/.local/share/temdas-backup",
   "pg_bin": "/home/kelvin/.local/share/temdas-backup/tools/usr/lib/postgresql/17/bin",
   "pg_lib": "/home/kelvin/.local/share/temdas-backup/tools/usr/lib/x86_64-linux-gnu",
-  "external_dir": null,
+  "external_dir": "/mnt/f/TEMDAS/backups",
   "daily_keep": 7,
   "weekly_keep": 4
 }

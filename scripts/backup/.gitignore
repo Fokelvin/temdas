@@ -11,3 +11,5 @@ config.json
 state.json
 events.jsonl
 restore-evidence.json
+temdas-copy-index.json
+restore-external-evidence.json

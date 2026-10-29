@@ -1,8 +1,8 @@
 # PROD-01 — Backup e restauração do TEMDAS
 
 Estado: **parcial**, em 28/10/2026 (America/Sao_Paulo). Backup criptografado e
-restauração SQL local comprovados; proteção externa e cópia externa da chave de
-recuperação pendentes. Não considerar recuperação completa da plataforma Supabase
+restauração SQL local comprovados; segunda cópia automática no disco F: validada.
+Proteção offsite e cópia externa da chave de recuperação pendentes. Não considerar recuperação completa da plataforma Supabase
 ou operação sem login Windows como validadas.
 
 ## Decisão e backup nativo
@@ -36,6 +36,7 @@ foi executado em projeto existente. A alternativa sem serviço pago é local WSL
 
 | Finalidade | Local Linux, fora do Git |
 | --- | --- |
+| Segunda cópia criptografada e índice não sensível | `F:\TEMDAS\backups\` (`/mnt/f/TEMDAS/backups/`) |
 | Backups `.cms`, índice e logs sanitizados | `/home/kelvin/.local/share/temdas-backup/` |
 | Script instalado estável | `/home/kelvin/.local/share/temdas-backup/bin/backup.py` |
 | Ferramentas 17 | `/home/kelvin/.local/share/temdas-backup/tools/` |
@@ -115,7 +116,7 @@ Para registrar ou conferir a tarefa, executar no PowerShell Windows o script
 temporária; não substitui uma tarefa diária existente com definição divergente.
 Não há senha Windows ou senha PostgreSQL na definição da tarefa.
 
-Após revisar atualizações do código, copiar a versão validada para o caminho
+Após revisar atualizações do código, copiar `backup.py` e seu módulo `secondary.py`, ambos validados, para o caminho
 instalado com permissões 0700; o agendamento não executa um checkout Git mutável.
 
 ## Teste de restauração e cobertura comprovada
@@ -182,19 +183,101 @@ não equivale a subir Serverpod, Supabase Auth, MFA, Storage ou Realtime localme
 8. Somente promover uma recuperação depois dos testes de aplicação e segurança;
    nenhum passo deste runbook autoriza sobrescrever PROD/DEV ou executar migrations.
 
-## Segunda cópia e pendências
+## Segunda cópia automática no disco F:
 
-`external_dir` é opcional e está `null`. Um diretório de destino explicitamente
-autorizado pode receber somente os arquivos `.cms`, com conferência de SHA-256;
-colisões com conteúdo diferente são rejeitadas. Essa cópia pode apontar para
-montagem/sincronização externa previamente autorizada, mas o script não conecta
-contas, não cria buckets, não adquire serviços e não transfere chaves privadas.
-Não configurar um diretório no mesmo disco e chamar isso de proteção externa.
+Destino aprovado: **`F:\TEMDAS\backups\`**, acessível no WSL em
+`/mnt/f/TEMDAS/backups/`. A inspeção Windows confirmou NTFS saudável, disco físico
+SATA número 0, enquanto C: e o VHD da distribuição Ubuntu-24.04 estão no disco
+número 2. Portanto é um disco físico independente do principal, não outra partição
+do mesmo disco. Espaço livre na inspeção: aproximadamente 747 GiB; a retenção de
+7 dias + 4 semanas, com arquivos atuais de aproximadamente 711 KiB, cabe com ampla
+margem. O tamanho cresce com o banco; a rotina verifica espaço antes de copiar.
 
-Pendências para fechar PROD-01: escolher e autorizar destino externo, copiar e
-validar recuperação da chave em meio separado, comprovar uma recuperação a partir
-dessa segunda cópia e definir se a dependência de login Windows atende ao RPO.
-Monitoramento/alerta externo não foi configurado. O roadmap permanece parcial.
+`external_dir` aponta ao destino na configuração privada. O agendamento e o dump
+principal permanecem iguais: depois de um backup principal validado e indexado,
+o mesmo processo sincroniza os arquivos criptografados retidos. Se o backup do
+dia já existe, uma nova execução tenta novamente a segunda cópia, sem novo dump.
+
+Também existe uma ação **somente cópia**, que não abre conexão PostgreSQL, não
+lê a senha PROD e não depende de acesso ao Supabase:
+
+```sh
+python3 scripts/backup/backup.py copy
+```
+
+A execução real copiou quatro arquivos existentes e verificou SHA-256; reexecução
+pelo Agendador reutilizou as mesmas cópias, sem duplicação e sem consultar o banco.
+`verify-copy-task.ps1` testa a ação `copy` com o mesmo principal e configurações da
+tarefa diária, usando uma tarefa temporária removida ao terminar. **Não usar
+`register-task.ps1 -Verify` para uma validação sem banco:** esse comando antigo
+cria um dump novo. A tarefa diária principal não foi reconfigurada.
+
+### Montagem, integridade e falhas
+
+- Antes de qualquer escrita, `findmnt --mountpoint /mnt/f` precisa identificar
+  realmente F:, filesystem drvfs/9p e montagem gravável. O destino deve existir,
+  sem symlinks. A rotina não cria `/mnt/f` ou diretórios substitutos no Linux.
+- Operações usam um descritor aberto do diretório NTFS, evitando redirecionamento
+  para um diretório Linux caso o drive desapareça durante a operação.
+- Só arquivos `.cms` indexados pelo backup principal, com SHA-256 válido, são
+  copiados. O índice `temdas-copy-index.json` contém apenas nomes, timestamps,
+  tamanhos, SHA-256 e identificador local da instalação; nunca credenciais,
+  configuração, chaves, inventários de tabelas ou dados privados.
+- Cópia para temporário exclusivo, flush/fsync, SHA-256 e publicação atômica sem
+  sobrescrever destino (`renameat2` com NOREPLACE; hardlink/unlink como fallback).
+  O hash é conferido novamente após publicação. Temporários desta execução são
+  removidos ao falhar; nenhum arquivo desconhecido é removido.
+- Arquivo existente idêntico é reutilizado. Conteúdo diferente no mesmo nome ou
+  índice desconhecido causa falha, preservando o que já existia. Uma cópia idêntica
+  preexistente sem registro de propriedade nunca passa a ser elegível para exclusão.
+- Retenção F: usa os mesmos 7 dias com cópias e 4 semanas. Só remove arquivos
+  criados/indexados por esta instalação, cujo hash ainda coincide. Sempre mantém
+  pelo menos a cópia válida mais recente; desconhecidos ficam fora da exclusão.
+- O lock Linux é compartilhado entre dump e cópia; chamadas concorrentes são
+  ignoradas. A indisponibilidade de F: gera `external_mount_unavailable` e saída 1.
+  O principal e seu índice permanecem intactos. Um dump novo registra primeiro
+  `backup_local_success`; falha da segunda cópia não apaga o backup principal.
+- Os retries existentes do Agendador tentam novamente. Se o HD ficar indisponível
+  por muito tempo, só poderão ser copiados os backups ainda retidos no WSL;
+  pontos já expirados não são reconstruídos retroativamente.
+
+O teste de falha simulou a montagem indisponível apenas para o processo, sem
+realmente desmontar o HD. Saída 1 e log categorizado foram confirmados, assim como
+preservação dos arquivos e dos índices dos dois destinos.
+
+### Permissões e recuperação pelo F:
+
+A pasta foi criada nesta etapa com ACL NTFS protegida, sem herança, permitindo
+somente a conta Windows responsável, SYSTEM e Administradores. Permissões POSIX
+exibidas por drvfs sem metadata não substituem essa ACL Windows. O HD recebe apenas
+ciphertexts e metadados operacionais não sensíveis; a chave privada e `pgpass`
+permanecem exclusivamente nos diretórios privados Linux mencionados acima.
+
+Para testar a cópia do F: sem acessar o Supabase:
+
+```sh
+python3 scripts/backup/backup.py restore-check --from-external
+```
+
+O script valida montagem e SHA-256 da cópia, descriptografa somente no diretório
+temporário privado Linux e restaura em um cluster local descartável, sem TCP.
+A execução real a partir de F: comparou com sucesso dados e objetos SQL das
+54 tabelas. A evidência fica em `restore-external-evidence.json` no armazenamento
+Linux, separada da evidência do backup principal. Não há plaintext restaurado no F:.
+As limitações de serviços gerenciados, owners/grants e Storage continuam válidas.
+
+Após perda do WSL, reconstruir a configuração pública de caminhos e as ferramentas,
+recuperar a chave por canal seguro e preservar os arquivos originais no F:. O índice
+não sensível do F: contém os campos necessários para reconstruir `state.json`
+(`installation` e `records`) no diretório Linux privado, após conferir origem e
+integridade. O restore local não precisa da senha do banco de origem. Nunca copiar
+roles placeholders ou o resultado do teste diretamente para um projeto ativo.
+
+**Dois discos no mesmo computador não são backup offsite.** Furto, incêndio,
+ransomware com privilégios suficientes ou perda da chave podem afetar a recuperação.
+A chave não foi copiada para F:. Ainda é necessário preservá-la em meio seguro
+separado do computador e definir uma cópia offsite autorizada. Não foram conectadas
+contas externas nem contratados serviços. PROD-01 continua parcial.
 
 ## Referências oficiais
 

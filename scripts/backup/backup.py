@@ -21,6 +21,8 @@ import tempfile
 import time
 import uuid
 
+import secondary
+
 PROD = 'vberbygddnootjcbkajc'
 VALIDATION_SCHEMAS = ('public', 'auth', 'storage', 'supabase_migrations')
 
@@ -201,22 +203,29 @@ def decrypt(c, source, target):
 def export_external(c, root, record):
     if not c.get('external_dir'):
         return False
-    target = Path(c['external_dir'])
-    if not target.is_dir() or target.resolve().is_relative_to(root.resolve()):
-        raise BackupError('external_directory_invalid')
-    source = root / 'archives' / record['file']
-    final = target / record['file']
-    if final.exists():
-        if digest(final) == record['sha256']:
-            return True
-        raise BackupError('external_archive_collision')
-    tmp = target / (record['file'] + '.' + uuid.uuid4().hex + '.partial')
-    shutil.copyfile(source, tmp)
-    os.chmod(tmp, 0o600)
-    if digest(tmp) != record['sha256']:
-        raise BackupError('external_copy_integrity')
-    tmp.replace(target / record['file'])
+    state = json.loads((root / 'state.json').read_text())
+    try:
+        metrics = secondary.sync(c, root, state['records'], digest, retention_keep)
+    except secondary.SecondaryError as error:
+        raise BackupError(str(error)) from None
+    event(root, 'external_copy_success', **metrics)
     return True
+
+
+def copy_existing(c):
+    root = Path(c['data_dir'])
+    if not c.get('external_dir'):
+        raise BackupError('external_not_configured')
+    with (root / 'backup.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            event(root, 'skipped_concurrent')
+            return
+        state = json.loads((root / 'state.json').read_text())
+        if not state['records']:
+            raise BackupError('no_valid_primary_backup')
+        export_external(c, root, max(state['records'], key=lambda r: r['utc']))
 
 
 def backup(c, force=False):
@@ -304,6 +313,7 @@ def backup(c, force=False):
                     (archives / r['file']).unlink(missing_ok=True)
                 state['records'] = [r for r in state['records'] if r not in remove]
                 atomic_json(state_path, state)
+                event(root, 'backup_local_success', bytes=record['bytes'])
                 external = export_external(c, root, record)
                 event(root, 'backup_success', bytes=record['bytes'], duration_seconds=round(time.monotonic() - started, 2),
                       missed_days=missed, tables_covered=len(baseline['tables']), external_copy=external)
@@ -321,11 +331,19 @@ def extract_payload(payload, destination):
         tar.extractall(destination, filter='data')
 
 
-def restore_check(c):
+def restore_check(c, from_external=False):
     root = Path(c['data_dir'])
     state = json.loads((root / 'state.json').read_text())
     record = max(state['records'], key=lambda r: r['utc'])
-    archive = root / 'archives' / record['file']
+    if from_external:
+        try:
+            archive = secondary.target_directory(c) / record['file']
+        except secondary.SecondaryError as error:
+            raise BackupError(str(error)) from None
+        if archive.is_symlink() or not archive.is_file():
+            raise BackupError('external_archive_missing')
+    else:
+        archive = root / 'archives' / record['file']
     if digest(archive) != record['sha256']:
         raise BackupError('archive_checksum')
     with tempfile.TemporaryDirectory(prefix='restore-', dir=root) as work:
@@ -389,8 +407,9 @@ def restore_check(c):
                 raise BackupError('restored_inventory_mismatch')
             report = {'utc': utcnow().isoformat(), 'archive_sha256': record['sha256'], 'status': 'selected_schemas_verified',
                       'tables_verified': len(restored['tables']), 'rows_and_hashes_match': True, 'constraints_functions_policies_triggers_match': True,
-                      'full_supabase_platform_restore': False, 'ownership_and_grants_executed': False}
-            atomic_json(root / 'restore-evidence.json', report)
+                      'full_supabase_platform_restore': False, 'ownership_and_grants_executed': False,
+                      'archive_source': 'windows_f' if from_external else 'primary_wsl'}
+            atomic_json(root / ('restore-external-evidence.json' if from_external else 'restore-evidence.json'), report)
             event(root, 'restore_selected_schemas_success', tables_verified=len(restored['tables']), full_supabase_platform=False)
         finally:
             if running:
@@ -399,9 +418,10 @@ def restore_check(c):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['run', 'restore-check', 'status'])
+    parser.add_argument('action', choices=['run', 'copy', 'restore-check', 'status'])
     parser.add_argument('--config', type=Path, default=Path.home() / '.config/temdas-backup/config.json')
     parser.add_argument('--force', action='store_true')
+    parser.add_argument('--from-external', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
     c = None
@@ -409,8 +429,10 @@ def main():
         c = load_config(args.config, needs_source_credentials=args.action == 'run')
         if args.action == 'run':
             backup(c, args.force)
+        elif args.action == 'copy':
+            copy_existing(c)
         elif args.action == 'restore-check':
-            restore_check(c)
+            restore_check(c, args.from_external)
         else:
             state_path = Path(c['data_dir']) / 'state.json'
             state = json.loads(state_path.read_text()) if state_path.exists() else {'records': []}

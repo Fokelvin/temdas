@@ -453,7 +453,7 @@ históricos. O objetivo é manter o MVP confiável e dentro do orçamento inicia
 ### PROD-01 — Backup externo automatizado e teste de restauração
 
 - **Prioridade:** P0 — proteção dos dados.
-- **Estado:** Em andamento — backup WSL e restore SQL local validados; cópia externa e recuperação da chave fora do PC pendentes.
+- **Estado:** Em andamento — backup WSL, segunda cópia no F: e restore SQL local validados; offsite e recuperação da chave fora do PC pendentes.
 - **Descrição:** automatizar cópias de segurança do PostgreSQL Supabase PROD,
   definir retenção e destino seguro, e demonstrar restauração em ambiente
   isolado, sem tocar no DEV nem sobrescrever PROD.

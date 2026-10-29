@@ -104,20 +104,6 @@ class SafetyTests(unittest.TestCase):
                 sql.assert_not_called()
                 self.assertIn('skipped_concurrent', out.getvalue())
 
-    def test_external_copy_does_not_overwrite_a_different_existing_backup(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            (root / 'archives').mkdir()
-            (root / 'archives/file.cms').write_bytes(b'new')
-            destination = root / 'outside'
-            destination.mkdir()
-            # Simulate a separate destination, not beneath the backup root.
-            with tempfile.TemporaryDirectory() as external:
-                old = Path(external) / 'file.cms'
-                old.write_bytes(b'old-preserved')
-                with self.assertRaisesRegex(b.BackupError, 'external_archive_collision'):
-                    b.export_external({'external_dir': external}, root, {'file': 'file.cms', 'sha256': b.digest(root / 'archives/file.cms')})
-                self.assertEqual(old.read_bytes(), b'old-preserved')
 
     def test_success_records_missed_days_and_preserves_previous_backup(self):
         with tempfile.TemporaryDirectory() as d:
