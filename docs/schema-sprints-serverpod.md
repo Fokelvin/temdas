@@ -36,7 +36,12 @@ de `btree_gist` em PROD, também ausentes no backup. Havia uma Sprint e nenhuma
 violação encontrada. O histórico contém a última versão por módulo, não uma
 trilha de cada arquivo SQL executado.
 
-## Correção preparada, ainda não aplicada em PROD
+## Correção versionada e aplicada em PROD
+
+Aplicada em 29/10/2026, após autorização específica e preflight/ensaio aprovados.
+Histórico, extensão, objetos, contagens e hashes foram conferidos no PROD;
+detalhes e pendências no [registro de aplicação PROD-02](migrations-prod.md#aplicação-autorizada-em-prod--29102026).
+Esta confirmação não autoriza aplicar a migration em DEV ou em outro ambiente.
 
 `20261029113025000-sprint-integrity` é uma migration SQL aditiva específica para
 o baseline cooldown incompleto. Instala `btree_gist` 1.7 no schema `extensions`,

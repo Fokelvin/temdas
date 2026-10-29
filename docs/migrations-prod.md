@@ -254,6 +254,99 @@ posteriores à correção, usar a versão do repositório conforme o
 [runbook de backup](backup-restauracao-prod.md); a cópia instalada antiga não
 inclui esse novo suporte.
 
+## Aplicação autorizada em PROD — 29/10/2026
+
+A migration `20261029113025000-sprint-integrity` foi aplicada exclusivamente
+no Supabase PROD `vberbygddnootjcbkajc`, após autorização humana específica.
+Commit dos artefatos: `f4ef19d09fb0b59bf2ba21053d7a9dbe8e4552ca`.
+O SQL incremental executado tinha SHA-256:
+
+```text
+e46a7e8013f1c51069c3e31a5faf1ff0a6f8d3b7c46028181f199822a8f8e230
+```
+
+### Preflight e ensaio
+
+- Artefatos e código conferidos contra o commit autorizado; nenhuma alteração
+  rastreada pendente. Somente essa migration estava pendente no histórico PROD.
+- Conexão direta IPv6, PostgreSQL 17.11, `sslmode=verify-full`, certificado/hostname
+  verificados pelo cliente e TLS confirmado no servidor. Preflight em transação
+  repeatable read/read-only, com statement timeout de 15s e lock timeout de 2s.
+- Baseline cooldown, ambos os objetos e extensão ausentes; uma Sprint, nenhum
+  proprietário ausente, período inválido, par sobreposto ou múltiplas ativas.
+- `btree_gist` 1.7 trusted/relocatable disponível; permissões de banco/schema e
+  propriedade das duas tabelas conferidas. Zero transações com mais de 30s,
+  transações preparadas ou locks de outras sessões em Sprint/histórico na amostra.
+- Backup de `2026-10-29T01:15:02.123551+00:00`, aproximadamente 11h no preflight,
+  íntegro e com segunda cópia em F: verificada. SHA-256 do arquivo criptografado:
+
+```text
+fc2db2111ac5a9157a3bdb41ccdfdbc1f0a4c47a12d0626989918d63c211ed43
+```
+
+O ensaio PROD-02 foi repetido com esse backup: restauração em PostgreSQL 17.11
+descartável, schema e dados iguais ao manifesto, aplicação apenas no clone e
+validações finais aprovadas. Containers/volumes originais permaneceram iguais.
+O relatório continuou com `production_authorized=false`; a autorização específica
+foi conferida separadamente, sem alterar nem contornar esse controle global.
+
+Backend publicado: Serverpod 3.4.11, deployment Railway
+`29a80d3b-9c4d-40fa-9fc8-e9fdec8e90b7`, `SUCCESS`. O SQL é aditivo, preserva
+colunas/relacionamentos consumidos pelo backend e restaura os dois índices
+previstos no target customizado. Logs de inicialização confirmaram migrations
+automáticas desabilitadas e Pre-Deploy permaneceu vazio.
+
+### Execução e resultado
+
+Uma única tentativa entre `2026-10-29T12:32:32.770743+00:00` e
+`2026-10-29T12:32:40.481231+00:00` (09:32 em Brasília, incluindo verificações).
+Somente os bytes revisados de `migration.sql` foram enviados ao psql; não foi
+executado `definition.sql`. A transação, os prechecks e os timeouts do artefato
+foram preservados. psql retornou zero e o COMMIT foi confirmado por nova consulta
+somente leitura. Não houve repetição, repair, outra migration ou rollback.
+
+| Verificação posterior | Resultado |
+| --- | --- |
+| Histórico TEMDAS | `20261029113025000-sprint-integrity` |
+| Histórico módulo serverpod | `20260129180959368`, preservado |
+| Extensão | `btree_gist` 1.7 em `extensions` |
+| Índice único parcial | Nome, método, unicidade, predicado e elementos corretos; válido/ready |
+| Exclusion constraint | Nome, método GiST, predicado e elementos corretos; validada, imediata/não deferrable |
+| Demais objetos inventariados | Preservados: colunas, índices, constraints, views, funções, policies e triggers |
+| Dados e relacionamentos | Contagens/hashes de todas as tabelas originais preservados, exceto atualização esperada de histórico; Sprint continua com uma linha e sem proprietário órfão |
+| `/readyz`, `/livez`, `/startupz` | HTTP 200 |
+| `/greeting/hello` | HTTP 200 |
+| `/sprint/listarSprints` e `/auth/me` sem JWT | HTTP 400 com `AuthException` / `tokenMissing`, sem erro de schema |
+| Railway | Mesmo deployment `SUCCESS`, sem mudanças staged ou novo deploy |
+
+Nenhum registro novo de runtime foi retornado na consulta de logs posterior à
+aplicação; não houve erro de schema nas respostas HTTP. Essa observação não é uma
+prova de ausência de todos os erros possíveis. O aviso anterior de inicialização
+`Invalid serviceSecret in password file, Insights server disabled.` é independente
+da migration e permaneceu fora do escopo. Não foram criados usuários/sessões nem
+obtido JWT pessoal para repetir consultas de negócio autenticadas; esse caminho
+não foi homologado novamente nesta etapa. Não foram feitos testes conflitantes
+ou de escrita em PROD.
+
+### Situação operacional e pendências
+
+A divergência de Sprint está resolvida. O PROD-02 foi homologado operacionalmente
+neste ciclo: backup/F:, ensaio isolado, revisão, autorização separada, aplicação
+única e conferência real do resultado. Isso não autoriza próximas migrations.
+Cada aplicação futura exige novamente todos os gates e aprovação humana própria.
+DEV, dados de negócio, volumes existentes e configurações Railway/Cloudflare
+permaneceram inalterados; não houve deploy.
+
+A instalação local antiga de `~/.local/share/temdas-backup/bin/backup.py` ainda
+não contém `restore_extension_sql`. A coleta/agendamento de backup não precisa
+dessa função e não foi alterada. Para restauração de backups posteriores à
+correção, usar o restaurador atualizado do checkout conforme PROD-01. Sincronizar
+a cópia instalada é uma pendência operacional separada, não executada aqui.
+O backup utilizado antecede a correção: a próxima coleta agendada deve registrar
+o novo histórico/objetos, com verificação da cópia F:. Não foi disparado backup
+adicional nesta tarefa. Antes de qualquer nova migration, exigir backup atualizado
+e ensaio correspondente ao schema então vigente.
+
 O `pubspec.yaml` do servidor ainda contém um atalho local `serverpod run start`
 com `--apply-migrations`. Ele não foi executado nem alterado nesta tarefa e não é
 usado pelo processo PROD-02. Não utilizá-lo com credenciais ou configuração PROD;
