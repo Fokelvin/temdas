@@ -1,0 +1,4 @@
+# Flutter Web assets use stable URLs without content hashes.
+# Keep cached copies, but revalidate before reuse after each deployment.
+/*
+  Cache-Control: no-cache
