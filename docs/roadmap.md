@@ -449,7 +449,7 @@ desta seção autoriza implementação automática.
   sem depender de cores hardcoded; as bordas permanecem sutis, consistentes nos
   temas claro/escuro e coerentes entre Demandas e Log Time.
 
-### UX-FUT-06 — Página inicial, login lateral e Aviso de Privacidade
+### UX-FUT-06 — Página inicial, login lateral, privacidade e versão
 
 - **Descrição:** ao final das melhorias de UX previstas, substituir a
   experiência de entrada atual por uma página inicial real, com apresentação
@@ -458,10 +458,15 @@ desta seção autoriza implementação automática.
   sem autenticação e também a usuários autenticados. O aviso deve explicar
   o tratamento dos dados, as finalidades, o armazenamento no navegador
   (incluindo sessão e preferências), serviços envolvidos e os direitos dos
-  titulares, com conteúdo conferido antes da publicação.
+  titulares, com conteúdo conferido antes da publicação. Exibir
+  discretamente a **versão do sistema** no rodapé da página inicial e no
+  menu do aplicativo, com número de versão e SHA curto do commit do build.
 - **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
 - **Estado:** Aprovado / pendente de definição visual e do conteúdo de privacidade.
-- **Dependências:** evolução responsiva, temas e preservação do fluxo AuthGate,
+- **Dependências:** evolução responsiva, temas, identificação automática
+  da versão a partir de `app/pubspec.yaml` e SHA incorporado na compilação
+  do Flutter Web, sem versão duplicada manualmente nem consulta ao servidor;
+  preservação do fluxo AuthGate,
   senha, recuperação, convite, callback e MFA; verificar os tratamentos
   efetivos e fornecedores antes de redigir/publicar o aviso. Não implementar
   banner de consentimento de cookies sem necessidade comprovada para
@@ -472,7 +477,8 @@ desta seção autoriza implementação automática.
   autenticado segue normalmente para o app; os fluxos de autenticação
   existentes continuam funcionando; o Aviso de Privacidade é acessível
   publicamente e pelo app, apresenta informações verificadas e compreensíveis
-  sobre dados e armazenamento, sem exigir login.
+  sobre dados e armazenamento, sem exigir login; rodapés exibem versão
+  e identificador do build efetivamente carregado, com fallback no desenvolvimento.
 
 
 ## Pós-produção — Estabilização do MVP
