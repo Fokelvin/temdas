@@ -1,0 +1,27 @@
+{
+  "backup_sha256": "8dbf588459ff055981edcebf7769e98da4ff500f65c7feddbfd23de9890f2b59",
+  "backup_utc": "2026-10-29T20:31:15.050594+00:00",
+  "baseline_order_and_reapply_rejected": true,
+  "correction_delta": "7 triggers, 5 functions, 2 validated checks only",
+  "migrations": [
+    {
+      "seconds": 0.179,
+      "sql_sha256": "90c8737d3f50fa828c82d43e903112f71520f915f7c8404a69ca7e36b661deec",
+      "version": "20261029183226724-pacote4-demandas"
+    },
+    {
+      "seconds": 0.164,
+      "sql_sha256": "cda3f1ca6b2f4c03df951c39cbf89e85fd7f9e047f8b025b0817ac22ee329982",
+      "version": "20261029220000000-restore-schema-guards"
+    }
+  ],
+  "original_counts": {
+    "public.demandas": 12,
+    "public.registros_tempo": 19,
+    "public.sprints": 1,
+    "public.sprints_demandas": 12
+  },
+  "original_rows_and_hashes_preserved": true,
+  "status": "passed",
+  "tables_restored": 54
+}

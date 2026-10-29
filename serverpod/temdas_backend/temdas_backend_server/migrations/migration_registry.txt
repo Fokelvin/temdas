@@ -17,3 +17,4 @@
 20261009000123093-convite-cooldown
 20261029113025000-sprint-integrity
 20261029183226724-pacote4-demandas
+20261029220000000-restore-schema-guards

@@ -415,7 +415,8 @@ desta seção autoriza implementação automática.
   aplicação em [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
   Validação complementar de volume, timeouts, origens e fuso registrada em
   [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md).
-  Homologação e aplicação/publicação em PROD dependem de autorização específica.
+  Aplicação/publicação em PROD autorizadas pelo responsável, condicionadas aos
+  gates de backup, ensaio e integridade em [pacote4-publicacao.md](pacote4-publicacao.md).
 - **Interface:** painel à direita com aproximadamente metade da largura no
   desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas
   Visão geral, Anotações e Horas. Corpo do card abre o painel; expansão continua
@@ -443,7 +444,8 @@ desta seção autoriza implementação automática.
 - **Validação e aplicação:** testes de permissões/AAL2, persistência, migração,
   observações e interações/regressões do painel; análise, testes e build; ensaio
   de migration em banco isolado quando disponível. Nenhuma migration, publicação
-  PROD ou merge na main está autorizada nesta etapa. Branch específica, sem
+  PROD ou merge na main estava autorizada na etapa de implementação. A autorização
+  posterior e a ordem de publicação estão em `pacote4-publicacao.md`. Branch específica, sem
   mudanças de infraestrutura ou secrets.
 
 ### UX-CONT-05 — Inclusão de Log Time diretamente pela agenda
