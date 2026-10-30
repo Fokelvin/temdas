@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../app/app_routes.dart';
+import '../data/supabase_session.dart';
+import 'auth_pages.dart';
 import '../ui/components/home_preview.dart';
 import '../ui/theme/tokens.dart';
 import 'widgets/theme_toggle_button.dart';
@@ -38,7 +39,9 @@ const homeSections = [
 ];
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.session});
+
+  final SupabaseSession? session;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -46,6 +49,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _scroll = ScrollController();
+  final _scaffold = GlobalKey<ScaffoldState>();
   final _sections = List.generate(homeSections.length, (_) => GlobalKey());
   final _navigationKeys = List.generate(
     homeSections.length,
@@ -111,8 +115,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _enter() =>
-      Navigator.of(context).pushReplacementNamed(AppRoutes.demandas);
+  void _enter() => _scaffold.currentState?.openEndDrawer();
 
   Widget _links() => Row(
     mainAxisSize: MainAxisSize.min,
@@ -145,7 +148,29 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final t = AppTokens.of(context);
     return Scaffold(
-      key: const ValueKey('public-homepage'),
+      key: _scaffold,
+      endDrawerEnableOpenDragGesture: false,
+      endDrawer: Drawer(
+        key: const ValueKey('home-login-panel'),
+        width: MediaQuery.sizeOf(context).width < 600
+            ? MediaQuery.sizeOf(context).width
+            : 420,
+        shape: const RoundedRectangleBorder(),
+        child: Stack(
+          children: [
+            LoginPage(session: widget.session ?? supabaseSession),
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 4,
+              left: 8,
+              child: IconButton(
+                tooltip: 'Fechar login',
+                onPressed: () => _scaffold.currentState?.closeEndDrawer(),
+                icon: const Icon(Icons.close),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [

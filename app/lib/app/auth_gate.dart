@@ -326,7 +326,7 @@ String _friendlyAuthError(Object error) {
       _ => 'Não foi possível confirmar seu acesso. Tente novamente.',
     };
   }
-  if (error is AuthException) return error.message;
+  // Provider errors may include account and infrastructure details.
   return 'Não foi possível validar sua sessão. Verifique a conexão e tente novamente.';
 }
 

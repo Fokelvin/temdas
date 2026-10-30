@@ -175,9 +175,9 @@ void main() {
     await openHome(tester, width: 390);
     await tester.tap(find.byKey(const ValueKey('home-enter')));
     await tester.pumpAndSettle();
-    expect(find.byType(AuthGate), findsOneWidget);
+    expect(find.byType(AuthGate), findsNothing);
     expect(find.byType(LoginPage), findsOneWidget);
-    expect(find.byType(PublicHomeEntry, skipOffstage: false), findsNothing);
+    expect(find.byType(PublicHomeEntry, skipOffstage: false), findsOneWidget);
     expect(find.text('Entrar no TEMDAS'), findsOneWidget);
     await tester.tap(find.text('Esqueci minha senha'));
     await tester.pumpAndSettle();
@@ -187,6 +187,52 @@ void main() {
     expect(find.byType(LoginPage), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  for (final width in [390.0, 1440.0]) {
+    for (final close in ['X', 'Escape', 'Voltar']) {
+      testWidgets('painel preserva homepage em $width ao fechar por $close', (
+        tester,
+      ) async {
+        await openHome(tester, width: width);
+        await tester.tap(find.byKey(const ValueKey('home-nav-2')));
+        await tester.pumpAndSettle();
+        final home = tester.element(find.byType(HomePage));
+        final scroll = tester
+            .state<ScrollableState>(
+              find
+                  .descendant(
+                    of: find.byKey(const ValueKey('home-scroll')),
+                    matching: find.byType(Scrollable),
+                  )
+                  .first,
+            )
+            .position;
+        final offset = scroll.pixels;
+        await tester.tap(find.byKey(const ValueKey('home-enter')));
+        await tester.pumpAndSettle();
+        expect(
+          tester.getSize(find.byKey(const ValueKey('home-login-panel'))).width,
+          width < 600 ? width : 420,
+        );
+        expect(
+          ModalRoute.of(tester.element(find.byType(LoginPage)))!.settings.name,
+          '/',
+        );
+        if (close == 'X') {
+          await tester.tap(find.byTooltip('Fechar login'));
+        } else if (close == 'Escape') {
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        } else {
+          await tester.binding.handlePopRoute();
+        }
+        await tester.pumpAndSettle();
+        expect(find.byType(LoginPage), findsNothing);
+        expect(tester.element(find.byType(HomePage)), same(home));
+        expect(scroll.pixels, offset);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 
   testWidgets('tema da homepage persiste e acompanha o login', (tester) async {
     await openHome(tester, width: 390, dark: true);
@@ -227,6 +273,21 @@ void main() {
     frame.image.dispose();
     codec.dispose();
   });
+
+  for (final path in ['/demandas/detalhe?id=42', '/#/sprint/7', '/#/perfil']) {
+    testWidgets('link privado $path continua protegido pelo AuthGate', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        TemdasApp(initialUri: Uri.parse('https://temdas.com.br$path')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AuthGate), findsOneWidget);
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(find.byType(HomePage), findsNothing);
+    });
+  }
 
   test('destinos de links diretos e hash são preservados', () {
     expect(

@@ -199,7 +199,8 @@ void main() {
     await tester.pump();
     expect(server.calls, 1);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('Enviando instruções…'), findsOneWidget);
     expect(
       tester
           .widget<TextButton>(

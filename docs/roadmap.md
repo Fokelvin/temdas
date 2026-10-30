@@ -171,7 +171,9 @@ adiado para o último item deste roadmap.
   Voltar do navegador, retornando à home sem perder a navegação. Reutilizar
   o formulário e os fluxos existentes de login/recuperação.
 - **Prioridade:** P2, antes da consolidação das mensagens de autenticação.
-- **Estado:** Solução aprovada em 30/10/2026; pendente de implementação.
+- **Estado:** Implementado e validado em 30/10/2026; aguardando homologação
+  do login lateral após publicação. Painel de 420 px no desktop e tela cheia
+  no mobile, com fechamento por X/Escape/Voltar e preservação da home/URL.
 - **Dependências:** UX-FUT-06 (home page já publicada); preservar AuthGate,
   provisioning, AAL2/MFA, callback, convite, recuperação de senha e proteção
   das rotas privadas. Não duplicar AuthGate nem a lógica de autenticação.
@@ -186,8 +188,14 @@ adiado para o último item deste roadmap.
   autenticação, recuperação de senha e falhas recuperáveis, sem expor dados de
   conta ou detalhes sensíveis do provedor.
 - **Prioridade:** P2.
-- **Estado:** Parcial; há tratamento específico de recuperação e callback,
-  restando consolidar os demais estados da interface.
+- **Estado:** Implementado e validado em 30/10/2026; aguardando homologação.
+  Login, recuperação e MFA compartilham feedback acessível e carregamento
+  explícito; erros do provedor são sanitizados e permitem nova tentativa.
+  Recuperação mantém confirmação genérica e login não distingue contas
+  inexistentes, credenciais incorretas ou e-mail não confirmado.
+  Validação conjunta com UX-AUTH-03: `flutter analyze` sem ocorrências e
+  228 testes afetados aprovados, incluindo callbacks, convites, deep links,
+  fechamento do painel e exigência de AAL2. AUTH-P2-01 permanece adiado.
 - **Dependências:** contratos de erro documentados em `auth-callback-flutter.md`
   e nas páginas de autenticação.
 - **Critérios de aceite:** mensagens preservam proteção contra enumeração;

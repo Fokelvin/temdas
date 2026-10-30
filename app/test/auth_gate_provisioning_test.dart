@@ -57,6 +57,40 @@ void main() {
     );
   }
 
+  testWidgets('login lateral continua no único AuthGate e exige MFA', (
+    tester,
+  ) async {
+    final server = _AuthServer()..verifiedTotp = true;
+    final provisioning = AuthProvisioning(
+      provisionar: () async => _me(7, server.aal),
+      me: () async => _me(7, server.aal),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PublicHomeEntry(
+          session: server.session,
+          provisioning: provisioning,
+          authenticatedChild: const Scaffold(body: Text('protected')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-enter')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginPage), findsOneWidget);
+    expect(find.byType(AuthGate), findsNothing);
+    await server.signIn();
+    await tester.pumpAndSettle();
+    expect(find.byType(AuthGate), findsOneWidget);
+    expect(find.byType(MfaChallengePage), findsOneWidget);
+    expect(find.text('protected'), findsNothing);
+    server.aal = 'aal2';
+    await server.signIn();
+    await tester.pumpAndSettle();
+    expect(find.text('protected'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('sign-in while gate is mounted provisions before MFA', (
     tester,
   ) async {

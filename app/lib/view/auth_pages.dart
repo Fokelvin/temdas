@@ -56,13 +56,15 @@ class _LoginPageState extends State<LoginPage> {
         _email.text.trim(),
         _password.text,
       );
+      if (!mounted) return;
       _password.clear();
       if (response.session == null) {
         throw const AuthException('O login não criou uma sessão.');
       }
     } on AuthException catch (error) {
-      setState(() => _error = _loginError(error));
+      if (mounted) setState(() => _error = _loginError(error));
     } catch (_) {
+      if (!mounted) return;
       setState(
         () => _error =
             'Não foi possível entrar. Verifique sua conexão e tente novamente.',
@@ -162,26 +164,20 @@ class _LoginPageState extends State<LoginPage> {
                 child: FilledButton(
                   onPressed: _recoveryLoading ? null : _sendRecovery,
                   child: _recoveryLoading
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const AuthProgress(label: 'Enviando instruções…')
                       : const Text('Enviar instruções'),
                 ),
               ),
             ],
             if (_recoverySent) ...[
               const SizedBox(height: 12),
-              const Text(_recoveryConfirmation),
+              const AuthFeedback(message: _recoveryConfirmation),
               if (_recoveryCooldown)
                 const Text('Aguarde um minuto antes de solicitar novamente.'),
             ],
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              AuthFeedback(message: _error!, error: true),
             ],
             const SizedBox(height: 12),
             TextButton(
@@ -196,6 +192,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             TextField(
               controller: _email,
+              enabled: !_loading,
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.username],
               decoration: const InputDecoration(labelText: 'E-mail'),
@@ -203,6 +200,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 12),
             TextField(
               controller: _password,
+              enabled: !_loading,
               focusNode: _passwordFocus,
               obscureText: !_passwordVisible,
               autofillHints: const [AutofillHints.password],
@@ -223,10 +221,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              AuthFeedback(message: _error!, error: true),
             ],
             const SizedBox(height: 20),
             SizedBox(
@@ -234,10 +229,7 @@ class _LoginPageState extends State<LoginPage> {
               child: FilledButton(
                 onPressed: _loading ? null : _login,
                 child: _loading
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const AuthProgress(label: 'Entrando…')
                     : const Text('Entrar'),
               ),
             ),
@@ -289,13 +281,15 @@ String? _recoveryError(AuthException error) {
 }
 
 String _loginError(AuthException error) {
-  final message = error.message.toLowerCase();
-  if (message.contains('invalid login credentials')) {
-    return 'E-mail ou senha incorretos.';
+  if (error.statusCode == '429' || error.code == 'over_request_rate_limit') {
+    return 'Limite de tentativas atingido. Aguarde e tente novamente.';
   }
-  if (message.contains('email not confirmed')) {
-    return 'Confirme seu e-mail antes de entrar.';
+  if (error is AuthRetryableFetchException ||
+      (int.tryParse(error.statusCode ?? '') ?? 0) >= 500) {
+    return 'Não foi possível entrar. Verifique sua conexão e tente novamente.';
   }
+  // The same response covers unknown accounts, wrong passwords and accounts
+  // that cannot sign in yet. Never display the provider's account details.
   return 'Não foi possível entrar. Confira seus dados e tente novamente.';
 }
 
@@ -329,6 +323,7 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    if (_loading) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -421,7 +416,7 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
     }
     final code = _code.text.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      throw const FormatException('Informe o código de 6 dígitos.');
+      throw const _InvalidTotpCode();
     }
     await widget.session.client.auth.mfa.verify(
       factorId: factorId,
@@ -476,12 +471,8 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
           child: const Text('Verificar'),
         ),
       ],
-      if (_error != null)
-        Text(
-          _error!,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      if (_loading) const LinearProgressIndicator(),
+      if (_error != null) AuthFeedback(message: _error!, error: true),
+      if (_loading) const AuthProgress(label: 'Verificando identidade…'),
       TextButton(
         onPressed: _loading ? null : widget.onSignOut,
         child: const Text('Sair'),
@@ -515,6 +506,7 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    if (_loading) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -564,15 +556,12 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
       if (_error != null)
         Padding(
           padding: const EdgeInsets.only(top: 16),
-          child: Text(
-            _error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
+          child: AuthFeedback(message: _error!, error: true),
         ),
       if (_loading)
         const Padding(
           padding: EdgeInsets.only(top: 16),
-          child: LinearProgressIndicator(),
+          child: AuthProgress(label: 'Verificando identidade…'),
         ),
       const SizedBox(height: 12),
       TextButton(
@@ -598,9 +587,7 @@ class _InvalidTotpCode implements Exception {
 }
 
 String _mfaError(Object error) {
-  if (error is FormatException) return error.message;
-  if (error is AuthException) return error.message;
-  return 'Não foi possível concluir a verificação. Tente novamente.';
+  return _challengeError(error);
 }
 
 class _AuthLayout extends StatelessWidget {
@@ -647,6 +634,43 @@ class _AuthLayout extends StatelessWidget {
           ),
         ),
       ),
+    ),
+  );
+}
+
+/// Accessible feedback shared by login, recovery and MFA.
+class AuthFeedback extends StatelessWidget {
+  const AuthFeedback({super.key, required this.message, this.error = false});
+  final String message;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: Text(
+      message,
+      style: error
+          ? TextStyle(color: Theme.of(context).colorScheme.error)
+          : null,
+    ),
+  );
+}
+
+class AuthProgress extends StatelessWidget {
+  const AuthProgress({super.key, required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    label: label,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const LinearProgressIndicator(),
+        const SizedBox(height: 8),
+        Text(label),
+      ],
     ),
   );
 }

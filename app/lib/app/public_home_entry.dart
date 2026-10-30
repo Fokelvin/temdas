@@ -26,7 +26,9 @@ class PublicHomeEntry extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: effectiveSession?.authChanges,
       builder: (context, _) {
-        if (effectiveSession?.currentSession == null) return const HomePage();
+        if (effectiveSession?.currentSession == null) {
+          return HomePage(session: effectiveSession);
+        }
         return AuthGate(
           session: effectiveSession,
           provisioning: provisioning,
