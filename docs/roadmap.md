@@ -156,17 +156,9 @@ de escopo.
 
 ## P2 — Refinamentos de autenticação e interface
 
-### AUTH-P2-01 — Simplificar o fluxo MFA/TOTP
-
-- **Descrição:** remover da interface a ação explícita “Iniciar challenge” e
-  simplificar a apresentação do fluxo TOTP.
-- **Prioridade:** P2.
-- **Estado:** Aprovado / pendente; o fluxo TOTP existe e a ação ainda aparece
-  na interface atual.
-- **Dependências:** preservar a elevação de sessão para AAL2 e os fluxos de
-  enrollment e verificação suportados pelo Supabase.
-- **Critérios de aceite:** o usuário consegue completar MFA sem a ação
-  “Iniciar challenge”; as rotas funcionais continuam exigindo AAL2.
+**Próxima entrega aprovada:** AUTH-P2-02 e UI-P2-03, em uma intervenção
+frontend enxuta, preservando login, MFA obrigatório e interações do Flutter Web.
+AUTH-P2-01 foi deliberadamente adiado para o último item deste roadmap.
 
 ### AUTH-P2-02 — Mensagens e estados de autenticação
 
@@ -757,3 +749,16 @@ dentro do orçamento inicial; nenhum item pendente foi iniciado neste encerramen
   api.temdas.com.br e o aviso não bloqueante de Serverpod Insights.
 - **Critérios de aceite:** documentação reproduz a implantação real sem
   divulgar credenciais, e pendências não bloqueantes têm decisão registrada.
+
+## Última etapa do roadmap — Refinamento final do MFA/TOTP
+
+### AUTH-P2-01 — Simplificar o fluxo MFA/TOTP
+
+- **Descrição:** remover da interface a ação explícita “Iniciar challenge” e
+  simplificar a apresentação do fluxo TOTP.
+- **Prioridade:** Última etapa do roadmap, por decisão do responsável (manter identificador AUTH-P2-01).
+- **Estado:** Aprovado, mas adiado para o encerramento do roadmap; não incluir nos próximos pacotes. A interface atual permanece preservada.
+- **Dependências:** preservar a elevação de sessão para AAL2 e os fluxos de
+  enrollment e verificação suportados pelo Supabase.
+- **Critérios de aceite:** o usuário consegue completar MFA sem a ação
+  “Iniciar challenge”; as rotas funcionais continuam exigindo AAL2.
