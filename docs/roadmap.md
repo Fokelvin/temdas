@@ -376,7 +376,7 @@ desta seção autoriza implementação automática.
   modais e ações para smartphones e tablets, com layouts e interações
   apropriados a toque; não apenas reduzir fontes.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Fechamento frontend publicado e homologado no Pacote 6, com testes em celular, tablet, desktop, ambos os temas e texto ampliado; cobertura de dispositivos reais permanece acompanhamento contínuo.
+- **Estado:** Fechamento frontend publicado e homologado no Pacote 6; navegação mobile complementada em 30/10/2026 (`c8d4cfd`). Testes responsivos automatizados aprovados; cobertura de dispositivos reais permanece acompanhamento contínuo.
 - **Dependências:** definir breakpoints e comportamentos por tela após
   avaliação; preservar a experiência desktop.
 - **Critérios de aceite:** funções principais permanecem utilizáveis em
@@ -389,7 +389,7 @@ desta seção autoriza implementação automática.
   tamanho da fonte, ajustando altura dos cards, espaçamentos, padding,
   margens, disposição e hierarquia das informações.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Implementado no Pacote 5 (branch `feat/pacote-5-toolbar-demandas`, commit `b3e67ad`); pendente de homologação visual e publicação.
+- **Estado:** Concluído, publicado e homologado em PROD no Pacote 5; refinado no redesign responsivo de 30/10/2026 (`c36e12a`).
 - **Dependências:** manter os estados, ações e a legibilidade do modo normal;
   definir quais informações podem ser condensadas ou ocultadas.
 - **Critérios de aceite:** mais Demandas cabem na área visível sem perda de
@@ -400,7 +400,7 @@ desta seção autoriza implementação automática.
 - **Descrição:** oferecer um botão acessível para alternar manualmente entre
   os temas claro e escuro já existentes no TEMDAS.
 - **Prioridade:** Evolução contínua de UX/UI.
-- **Estado:** Alternância e preferência de tema já disponíveis em PROD; botão por ícone fixo na toolbar implementado no Pacote 5, pendente de homologação/publicação.
+- **Estado:** Concluído e homologado em PROD no Pacote 5, com botão por ícone e preferência preservada; atualizado visualmente no redesign de 30/10/2026 (`c36e12a`).
 - **Dependências:** reaproveitar o sistema visual atual e decidir o escopo
   de persistência da preferência.
 - **Critérios de aceite:** o controle altera o tema das telas principais,
@@ -533,14 +533,12 @@ desta seção autoriza implementação automática.
 
 ## Pacote 5 — Redesign visual e aproveitamento da área útil
 
-**Estado:** implementação completa e validada na branch
-`feat/pacote-5-toolbar-demandas`, preservando `b3e67ad` e incluindo o refinamento
-UX-P5-04 em `b071e4d`. Análise, 72 testes afetados e build Web release aprovados
-no fechamento; validação principal anterior reutilizada. Publicação frontend
-autorizada após esses gates, via workflow Cloudflare Pages; homologação visual
-final em PROD permanece manual. Detalhes em
-[pacote5-toolbar-demandas.md](pacote5-toolbar-demandas.md).
-Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
+**Estado:** Concluído, publicado e homologado em PROD pelo responsável antes
+ do redesign complementar de 30/10/2026. Inclui os commits `b3e67ad` e
+ `b071e4d`, com análise, testes afetados e build Web release aprovados.
+ Detalhes em [pacote5-toolbar-demandas.md](pacote5-toolbar-demandas.md).
+ O redesign posterior de Lista/Kanban e da navegação mobile está registrado
+ separadamente abaixo. Nenhuma migration ou mudança de backend.
 
 ### UX-P5-01 — Barra superior compartilhada e contextual
 
@@ -552,7 +550,7 @@ Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
   (ações e controles existentes); Log Time (navegação de datas, Dia/Semana e
   ações da agenda); Relatórios (período, filtros e exportação); Perfil (apenas
   ações aplicáveis). Evitar duplicar controles acima e abaixo da barra.
-- **Estado:** implementado e validado; pendente de homologação visual final em PROD.
+- **Estado:** Concluído, publicado e homologado em PROD no Pacote 5; visual aprimorado em 30/10/2026.
 - **Critérios de aceite:** a região central da barra é flexível e preenche o
   espaço disponível, sem grande vazio entre título e busca; controles úteis
   ficam na barra superior no desktop; tema está sempre na mesma posição; em
@@ -571,7 +569,7 @@ Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
   apresentação da hierarquia mãe/filha. Um seletor Kanban/Lista fica na
   toolbar superior da página; a opção escolhida persiste no navegador.
   Ambas as visualizações abrem o mesmo painel lateral do Pacote 4.
-- **Estado:** implementado e validado; pendente de homologação visual final em PROD.
+- **Estado:** Concluído, publicado e homologado em PROD no Pacote 5; visual aprimorado em 30/10/2026.
 - **Critérios de aceite:** mais Demandas visíveis sem perder legibilidade
   nem ações essenciais; Kanban mantém drag-and-drop e expansão hierárquica;
   Lista oferece abertura dos detalhes e controle de status conforme as regras
@@ -589,7 +587,7 @@ Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
   critérios, mostra a quantidade de filtros ativos e oferece Limpar filtros.
   A busca considera ID/título sem diferenciar maiúsculas ou acentos e combina
   com os filtros, preservando o contexto mãe/filha nos resultados.
-- **Estado:** implementado e validado; pendente de homologação visual final em PROD.
+- **Estado:** Concluído, publicado e homologado em PROD no Pacote 5; visual aprimorado em 30/10/2026.
 - **Critérios de aceite:** busca e filtros funcionam em ambas as visualizações;
   nenhum filtro isolado ocupa permanentemente espaço na toolbar; layout usa
   efetivamente a área horizontal livre da barra superior; responsividade e
@@ -597,8 +595,7 @@ Nenhuma migration ou alteração de backend é exigida pelo Pacote 5.
 
 ### UX-P5-04 — Painel lateral estreito, condensado e redimensionável
 
-- **Estado:** implementado e validado em `b071e4d`; funcionalidades do
-  Pacote 4 preservadas, com 420 px, arraste, ampliação e persistência local.
+- **Estado:** Concluído, publicado e homologado em PROD (`b071e4d`); funcionalidades do Pacote 4 preservadas, com 420 px, arraste, ampliação e persistência local.
 - **Descrição:** substituir a largura inicial de 50% do desktop por **420 px**
   como padrão, respeitando a largura efetivamente disponível. Permitir
   redimensionamento horizontal arrastando a borda esquerda; oferecer ícone
@@ -650,6 +647,21 @@ responsável, exclusivamente frontend, com confirmação do workflow e HTTPS.
   eventuais decisões novas de UX/negócio; usar um prompt Codex objetivo para
   implementar, testar o necessário e, se aprovado, commitar na main e publicar,
   respeitando autorização específica para migrations ou operações sensíveis.
+
+## Redesign complementar de Demandas e navegação mobile — 30/10/2026
+
+- **Estado:** Implementado e publicado em PROD, conforme entregas do Codex;
+  conferência HTTP 200 e artefatos Cloudflare Pages confirmados. Homologação
+  visual comparativa com mockups e em dispositivos reais ainda não registrada.
+- **Commit `c36e12a`:** redesign responsivo das visualizações Lista e Kanban
+  de Demandas (desktop/tablet/celular), evolução de tokens, tipografia e
+  componentes visuais reutilizáveis; manutenção de ações e regras existentes.
+  `flutter analyze`, testes afetados e um build Web release aprovados.
+- **Commit `c8d4cfd`:** navegação inferior no mobile nas telas Demandas,
+  Sprints, Log Time, Relatórios e Perfil, com destaque para a seção atual;
+  análise, testes afetados e build Web release aprovados.
+- **Escopo:** frontend; sem alterações de modelo, backend ou migrations.
+- **Referência:** [redesign-demandas.md](redesign-demandas.md).
 
 ## Pós-produção — Estabilização do MVP
 
