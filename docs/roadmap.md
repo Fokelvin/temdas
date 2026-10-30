@@ -37,6 +37,7 @@ usa prioridade operacional, conforme sua relação com homologação e produçã
   confirmação explícita do link e TOTP quando há fator verificado; convites
   preservam o onboarding sem privilégio administrativo automático.
 - Interface com sistema visual, temas claro/escuro e densidade de cards.
+- Home page pública do TEMDAS concluída e aceita em 30/10/2026 (`ebac0323`), com cinco seções, prévias locais e entrada para autenticação existente; refinamentos de login lateral, privacidade e versão seguem no UX-FUT-06.
 - Pacote 4 em PROD: painel lateral de Demandas com Visão geral, Anotações e Horas;
   observações opcionais de Log Time e migration aplicada com preservação de dados.
 - Publicação em `https://temdas.com.br` (Cloudflare Pages), backend Railway e
@@ -511,7 +512,7 @@ desta seção autoriza implementação automática.
   discretamente a **versão do sistema** no rodapé da página inicial e no
   menu do aplicativo, com número de versão e SHA curto do commit do build.
 - **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
-- **Estado:** Aprovado / pendente de definição visual e do conteúdo de privacidade.
+- **Estado:** **Home page pública concluída e aceita pelo responsável em 30/10/2026** (commit `ebac0323`): apresentação em cinco seções, prévias locais, navegação responsiva, entrada para o login existente, tema e integração ao AuthGate. **Ainda pendentes do escopo original:** formulário de login lateral, Aviso de Privacidade público e versão/SHA do build. Não declarar UX-FUT-06 integralmente encerrado até esses itens serem entregues.
 - **Dependências:** evolução responsiva, temas, identificação automática
   da versão a partir de `app/pubspec.yaml` e SHA incorporado na compilação
   do Flutter Web, sem versão duplicada manualmente nem consulta ao servidor;
