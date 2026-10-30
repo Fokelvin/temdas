@@ -1,3 +1,4 @@
+import 'package:temdas/ui/components/mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,6 +113,12 @@ void main() {
             tester.view.viewInsets = const FakeViewPadding(bottom: 240);
             addTearDown(tester.view.resetViewInsets);
             await tester.pumpAndSettle();
+          }
+          if (['Demandas', 'Sprint', 'Log Time', 'Perfil'].contains(page)) {
+            expect(
+              find.byType(MobileBottomNavigation),
+              size.width < 600 ? findsOneWidget : findsNothing,
+            );
           }
           expect(tester.takeException(), isNull);
         });

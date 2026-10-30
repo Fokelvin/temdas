@@ -1,3 +1,4 @@
+import '../../ui/components/mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
@@ -148,6 +149,9 @@ class PageScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     drawer: AppDrawer(currentRoute: route),
+    bottomNavigationBar: MediaQuery.sizeOf(context).width < 600
+        ? MobileBottomNavigation(currentRoute: route)
+        : null,
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

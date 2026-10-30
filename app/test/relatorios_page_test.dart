@@ -1,3 +1,4 @@
+import 'package:temdas/ui/components/mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/data/repositories/relatorio_repository.dart';
@@ -49,6 +50,10 @@ void main() {
         ),
       );
       expect(find.text('3 - Filha'), findsOneWidget);
+      expect(
+        find.byType(MobileBottomNavigation),
+        width < 600 ? findsOneWidget : findsNothing,
+      );
       expect(tester.takeException(), isNull);
     });
   }

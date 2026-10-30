@@ -1,6 +1,6 @@
+import 'mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import '../../app/app_routes.dart';
 import '../../data/supabase_session.dart';
 import '../../theme/theme_preference.dart';
 import '../../view/widgets/theme_toggle_button.dart';
@@ -17,27 +17,9 @@ class AppShell extends StatelessWidget {
   final String route;
   final Widget header, body;
   final Widget? fab;
-  static const routes = [
-    AppRoutes.demandas,
-    AppRoutes.sprint,
-    AppRoutes.logTime,
-    AppRoutes.relatorios,
-    AppRoutes.perfil,
-  ];
-  static const labels = [
-    'Demandas',
-    'Sprints',
-    'Log Time',
-    'Relatórios',
-    'Perfil',
-  ];
-  static const icons = [
-    Symbols.task_alt_rounded,
-    Symbols.sprint_rounded,
-    Symbols.calendar_month_rounded,
-    Symbols.assessment_rounded,
-    Symbols.person_rounded,
-  ];
+  static const routes = AppNavigation.routes;
+  static const labels = AppNavigation.labels;
+  static const icons = AppNavigation.icons;
   void _go(BuildContext context, int index) {
     if (routes[index] != route) {
       Navigator.of(context).pushReplacementNamed(routes[index]);
@@ -90,55 +72,7 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       floatingActionButton: mobile ? fab : null,
       bottomNavigationBar: mobile
-          ? SafeArea(
-              top: false,
-              child: Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  color: t.surface,
-                  border: Border(top: BorderSide(color: t.border)),
-                ),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < 5; i++)
-                      Expanded(
-                        child: Tooltip(
-                          message: labels[i],
-                          child: InkWell(
-                            onTap: () => _go(context, i),
-                            child: Semantics(
-                              selected: route == routes[i],
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    icons[i],
-                                    size: 20,
-                                    color: route == routes[i]
-                                        ? AppTokens.accent
-                                        : t.text2,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    labels[i],
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      color: route == routes[i]
-                                          ? AppTokens.accent
-                                          : t.text2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            )
+          ? MobileBottomNavigation(currentRoute: route)
           : null,
       body: SafeArea(
         bottom: !mobile,
