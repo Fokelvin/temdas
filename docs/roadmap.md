@@ -212,6 +212,51 @@ adiado para o último item deste roadmap.
 - **Critérios de aceite:** textos informativos podem ser selecionados nas
   telas principais e ações e campos continuam operáveis.
 
+### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
+
+- **Contexto:** uma Demanda pode atravessar várias Sprints. Hoje o backend
+  impede seu vínculo à Sprint futura planejada enquanto ela participa de
+  outra Sprint ativa ou planejada, mesmo com períodos não sobrepostos.
+- **Prioridade:** P2 — melhoria funcional aprovada em 30/10/2026.
+- **Estado:** Escopo e regras aprovados; pendente de implementação.
+- **Regra de vínculo:** permitir uma Demanda vinculada à Sprint ativa e
+  simultaneamente a Sprints futuras planejadas, inclusive mais de uma, desde
+  que os períodos não se sobreponham. Preservar o histórico das Sprints
+  concluídas; nunca permitir duas Sprints ativas simultâneas para o usuário.
+  O vínculo com uma Sprint futura não remove os vínculos anteriores.
+- **Cancelamento:** ao cancelar uma Sprint, manter os registros
+  `SprintDemanda` como histórico, sem tratá-los como compromissos atuais.
+  Ao reabrir uma Sprint cancelada, revalidar períodos, vínculos e regras de
+  ciclo de vida antes da transição. Vínculos de cancelamentos anteriores,
+  já removidos pelo sistema, não são reconstruídos automaticamente.
+- **Interface na Demanda:** substituir o indicador único **Sprint/Sem Sprint**
+  por lista compacta das Sprints vinculadas, com nome/identificador e estado:
+  **Ativa, Planejada, Finalizada e Cancelada** (`Finalizada` representa o
+  estado interno `concluida`). Mostrar **Ativa** primeiro, com destaque
+  discreto por fundo, cor ou negrito; depois futuras planejadas por data
+  de início, seguidas de finalizadas e canceladas em ordem decrescente.
+  Cada item permite abrir os detalhes da respectiva Sprint. Sem vínculos,
+  continuar exibindo **Sem Sprint**.
+- **Interface de planejamento:** na Sprint planejada, permitir selecionar
+  Demandas já vinculadas à Sprint ativa ou a outra planejada de período
+  diferente. Indicar vínculos existentes e seus estados, sem bloquear
+  indevidamente a seleção; manter bloqueio para sobreposição e demais
+  regras de negócio.
+- **Integridade:** ajustar validação transacional de vínculos, herança da
+  árvore mãe/filhas, cancelamento e reabertura. Preservar `SprintDemanda`
+  como fonte da verdade, unicidade por par Sprint–Demanda e controle de
+  acesso; manter os lançamentos únicos, com horas calculadas no período
+  de cada Sprint, sem duplicação. A estimativa total da Demanda permanece
+  distinta do tempo previsto da Sprint.
+- **Impacto:** alterações de backend e frontend; modelagem atual comporta
+  múltiplos vínculos, sem nova entidade prevista. Avaliar migrations somente
+  se indispensáveis, com aprovação humana separada para PROD.
+- **Critérios de aceite:** planejar a próxima Sprint antes de encerrar a
+  atual; manter ambos os vínculos visíveis; concluir Sprint antiga sem
+  excluir vínculo futuro; preservar vínculos após cancelamento; exibir
+  corretamente status e ordem na Demanda; impedir períodos conflitantes
+  e transições inválidas; conservar integridade mãe/filhas, horas e MFA.
+
 ## P3 — Evolução funcional
 
 ### FUNC-P3-01 — Projeto vinculado à Demanda
