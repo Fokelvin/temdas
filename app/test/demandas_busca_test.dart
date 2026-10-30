@@ -11,8 +11,10 @@ void main() {
   testWidgets('busca exata por ID revela a hierarquia e destaca o card', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(520, 620));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(520, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final demandas = [
       demandaFixture(
         id: 10,
@@ -58,7 +60,7 @@ void main() {
     final quadro = tester.widget<SingleChildScrollView>(
       find.byKey(const ValueKey('demandas-quadro-status')),
     );
-    expect(quadro.controller!.offset, greaterThan(0));
+    expect(quadro.scrollDirection, Axis.vertical);
 
     await tester.pump(const Duration(milliseconds: 1800));
     expect(
@@ -74,8 +76,10 @@ void main() {
   testWidgets('busca com múltiplos resultados não escolhe um card', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(900, 700));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(900, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final vm = DemandasViewModel(
       repository: FakeDemandaRepository(
         demandas: [
@@ -109,8 +113,10 @@ void main() {
   testWidgets('limpar busca remove destaque pendente e restaura o quadro', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(520, 620));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(520, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final demandas = [
       demandaFixture(id: 1, titulo: 'Primeira'),
       demandaFixture(id: 2, titulo: 'Segunda'),

@@ -1,3 +1,4 @@
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/theme_preference.dart';
@@ -13,7 +14,7 @@ class ThemeToggleButton extends StatelessWidget {
     return IconButton(
       key: const ValueKey('alternar-tema'),
       tooltip: dark ? 'Usar tema claro' : 'Usar tema escuro',
-      icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+      icon: Icon(dark ? Symbols.light_mode_rounded : Symbols.dark_mode_rounded),
       onPressed: preference == null
           ? null
           : () async {

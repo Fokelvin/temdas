@@ -10,6 +10,7 @@ import 'support/fake_demanda_repository.dart' show demandaFixture;
 import 'support/fake_agenda_repositories.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   for (final theme in [AppTheme.light, AppTheme.dark]) {
     for (final density in DensidadeDemanda.values) {
       testWidgets(

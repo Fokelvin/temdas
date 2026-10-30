@@ -1,3 +1,5 @@
+import 'package:google_fonts/google_fonts.dart';
+import '../ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 import 'temdas_colors.dart';
@@ -5,9 +7,9 @@ import 'temdas_semantic_colors.dart';
 
 /// Tokens de identidade compartilhados. Densidade do board fica na apresentação.
 abstract final class TemdasTokens {
-  static const cardRadius = 10.0;
-  static const controlRadius = 8.0;
-  static const dialogRadius = 12.0;
+  static const cardRadius = AppTokens.cardRadius;
+  static const controlRadius = AppTokens.controlRadius;
+  static const dialogRadius = AppTokens.cardRadius;
   static const borderWidth = 1.0;
   static const smallGap = 8.0;
   static const contentGap = 16.0;
@@ -26,55 +28,63 @@ abstract final class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: colors,
-      fontFamily: 'IBM Plex Sans',
-    );
-    final text = base.textTheme.copyWith(
-      headlineSmall: base.textTheme.headlineSmall?.copyWith(
-        fontSize: 24,
-        height: 1.3,
-        fontWeight: FontWeight.w600,
-      ),
-      titleLarge: base.textTheme.titleLarge?.copyWith(
-        fontSize: 20,
-        height: 1.4,
-        fontWeight: FontWeight.w600,
-      ),
-      titleMedium: base.textTheme.titleMedium?.copyWith(
-        fontSize: 16,
-        height: 1.4,
-        fontWeight: FontWeight.w600,
-      ),
-      titleSmall: base.textTheme.titleSmall?.copyWith(
-        fontSize: 14,
-        height: 1.4,
-        fontWeight: FontWeight.w600,
-      ),
-      bodyLarge: base.textTheme.bodyLarge?.copyWith(fontSize: 16, height: 1.5),
-      bodyMedium: base.textTheme.bodyMedium?.copyWith(
-        fontSize: 14,
-        height: 1.4,
-      ),
-      bodySmall: base.textTheme.bodySmall?.copyWith(
-        fontSize: 13,
-        height: 1.35,
-        color: colors.onSurfaceVariant,
-      ),
-      labelLarge: base.textTheme.labelLarge?.copyWith(
-        fontSize: 14,
-        height: 1.3,
-        fontWeight: FontWeight.w500,
-      ),
-      labelMedium: base.textTheme.labelMedium?.copyWith(
-        fontSize: 13,
-        height: 1.3,
-        fontWeight: FontWeight.w500,
-      ),
-      labelSmall: base.textTheme.labelSmall?.copyWith(
-        fontSize: 12,
-        height: 1.3,
-        fontWeight: FontWeight.w500,
+      textTheme: GoogleFonts.interTextTheme().apply(
+        bodyColor: colors.onSurface,
+        displayColor: colors.onSurface,
       ),
     );
+    final text = base.textTheme
+        .apply(fontSizeFactor: 1)
+        .copyWith(
+          headlineSmall: base.textTheme.headlineSmall?.copyWith(
+            fontSize: 24,
+            height: 1.3,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: base.textTheme.titleLarge?.copyWith(
+            fontSize: 17,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+          titleMedium: base.textTheme.titleMedium?.copyWith(
+            fontSize: 16,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+          titleSmall: base.textTheme.titleSmall?.copyWith(
+            fontSize: 13,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: base.textTheme.bodyLarge?.copyWith(
+            fontSize: 16,
+            height: 1.5,
+          ),
+          bodyMedium: base.textTheme.bodyMedium?.copyWith(
+            fontSize: 13,
+            height: 1.4,
+          ),
+          bodySmall: base.textTheme.bodySmall?.copyWith(
+            fontSize: 13,
+            height: 1.35,
+            color: colors.onSurfaceVariant,
+          ),
+          labelLarge: base.textTheme.labelLarge?.copyWith(
+            fontSize: 13,
+            height: 1.3,
+            fontWeight: FontWeight.w500,
+          ),
+          labelMedium: base.textTheme.labelMedium?.copyWith(
+            fontSize: 13,
+            height: 1.3,
+            fontWeight: FontWeight.w500,
+          ),
+          labelSmall: base.textTheme.labelSmall?.copyWith(
+            fontSize: 12,
+            height: 1.3,
+            fontWeight: FontWeight.w500,
+          ),
+        );
     const controlShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
         Radius.circular(TemdasTokens.controlRadius),
@@ -91,12 +101,15 @@ abstract final class AppTheme {
         width: TemdasTokens.borderWidth,
       ),
     );
-    const buttonPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 8);
+    const buttonPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
     const buttonSize = Size(0, 36);
 
     return base.copyWith(
       textTheme: text,
-      extensions: [semantic],
+      extensions: [
+        semantic,
+        colors.brightness == Brightness.dark ? AppTokens.dark : AppTokens.light,
+      ],
       scaffoldBackgroundColor: colors.surfaceContainerLow,
       canvasColor: colors.surface,
       disabledColor: colors.onSurface.withValues(alpha: 0.38),
@@ -105,7 +118,7 @@ abstract final class AppTheme {
           : TemdasColors.lightMuted,
       hoverColor: colors.primary.withValues(alpha: 0.05),
       focusColor: colors.primary.withValues(alpha: 0.12),
-      iconTheme: IconThemeData(color: colors.onSurfaceVariant, size: 20),
+      iconTheme: IconThemeData(color: colors.onSurfaceVariant, size: 16),
       cardTheme: CardThemeData(
         color: colors.surface,
         elevation: 0,
@@ -181,7 +194,7 @@ abstract final class AppTheme {
         style: IconButton.styleFrom(
           foregroundColor: colors.onSurfaceVariant,
           shape: controlShape,
-          iconSize: 20,
+          iconSize: 16,
           minimumSize: const Size(36, 36),
           padding: const EdgeInsets.all(8),
         ),

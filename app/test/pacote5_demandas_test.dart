@@ -231,7 +231,7 @@ void main() {
     await open(tester, sprints: [sprint(8, b.SprintStatus.planejada)]);
     await filter(tester, 'Sprint', 'Ciclo 8');
     expect(
-      find.text('Nenhuma demanda encontrada. Ajuste a busca ou os filtros.'),
+      find.text('Nenhuma demanda encontrada'),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

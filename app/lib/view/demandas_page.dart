@@ -1,3 +1,7 @@
+import '../ui/theme/tokens.dart';
+import '../ui/components/app_shell.dart';
+import '../ui/components/demand_components.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,7 +16,6 @@ import '../view_model/demandas_view_model.dart';
 import '../view_model/sprint_view_model.dart';
 import 'sprint_page.dart';
 import 'demanda_detalhe_page.dart';
-import 'widgets/app_drawer.dart';
 import 'widgets/demanda_dialog.dart';
 import 'widgets/demanda_status_dialog.dart';
 import 'widgets/demanda_tree.dart';
@@ -43,7 +46,6 @@ class _DemandasPageState extends State<DemandasPage> {
   bool _carregandoSprints = true;
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
-  bool _atualizandoAposPainel = false;
 
   backend.Prioridade _prioridade = backend.Prioridade.media;
   backend.Prioridade? _filtroPrioridade;
@@ -126,38 +128,43 @@ class _DemandasPageState extends State<DemandasPage> {
       );
     }
     final sprint = _sprintsPorDemanda[demanda.id];
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton.icon(
-        key: ValueKey('sprint-da-demanda-${demanda.id}'),
-        style: TextButton.styleFrom(
-          padding: EdgeInsets.zero,
-          minimumSize: Size(
-            0,
-            MediaQuery.sizeOf(context).width < 900 ? 32 : 24,
+    return SprintTag(
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          key: ValueKey('sprint-da-demanda-${demanda.id}'),
+          style: TextButton.styleFrom(
+            foregroundColor: AppTokens.of(context).text2,
+            padding: EdgeInsets.zero,
+            minimumSize: Size(
+              0,
+              MediaQuery.sizeOf(context).width < 900 ? 32 : 24,
+            ),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              color: AppTokens.of(context).text2,
+            ),
           ),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          textStyle: Theme.of(context).textTheme.bodySmall,
+          child: Text(
+            sprint == null ? 'Sem Sprint' : 'Sprint: ${sprint.nome}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onPressed: () async {
+            if (sprint == null) {
+              await Navigator.of(context).pushNamed(AppRoutes.sprint);
+            } else {
+              await mostrarResumoSprint(
+                context,
+                sprint: sprint,
+                viewModel: _sprintViewModel,
+                demandasViewModel: _viewModel,
+              );
+            }
+            if (mounted) await _carregarSprints();
+          },
         ),
-        icon: const Icon(Icons.directions_run, size: 16),
-        label: Text(
-          sprint == null ? 'Sem Sprint' : 'Sprint: ${sprint.nome}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        onPressed: () async {
-          if (sprint == null) {
-            await Navigator.of(context).pushNamed(AppRoutes.sprint);
-          } else {
-            await mostrarResumoSprint(
-              context,
-              sprint: sprint,
-              viewModel: _sprintViewModel,
-              demandasViewModel: _viewModel,
-            );
-          }
-          if (mounted) await _carregarSprints();
-        },
       ),
     );
   }
@@ -649,13 +656,8 @@ class _DemandasPageState extends State<DemandasPage> {
     }
     await mostrarDetalhesDemandaDialog(context, id);
     if (!mounted) return;
-    setState(() => _atualizandoAposPainel = true);
-    try {
-      await _viewModel.carregarDemandas();
-      if (mounted) await _carregarSprints();
-    } finally {
-      if (mounted) setState(() => _atualizandoAposPainel = false);
-    }
+    await _viewModel.carregarDemandas();
+    if (mounted) await _carregarSprints();
   }
 
   Future<bool> _moverDemanda(
@@ -716,156 +718,199 @@ class _DemandasPageState extends State<DemandasPage> {
       listenable: Listenable.merge([_viewModel, _visualizacao]),
       builder: (context, _) {
         final resultadoBusca = _resultadoBusca();
-        return PageScaffold(
-          title: 'Demandas',
+        final lista = _visualizacao.value == VisualizacaoDemandas.lista;
+        final mobile = MediaQuery.sizeOf(context).width < 600;
+        final tree = DemandaTree(
+          // Preserva o quadro quando o aviso de erro muda os índices da lista.
+          key: const ValueKey('demandas-arvore'),
+          horizontalController: _quadroHorizontalController,
+          densidade: _densidade,
+          lista: _visualizacao.value == VisualizacaoDemandas.lista,
+          sprintBuilder: _vinculoSprint,
+          demandas: resultadoBusca.demandas,
+          temposExecutadosTotais: calcularTemposExecutadosTotais(
+            _viewModel.demandas,
+          ),
+          autoExpandIds: resultadoBusca.autoExpandIds,
+          focoDemandaId: resultadoBusca.focoDemandaId,
+          focoVersao: _filtroVersao,
+          dragHabilitado: !_filtrosAtivos,
+          acoesHabilitadas:
+              !_viewModel.envioGlobalEmAndamento && !_viewModel.carregando,
+          demandasEmProcessamento: {
+            ..._viewModel.demandasEmProcessamento,
+            if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
+          },
+          onAlterarStatus: _alterarStatusDemanda,
+          onMover: _moverDemanda,
+          onConcluir: (demanda) =>
+              _alterarStatusDemanda(demanda, backend.DemandaStatus.concluida),
+          onReabrir: _reabrirDemanda,
+          onEditar: _editarDemanda,
+          onExcluir: _excluirDemanda,
+          onCriarFilha: _criarDemandaFilha,
+          onLancarTempo: _lancarTempo,
+          onMostrarTudo: _mostrarTudo,
+        );
+        return AppShell(
           route: AppRoutes.demandas,
-          toolbar: _toolbar(),
-          body: ListView(
-            key: const ValueKey('demandas-pagina-scroll'),
-            padding:
-                (_visualizacao.value == VisualizacaoDemandas.lista
-                        ? DensidadeDemanda.compacta
-                        : _densidade)
-                    .paddingPagina,
-            children: [
-              if (_viewModel.erro != null) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      _viewModel.erro!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
+          header: _toolbar(),
+          fab: AppFab(
+            onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
+                ? null
+                : _abrirFormulario,
+          ),
+          body: Padding(
+            padding: EdgeInsets.fromLTRB(
+              mobile ? 8 : 16,
+              8,
+              mobile ? 8 : 16,
+              0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_viewModel.erro != null)
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(_viewModel.erro!),
+                      TextButton(
+                        onPressed: _refresh,
+                        child: const Text('Tentar novamente'),
                       ),
+                    ],
+                  ),
+                if (_carregandoSprints)
+                  const LinearProgressIndicator(
+                    key: ValueKey('carregando-sprints-demandas'),
+                  ),
+                if (_erroSprints != null)
+                  ListTile(
+                    leading: const Icon(Symbols.info_rounded),
+                    title: Text(_erroSprints!),
+                    trailing: IconButton(
+                      tooltip: 'Tentar consultar Sprints novamente',
+                      onPressed: _carregarSprints,
+                      icon: const Icon(Symbols.refresh_rounded),
                     ),
                   ),
+                if (lista && resultadoBusca.demandas.isNotEmpty)
+                  const DemandTableHeader(),
+                Expanded(
+                  child: _viewModel.carregando && _viewModel.demandas.isEmpty
+                      ? (lista
+                            ? Column(
+                                children: [
+                                  for (var i = 0; i < 8; i++) SkeletonRow(),
+                                ],
+                              )
+                            : LayoutBuilder(
+                                builder: (context, box) => Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (var i = 0; i < (mobile ? 1 : 3); i++)
+                                      const Expanded(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(8),
+                                          child: Column(
+                                            children: [
+                                              SkeletonCard(),
+                                              SkeletonCard(),
+                                              SkeletonCard(),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ))
+                      : resultadoBusca.demandas.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _filtrosAtivos
+                                    ? 'Nenhuma demanda encontrada'
+                                    : 'Nenhuma demanda ainda.',
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: _filtrosAtivos
+                                    ? () {
+                                        _buscaController.clear();
+                                        _limparFiltros();
+                                      }
+                                    : _abrirFormulario,
+                                child: Text(
+                                  _filtrosAtivos
+                                      ? 'Limpar busca'
+                                      : 'Criar demanda',
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : lista
+                      ? SingleChildScrollView(
+                          key: const ValueKey('demandas-pagina-scroll'),
+                          padding: EdgeInsets.only(bottom: mobile ? 80 : 16),
+                          child: tree,
+                        )
+                      : tree,
                 ),
               ],
-              if (_carregandoSprints)
-                const LinearProgressIndicator(
-                  key: ValueKey('carregando-sprints-demandas'),
-                ),
-              if (_erroSprints != null)
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: Text(_erroSprints!),
-                  trailing: IconButton(
-                    tooltip: 'Tentar consultar Sprints novamente',
-                    onPressed: _carregarSprints,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ),
-              if (_viewModel.carregando && _atualizandoAposPainel)
-                const LinearProgressIndicator(),
-              if (_viewModel.carregando && !_atualizandoAposPainel)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (resultadoBusca.demandas.isEmpty && _filtrosAtivos)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'Nenhuma demanda encontrada. Ajuste a busca ou os filtros.',
-                  ),
-                )
-              else
-                DemandaTree(
-                  // Preserva o quadro quando o aviso de erro muda os índices da lista.
-                  key: const ValueKey('demandas-arvore'),
-                  horizontalController: _quadroHorizontalController,
-                  densidade: _densidade,
-                  lista: _visualizacao.value == VisualizacaoDemandas.lista,
-                  sprintBuilder: _vinculoSprint,
-                  demandas: resultadoBusca.demandas,
-                  temposExecutadosTotais: calcularTemposExecutadosTotais(
-                    _viewModel.demandas,
-                  ),
-                  autoExpandIds: resultadoBusca.autoExpandIds,
-                  focoDemandaId: resultadoBusca.focoDemandaId,
-                  focoVersao: _filtroVersao,
-                  dragHabilitado: !_filtrosAtivos,
-                  acoesHabilitadas:
-                      !_viewModel.envioGlobalEmAndamento &&
-                      !_viewModel.carregando,
-                  demandasEmProcessamento: {
-                    ..._viewModel.demandasEmProcessamento,
-                    if (_viewModel.envioGlobalEmAndamento) ..._demandasEmStatus,
-                  },
-                  onAlterarStatus: _alterarStatusDemanda,
-                  onMover: _moverDemanda,
-                  onConcluir: (demanda) => _alterarStatusDemanda(
-                    demanda,
-                    backend.DemandaStatus.concluida,
-                  ),
-                  onReabrir: _reabrirDemanda,
-                  onEditar: _editarDemanda,
-                  onExcluir: _excluirDemanda,
-                  onCriarFilha: _criarDemandaFilha,
-                  onLancarTempo: _lancarTempo,
-                  onMostrarTudo: _mostrarTudo,
-                ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _toolbar() => PageToolbar(
-    search: TextField(
-      key: const ValueKey('buscar-demandas'),
-      controller: _buscaController,
-      onChanged: _alterarBusca,
-      decoration: InputDecoration(
-        labelText: 'Buscar por ID ou título...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: _buscaController.text.isEmpty
-            ? null
-            : IconButton(
-                key: const ValueKey('limpar-busca-demandas'),
-                tooltip: 'Limpar busca',
-                onPressed: () {
-                  _buscaController.clear();
-                  _alterarBusca('');
-                },
-                icon: const Icon(Icons.clear),
-              ),
+  Future<void> _refresh() async {
+    await _viewModel.carregarDemandas();
+    if (mounted) await _carregarSprints();
+  }
+
+  Widget _toolbar() {
+    final mobile = MediaQuery.sizeOf(context).width < 600;
+    return PageHeader(
+      count: _viewModel.demandas.length,
+      search: SearchField(
+        controller: _buscaController,
+        onChanged: _alterarBusca,
+        onClear: () {
+          _buscaController.clear();
+          _alterarBusca('');
+        },
       ),
-    ),
-    children: [
-      OutlinedButton.icon(
+      filters: OutlinedButton.icon(
         key: const ValueKey('abrir-filtros-demandas'),
         onPressed: _abrirFiltros,
-        icon: Badge(
-          isLabelVisible: _quantidadeFiltros > 0,
-          label: Text('$_quantidadeFiltros'),
-          child: const Icon(Icons.filter_alt_outlined),
-        ),
+        icon: const Icon(Symbols.filter_alt_rounded, size: 16),
         label: Text(
           _quantidadeFiltros == 0 ? 'Filtros' : 'Filtros ($_quantidadeFiltros)',
         ),
       ),
-      SegmentedButton<VisualizacaoDemandas>(
-        key: const ValueKey('visualizacao-demandas'),
-        showSelectedIcon: false,
-        segments: const [
+      toggle: SegmentedToggle<VisualizacaoDemandas>(
+        value: _visualizacao.value,
+        segments: [
           ButtonSegment(
             value: VisualizacaoDemandas.kanban,
-            label: Text('Kanban'),
-            icon: Icon(Icons.view_kanban_outlined),
+            tooltip: 'Kanban',
+            label: mobile ? null : const Text('Kanban'),
+            icon: const Icon(Symbols.view_kanban_rounded, size: 16),
           ),
           ButtonSegment(
             value: VisualizacaoDemandas.lista,
-            label: Text('Lista'),
-            icon: Icon(Icons.view_list_outlined),
+            tooltip: 'Lista',
+            label: mobile ? null : const Text('Lista'),
+            icon: const Icon(Symbols.view_list_rounded, size: 16),
           ),
         ],
-        selected: {_visualizacao.value},
-        onSelectionChanged: (values) async {
+        onChanged: (values) async {
           final saved = await _visualizacao.select(values.single);
           if (!saved && mounted) {
             _mostrarFeedback(
@@ -875,50 +920,46 @@ class _DemandasPageState extends State<DemandasPage> {
           }
         },
       ),
-      FilledButton.icon(
+      create: AppButton(
         key: const ValueKey('abrir-criar-demanda'),
+        label: 'Criar demanda',
+        icon: Symbols.add_rounded,
+        primary: true,
         onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
             ? null
             : _abrirFormulario,
-        icon: const Icon(Icons.add),
-        label: const Text('Criar demanda'),
       ),
-      if (_visualizacao.value == VisualizacaoDemandas.kanban)
-        PopupMenuButton<DensidadeDemanda>(
-          tooltip: 'Densidade dos cards',
-          initialValue: _densidade,
-          icon: Icon(
-            _densidade.isCompacta ? Icons.density_small : Icons.density_medium,
-          ),
-          onSelected: (value) => setState(() => _densidade = value),
-          itemBuilder: (_) => [
-            for (final value in DensidadeDemanda.values)
-              CheckedPopupMenuItem(
-                value: value,
-                checked: _densidade == value,
-                child: Text(
-                  value.isCompacta
-                      ? 'Visualização compacta'
-                      : 'Visualização normal',
-                ),
-              ),
-          ],
-        ),
-      IconButton(
-        tooltip: 'Recarregar demandas',
+      density: _visualizacao.value != VisualizacaoDemandas.kanban
+          ? const SizedBox.shrink()
+          : PopupMenuButton<DensidadeDemanda>(
+              tooltip: 'Densidade dos cards',
+              initialValue: _densidade,
+              icon: const Icon(Symbols.density_small_rounded, size: 16),
+              onSelected: (v) => setState(() => _densidade = v),
+              itemBuilder: (_) => [
+                for (final v in DensidadeDemanda.values)
+                  CheckedPopupMenuItem(
+                    value: v,
+                    checked: _densidade == v,
+                    child: Text(
+                      v.isCompacta
+                          ? 'Visualização compacta'
+                          : 'Visualização normal',
+                    ),
+                  ),
+              ],
+            ),
+      refresh: RefreshAction(
+        loading: _viewModel.carregando,
         onPressed:
             _viewModel.carregando ||
                 _viewModel.enviando ||
                 _demandasEmStatus.isNotEmpty
             ? null
-            : () async {
-                await _viewModel.carregarDemandas();
-                if (mounted) await _carregarSprints();
-              },
-        icon: const Icon(Icons.refresh),
+            : _refresh,
       ),
-    ],
-  );
+    );
+  }
 
   Future<void> _abrirFiltros() => showDialog<void>(
     context: context,

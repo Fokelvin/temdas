@@ -1,3 +1,4 @@
+import '../ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 import 'temdas_colors.dart';
@@ -38,11 +39,11 @@ class TemdasSemanticColors extends ThemeExtension<TemdasSemanticColors> {
     prioridadeMediaContainer: TemdasColors.lightAmberContainer,
     prioridadeBaixa: TemdasColors.lightGreen,
     prioridadeBaixaContainer: TemdasColors.lightGreenContainer,
-    aberta: TemdasColors.light.onSurfaceVariant,
+    aberta: AppTokens.open,
     emAndamento: TemdasColors.light.primary,
     pausada: TemdasColors.lightAmber,
     concluida: TemdasColors.lightGreen,
-    cancelada: TemdasColors.light.onSurfaceVariant,
+    cancelada: AppTokens.cancelled,
   );
 
   static final dark = TemdasSemanticColors(
@@ -52,11 +53,11 @@ class TemdasSemanticColors extends ThemeExtension<TemdasSemanticColors> {
     prioridadeMediaContainer: TemdasColors.darkAmberContainer,
     prioridadeBaixa: TemdasColors.darkGreen,
     prioridadeBaixaContainer: TemdasColors.darkGreenContainer,
-    aberta: TemdasColors.dark.onSurfaceVariant,
+    aberta: AppTokens.open,
     emAndamento: TemdasColors.dark.primary,
     pausada: TemdasColors.darkAmber,
     concluida: TemdasColors.darkGreen,
-    cancelada: TemdasColors.dark.onSurfaceVariant,
+    cancelada: AppTokens.cancelled,
   );
 
   static TemdasSemanticColors of(BuildContext context) {

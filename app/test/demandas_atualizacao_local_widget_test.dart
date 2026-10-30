@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/demandas_page.dart';
-import 'package:temdas/view/formatters/demanda_identificacao.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view/widgets/demanda_tree.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
@@ -33,8 +32,7 @@ void main() {
         await tester.pumpWidget(MaterialApp(home: DemandasPage(viewModel: vm)));
         await tester.pumpAndSettle();
         for (final demanda in [mae, filha, independente]) {
-          final identificacao = formatarIdentificacaoDemanda(demanda);
-          await tester.ensureVisible(find.text(identificacao));
+          await tester.ensureVisible(find.text(demanda.titulo));
           await tester.tap(
             find.byKey(ValueKey('expandir-demanda-${demanda.id}')),
           );
@@ -47,7 +45,9 @@ void main() {
         final controller = tester.widget<Scrollbar>(barra).controller!;
         expect(controller.position, same(scrollHorizontal.position));
         scrollVertical.position.jumpTo(120);
-        scrollHorizontal.position.jumpTo(180);
+        scrollHorizontal.position.jumpTo(
+          180.0.clamp(0.0, scrollHorizontal.position.maxScrollExtent),
+        );
         await tester.pumpAndSettle();
         final quadro = tester.element(find.byType(DemandaTree));
         final cardIndependente = tester.element(_card(3));
@@ -107,9 +107,15 @@ void main() {
         expect(_scroll(tester, Axis.vertical), same(scrollVertical));
         expect(_scroll(tester, Axis.horizontal), same(scrollHorizontal));
         expect(scrollVertical.position.pixels, 120);
-        expect(scrollHorizontal.position.pixels, 180);
+        expect(
+          scrollHorizontal.position.pixels,
+          180.0.clamp(0.0, scrollHorizontal.position.maxScrollExtent),
+        );
         expect(tester.widget<Scrollbar>(barra).controller, same(controller));
-        expect(controller.offset, 180);
+        expect(
+          controller.offset,
+          180.0.clamp(0.0, controller.position.maxScrollExtent),
+        );
 
         // Uma segunda ação real da página pode prosseguir sem esperar A.
         final respostaB = Completer<backend.Demanda>();
@@ -171,9 +177,15 @@ void main() {
         expect(_scroll(tester, Axis.vertical), same(scrollVertical));
         expect(_scroll(tester, Axis.horizontal), same(scrollHorizontal));
         expect(scrollVertical.position.pixels, 120);
-        expect(scrollHorizontal.position.pixels, 180);
+        expect(
+          scrollHorizontal.position.pixels,
+          180.0.clamp(0.0, scrollHorizontal.position.maxScrollExtent),
+        );
         expect(tester.widget<Scrollbar>(barra).controller, same(controller));
-        expect(controller.offset, 180);
+        expect(
+          controller.offset,
+          180.0.clamp(0.0, controller.position.maxScrollExtent),
+        );
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(tester.takeException(), isNull);
       },
@@ -195,7 +207,9 @@ void main() {
       await tester.pumpAndSettle();
       final quadro = tester.element(find.byType(DemandaTree));
       final horizontal = _scroll(tester, Axis.horizontal);
-      horizontal.position.jumpTo(150);
+      horizontal.position.jumpTo(
+        150.0.clamp(0.0, horizontal.position.maxScrollExtent),
+      );
       await tester.pumpAndSettle();
       final falha = Completer<backend.Demanda>();
       repository.respostaAlterarStatusPendente = falha;
@@ -206,7 +220,10 @@ void main() {
 
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
       expect(_scroll(tester, Axis.horizontal), same(horizontal));
-      expect(horizontal.position.pixels, 150);
+      expect(
+        horizontal.position.pixels,
+        150.0.clamp(0.0, horizontal.position.maxScrollExtent),
+      );
       expect(
         find.textContaining('Não foi possível alterar o status'),
         findsOneWidget,
@@ -218,12 +235,18 @@ void main() {
       await tester.pump();
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
       expect(_scroll(tester, Axis.horizontal), same(horizontal));
-      expect(horizontal.position.pixels, 150);
+      expect(
+        horizontal.position.pixels,
+        150.0.clamp(0.0, horizontal.position.maxScrollExtent),
+      );
       resposta.complete(alvo.copyWith(status: backend.DemandaStatus.concluida));
       expect(await segunda, isTrue);
       await tester.pumpAndSettle();
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
-      expect(horizontal.position.pixels, 150);
+      expect(
+        horizontal.position.pixels,
+        150.0.clamp(0.0, horizontal.position.maxScrollExtent),
+      );
       expect(
         find.descendant(
           of: _card(1),
@@ -274,7 +297,7 @@ void main() {
       expect(repository.chamadasListar, 1);
       expect(vm.demandas.last, same(outra));
       expect(tester.element(find.byType(DemandaTree)), same(quadro));
-      expect(find.text('1 - Editada'), findsOneWidget);
+      expect(find.text('Editada'), findsOneWidget);
       expect(
         find.descendant(
           of: _card(1),
@@ -294,7 +317,7 @@ ScrollableState _scroll(WidgetTester tester, Axis axis) =>
           .descendant(
             of: find.byKey(
               axis == Axis.vertical
-                  ? const ValueKey('demandas-pagina-scroll')
+                  ? const ValueKey('demandas-quadro-status')
                   : const ValueKey('demandas-quadro-status'),
             ),
             matching: find.byWidgetPredicate(

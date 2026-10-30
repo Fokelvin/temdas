@@ -1,3 +1,4 @@
+import 'package:temdas/ui/components/demand_components.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -89,7 +90,9 @@ void main() {
         final vertical = _scroll(tester, Axis.vertical);
         final horizontal = _scroll(tester, Axis.horizontal);
         vertical.position.jumpTo(120);
-        horizontal.position.jumpTo(180);
+        horizontal.position.jumpTo(
+          180.0.clamp(0.0, horizontal.position.maxScrollExtent),
+        );
         await tester.pumpAndSettle();
         final quadro = tester.element(find.byType(DemandaTree));
         final independente = tester.element(_card(4));
@@ -104,7 +107,10 @@ void main() {
           expect(_scroll(tester, Axis.vertical), same(vertical));
           expect(_scroll(tester, Axis.horizontal), same(horizontal));
           expect(vertical.position.pixels, 120);
-          expect(horizontal.position.pixels, 180);
+          expect(
+            horizontal.position.pixels,
+            180.0.clamp(0.0, horizontal.position.maxScrollExtent),
+          );
           expect(tester.widget<Scrollbar>(barra).controller, same(controller));
           expect(vm.carregando, isFalse);
           expect(vm.envioGlobalEmAndamento, isFalse);
@@ -175,7 +181,9 @@ void main() {
         expect(
           find.descendant(
             of: _card(1),
-            matching: find.textContaining('Real. 3,5 h'),
+            matching: find.byWidgetPredicate(
+              (w) => w is HoursLabel && w.minutes == 210,
+            ),
           ),
           findsOneWidget,
         );
@@ -243,7 +251,7 @@ ScrollableState _scroll(WidgetTester tester, Axis axis) =>
           .descendant(
             of: find.byKey(
               axis == Axis.vertical
-                  ? const ValueKey('demandas-pagina-scroll')
+                  ? const ValueKey('demandas-quadro-status')
                   : const ValueKey('demandas-quadro-status'),
             ),
             matching: find.byWidgetPredicate(

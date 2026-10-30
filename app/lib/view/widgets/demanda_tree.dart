@@ -1,3 +1,6 @@
+import '../../ui/components/demand_components.dart';
+import '../../ui/theme/tokens.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'dart:math' as math;
 import 'dart:async';
 
@@ -5,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../theme/app_theme.dart';
-import '../../theme/temdas_semantic_colors.dart';
 import '../../view_model/tempo_executado_total.dart';
 import '../formatters/demanda_identificacao.dart';
 import 'demanda_card.dart';
@@ -72,6 +74,25 @@ class _DemandaTreeState extends State<DemandaTree> {
   int? _demandaDestacadaId;
   bool _atualizacaoAgendada = false;
   bool _dragAtivo = false;
+  final _gruposRecolhidos = <backend.DemandaStatus>{};
+  backend.DemandaStatus? _abaAtiva;
+  final _tabKeys = {
+    for (final s in backend.DemandaStatus.values) s: GlobalKey(),
+  };
+  void _selecionarAba(backend.DemandaStatus s) {
+    setState(() => _abaAtiva = s);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final alvo = _tabKeys[s]?.currentContext;
+      if (alvo != null) {
+        Scrollable.ensureVisible(
+          alvo,
+          alignment: .5,
+          duration: AppTokens.motion(context),
+        );
+      }
+    });
+  }
+
   ({backend.DemandaStatus status, int posicao})? _dropHover;
   _DemandaMovimentoPendente? _movimentoPendente;
 
@@ -104,6 +125,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   @override
   void didUpdateWidget(covariant DemandaTree oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.focoVersao != widget.focoVersao) _abaAtiva = null;
     if (oldWidget.lista != widget.lista ||
         oldWidget.focoVersao != widget.focoVersao ||
         oldWidget.focoDemandaId != widget.focoDemandaId) {
@@ -238,20 +260,20 @@ class _DemandaTreeState extends State<DemandaTree> {
         key: const ValueKey('demandas-lista-status'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final grupo in porStatus.entries) ...[
-            _cabecalhoColuna(
-              grupo.key,
-              grupo.value.where((no) => no.nivel == 0).length,
+          for (final grupo in porStatus.entries.where(
+            (g) => g.value.isNotEmpty,
+          )) ...[
+            GroupHeader(
+              status: grupo.key,
+              count: grupo.value.where((no) => no.nivel == 0).length,
+              collapsed: _gruposRecolhidos.contains(grupo.key),
+              onTap: () => setState(() {
+                if (!_gruposRecolhidos.remove(grupo.key)) {
+                  _gruposRecolhidos.add(grupo.key);
+                }
+              }),
             ),
-            if (grupo.value.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Nenhuma demanda neste status.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              )
-            else
+            if (!_gruposRecolhidos.contains(grupo.key))
               for (final no in grupo.value)
                 _construirNo(
                   no,
@@ -259,71 +281,157 @@ class _DemandaTreeState extends State<DemandaTree> {
                       no.demanda.tempoExecutadoMinutos,
                 ),
           ],
+          EmptyStatusesLine(
+            statuses: porStatus.entries
+                .where((g) => g.value.isEmpty)
+                .map((g) => g.key)
+                .toList(),
+          ),
         ],
       );
     }
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final espacamento = _densidade.espacamentoEntreColunas;
-        final larguraColuna = _densidade.larguraColunaPara(
-          constraints.maxWidth,
-          porStatus.length,
-        );
-
-        final possuiOverflow =
-            larguraColuna * porStatus.length +
-                espacamento * (porStatus.length - 1) >
-            constraints.maxWidth;
-
-        return ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: Scrollbar(
-            key: const ValueKey('demandas-quadro-scrollbar'),
-            controller: widget.horizontalController,
-            thumbVisibility: possuiOverflow,
-            trackVisibility: false,
-            interactive: true,
-            scrollbarOrientation: ScrollbarOrientation.bottom,
-            child: SingleChildScrollView(
-              key: const ValueKey('demandas-quadro-status'),
-              controller: widget.horizontalController,
-              scrollDirection: Axis.horizontal,
-              // A Row assume a altura da maior coluna. A faixa inferior reserva
-              // espaço para a barra no fim do conteúdo, inclusive durante hover.
-              padding: EdgeInsets.only(bottom: possuiOverflow ? 18 : 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        final mobile = MediaQuery.sizeOf(context).width < 600;
+        final active =
+            _abaAtiva ??
+            (porStatus[backend.DemandaStatus.emAndamento]!.isNotEmpty
+                ? backend.DemandaStatus.emAndamento
+                : porStatus.entries
+                      .firstWhere(
+                        (g) => g.value.isNotEmpty,
+                        orElse: () => porStatus.entries.first,
+                      )
+                      .key);
+        if (mobile) {
+          final entries = porStatus[active]!;
+          return Column(
+            children: [
+              StatusTabs(
                 children: [
-                  for (final grupo in porStatus.entries) ...[
-                    if (grupo.key != porStatus.keys.first)
-                      SizedBox(width: espacamento),
-                    SizedBox(
-                      width: larguraColuna,
-                      child: Column(
-                        key: ValueKey('demanda-coluna-${grupo.key.name}'),
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _cabecalhoColuna(
-                            grupo.key,
-                            grupo.value.where((no) => no.nivel == 0).length,
-                          ),
-                          if (grupo.value.isEmpty)
-                            _alvoColunaVazia(grupo.key)
-                          else
-                            ..._construirUnidades(
-                              grupo.key,
-                              grupo.value,
-                              temposTotais,
-                              larguraColuna,
+                  for (final s in porStatus.keys)
+                    Padding(
+                      key: _tabKeys[s],
+                      padding: const EdgeInsets.only(right: 8, bottom: 8),
+                      child: DragTarget<_DemandaDragData>(
+                        onWillAcceptWithDetails: (d) =>
+                            _podeReceberDrop(d.data),
+                        onAcceptWithDetails: (d) {
+                          _selecionarAba(s);
+                          _aceitarMovimento(
+                            d.data,
+                            s,
+                            porStatus[s]!.where((n) => n.nivel == 0).length,
+                          );
+                        },
+                        builder: (context, candidates, rejected) => InkWell(
+                          onTap: () => _selecionarAba(s),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: s == active
+                                  ? AppTokens.of(context).accentSoft
+                                  : null,
+                              border: Border.all(
+                                color: candidates.isNotEmpty || s == active
+                                    ? AppTokens.accent
+                                    : AppTokens.of(context).borderStrong,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
                             ),
-                        ],
+                            child: Row(
+                              children: [
+                                StatusDot(color: statusColor(s), size: 6),
+                                const SizedBox(width: 8),
+                                Text(
+                                  statusLabel(s),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${porStatus[s]!.where((n) => n.nivel == 0).length}',
+                                  style: TextStyle(
+                                    color: AppTokens.of(context).text2,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
                 ],
               ),
+              Expanded(
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    final velocity = details.primaryVelocity ?? 0;
+                    if (velocity.abs() < 100) return;
+                    final index = backend.DemandaStatus.values.indexOf(active);
+                    final next = (index + (velocity < 0 ? 1 : -1)).clamp(
+                      0,
+                      backend.DemandaStatus.values.length - 1,
+                    );
+                    _selecionarAba(backend.DemandaStatus.values[next]);
+                  },
+                  child: SingleChildScrollView(
+                    key: const ValueKey('demandas-quadro-status'),
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: entries.isEmpty
+                          ? [_alvoColunaVazia(active)]
+                          : _construirUnidades(
+                              active,
+                              entries,
+                              temposTotais,
+                              constraints.maxWidth,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        final gap = MediaQuery.sizeOf(context).width < 1024 ? 8.0 : 12.0;
+        final emptyCount = porStatus.values.where((g) => g.isEmpty).length;
+        final filledCount = porStatus.length - emptyCount;
+        final width =
+            ((constraints.maxWidth - emptyCount * 44 - gap * 4) /
+                    math.max(1, filledCount))
+                .clamp(
+                  MediaQuery.sizeOf(context).width < 1024 ? 230.0 : 260.0,
+                  360.0,
+                );
+        final stops = <double>[];
+        var offset = 0.0;
+        for (final g in porStatus.entries) {
+          stops.add(offset);
+          offset += (g.value.isEmpty && _dropHover?.status != g.key ? 44 : width) + gap;
+        }
+        return Scrollbar(
+          key: const ValueKey('demandas-quadro-scrollbar'),
+          controller: widget.horizontalController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            key: const ValueKey('demandas-quadro-status'),
+            controller: widget.horizontalController,
+            scrollDirection: Axis.horizontal,
+            physics: ColumnSnapPhysics(stops: stops),
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final grupo in porStatus.entries) ...[
+                  if (grupo.key != porStatus.keys.first) SizedBox(width: gap),
+                  _colunaDoQuadro(grupo.key, grupo.value, temposTotais, width),
+                ],
+              ],
             ),
           ),
         );
@@ -331,42 +439,41 @@ class _DemandaTreeState extends State<DemandaTree> {
     );
   }
 
-  Widget _cabecalhoColuna(backend.DemandaStatus status, int quantidade) {
-    final theme = Theme.of(context);
-    final semantic = TemdasSemanticColors.of(context);
-    final cor = switch (status) {
-      backend.DemandaStatus.aberta => semantic.aberta,
-      backend.DemandaStatus.emAndamento => semantic.emAndamento,
-      backend.DemandaStatus.pausada => semantic.pausada,
-      backend.DemandaStatus.concluida => semantic.concluida,
-      backend.DemandaStatus.cancelada => semantic.cancelada,
-    };
-    return Padding(
-      key: ValueKey('demanda-status-${status.name}'),
-      padding: EdgeInsets.only(
-        top: TemdasTokens.smallGap,
-        bottom: _densidade.espacamentoEntreCards,
-      ),
-      child: Semantics(
-        header: true,
-        child: Row(
-          children: [
-            Icon(Icons.circle, size: 7, color: cor),
-            const SizedBox(width: TemdasTokens.smallGap),
-            Flexible(
-              child: Text(
-                _statusLabel(status),
-                style: theme.textTheme.titleSmall,
-              ),
-            ),
-            const SizedBox(width: TemdasTokens.smallGap),
-            Text('($quantidade)', style: theme.textTheme.bodySmall),
-            const SizedBox(width: TemdasTokens.smallGap),
-            const Expanded(child: Divider()),
-          ],
+  Widget _colunaDoQuadro(
+    backend.DemandaStatus status,
+    List<_DemandaNivel> nos,
+    Map<int?, int> tempos,
+    double width,
+  ) {
+    final collapsed = nos.isEmpty && _dropHover?.status != status;
+    final visualWidth = collapsed ? 44.0 : width;
+    final column = AnimatedContainer(
+      key: ValueKey('demanda-coluna-${status.name}'),
+      width: visualWidth,
+      duration: AppTokens.motion(context, 200),
+      curve: AppTokens.curve,
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: visualWidth,
+          maxWidth: visualWidth,
+          child: KanbanColumn(
+            status: status,
+            count: nos.where((n) => n.nivel == 0).length,
+            collapsed: collapsed,
+            target: _dropHover?.status == status,
+            child: nos.isEmpty
+                ? const SizedBox(height: 320)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _construirUnidades(status, nos, tempos, width),
+                  ),
+          ),
         ),
       ),
     );
+    // Keep the target mounted while the empty rail expands under the pointer.
+    return nos.isEmpty ? _zonaDeDrop(status, 0, child: column) : column;
   }
 
   void _visitar(
@@ -425,8 +532,8 @@ class _DemandaTreeState extends State<DemandaTree> {
     return Padding(
       key: ValueKey('demanda-tree-node-${demanda.id ?? demanda.titulo}-$nivel'),
       padding: EdgeInsets.only(
-        left: recuo,
-        bottom: _densidade.espacamentoEntreCards,
+        left: widget.lista ? math.min(nivel * 20.0, 60) : recuo,
+        bottom: widget.lista ? 0 : 8,
       ),
       child: KeyedSubtree(
         key: _chaveDoNo(demanda),
@@ -446,6 +553,7 @@ class _DemandaTreeState extends State<DemandaTree> {
               left: nivel == 0 ? 0 : _densidade.espacoAposLinhaArvore,
             ),
             child: DemandaCard(
+              redesign: true,
               // A expansão acompanha a demanda quando ela muda de coluna.
               key: PageStorageKey(_chaveExpansao(demanda)),
               expansionController: _expansaoDe(demanda),
@@ -503,32 +611,40 @@ class _DemandaTreeState extends State<DemandaTree> {
     return widgets;
   }
 
-  Widget _alvoColunaVazia(backend.DemandaStatus status) {
-    const alturaMinima = 128.0;
-    return _zonaDeDrop(
-      status,
-      0,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: alturaMinima),
-        child: Center(
-          child: Text(
-            'Nenhuma demanda neste status.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _alvoColunaVazia(backend.DemandaStatus status) => _zonaDeDrop(
+    status,
+    0,
+    child: const SizedBox(height: 320, width: double.infinity),
+  );
 
   Widget _unidadeArrastavel(
     List<_DemandaNivel> unidade,
     Map<int?, int> temposTotais,
     double larguraColuna,
   ) {
-    return _construirConteudo(unidade, temposTotais, larguraColuna);
+    final content = _construirConteudo(unidade, temposTotais, larguraColuna);
+    final raiz = unidade.first.demanda;
+    if (MediaQuery.sizeOf(context).width >= 600 ||
+        widget.onMover == null ||
+        !widget.dragHabilitado ||
+        raiz.id == null) {
+      return content;
+    }
+    return LongPressDraggable<_DemandaDragData>(
+      key: ValueKey('demanda-long-press-${raiz.id}'),
+      data: _DemandaDragData(demanda: raiz, status: raiz.status),
+      maxSimultaneousDrags:
+          widget.acoesHabilitadas &&
+              _movimentoPendente == null &&
+              !_dragAtivo &&
+              !widget.demandasEmProcessamento.contains(raiz.id)
+          ? 1
+          : 0,
+      onDragStarted: _iniciarDrag,
+      onDragEnd: (_) => _finalizarDrag(),
+      feedback: _feedback(raiz, unidade.length, larguraColuna),
+      child: content,
+    );
   }
 
   Widget _construirConteudo(
@@ -570,6 +686,7 @@ class _DemandaTreeState extends State<DemandaTree> {
         _movimentoPendente == null &&
         !_dragAtivo &&
         !widget.demandasEmProcessamento.contains(raiz.id);
+    if (MediaQuery.sizeOf(context).width < 600) return _visualHandle();
     return Draggable<_DemandaDragData>(
       key: ValueKey('demanda-drag-handle-${raiz.id}'),
       data: _DemandaDragData(demanda: raiz, status: raiz.status),
@@ -577,18 +694,26 @@ class _DemandaTreeState extends State<DemandaTree> {
       dragAnchorStrategy: pointerDragAnchorStrategy,
       onDragStarted: _iniciarDrag,
       onDragEnd: (_) => _finalizarDrag(),
-      feedback: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: larguraColuna,
-          child: _arrastoPreview(raiz, quantidadeNos),
-        ),
-      ),
+      feedback: _feedback(raiz, quantidadeNos, larguraColuna),
       childWhenDragging: Opacity(opacity: .35, child: _visualHandle()),
       child: _visualHandle(),
     );
   }
+
+  Widget _feedback(backend.Demanda raiz, int count, double width) =>
+      Transform.rotate(
+        angle: MediaQuery.disableAnimationsOf(context) ? 0 : .02094,
+        child: Material(
+          elevation: 8,
+          shadowColor: Colors.black.withValues(alpha: .35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: AppTokens.accent),
+          ),
+          color: AppTokens.of(context).bg,
+          child: SizedBox(width: width, child: _arrastoPreview(raiz, count)),
+        ),
+      );
 
   Widget _visualHandle() => Tooltip(
     message: 'Arrastar demanda',
@@ -598,10 +723,10 @@ class _DemandaTreeState extends State<DemandaTree> {
       child: MouseRegion(
         cursor: SystemMouseCursors.grab,
         child: SizedBox.square(
-          dimension: 40,
+          dimension: MediaQuery.sizeOf(context).width < 1024 ? 44 : 24,
           child: Center(
             child: Icon(
-              Icons.drag_indicator,
+              Symbols.drag_indicator_rounded,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -655,12 +780,12 @@ class _DemandaTreeState extends State<DemandaTree> {
             _dropHover?.status == status && _dropHover?.posicao == posicao;
         final estaCarregando = movimentoCarregando();
         final altura = child == null
-            ? (_dragAtivo || estaCarregando ? 112.0 : 6.0)
+            ? (_dragAtivo || estaCarregando ? 44.0 : 4.0)
             : null;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: AppTokens.motion(context, 120),
           height: altura,
-          margin: const EdgeInsets.symmetric(vertical: 1),
+          margin: const EdgeInsets.symmetric(vertical: 0),
           child: Stack(
             fit: child == null ? StackFit.expand : StackFit.passthrough,
             children: [
@@ -729,42 +854,45 @@ class _DemandaTreeState extends State<DemandaTree> {
 
   Widget _overlayDoAlvo({required bool carregando}) {
     final colors = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: colors.primaryContainer.withValues(alpha: .92),
-        border: Border.all(color: colors.primary, width: 2),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: carregando
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.onPrimaryContainer,
+    return CustomPaint(
+      foregroundPainter: const DashedOutline(),
+      child: AnimatedContainer(
+        duration: AppTokens.motion(context, 100),
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: colors.primaryContainer.withValues(alpha: .92),
+
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: carregando
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.onPrimaryContainer,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Movendo demanda...',
-                      style: TextStyle(color: colors.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Movendo demanda...',
+                        style: TextStyle(color: colors.onPrimaryContainer),
+                      ),
                     ),
+                  ],
+                )
+              : Text(
+                  'Soltar demanda aqui',
+                  style: TextStyle(
+                    color: colors.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              )
-            : Text(
-                'Soltar demanda aqui',
-                style: TextStyle(
-                  color: colors.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -789,14 +917,6 @@ class _DemandaTreeState extends State<DemandaTree> {
       ],
     ),
   );
-
-  String _statusLabel(backend.DemandaStatus status) => switch (status) {
-    backend.DemandaStatus.aberta => 'Abertas',
-    backend.DemandaStatus.emAndamento => 'Em andamento',
-    backend.DemandaStatus.pausada => 'Pausadas',
-    backend.DemandaStatus.concluida => 'Concluídas',
-    backend.DemandaStatus.cancelada => 'Canceladas',
-  };
 }
 
 class _DemandaNivel {

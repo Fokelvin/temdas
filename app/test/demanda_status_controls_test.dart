@@ -1,3 +1,4 @@
+import 'package:material_symbols_icons/symbols.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -372,7 +373,7 @@ Future<_ViewModelObservada> _abrir(
               matching: find.byType(DemandaCard),
             )
             .first,
-        matching: find.byIcon(Icons.expand_more),
+        matching: find.byIcon(Symbols.chevron_right_rounded),
       ),
     );
     await tester.pumpAndSettle();
@@ -386,7 +387,7 @@ Future<_ViewModelObservada> _abrir(
             matching: find.byType(DemandaCard),
           )
           .first,
-      matching: find.byIcon(Icons.expand_more),
+      matching: find.byIcon(Symbols.chevron_right_rounded),
     ),
   );
   await tester.pumpAndSettle();
