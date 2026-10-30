@@ -157,9 +157,28 @@ de escopo.
 
 ## P2 — Refinamentos de autenticação e interface
 
-**Próxima entrega aprovada:** AUTH-P2-02 e UI-P2-03, em uma intervenção
-frontend enxuta, preservando login, MFA obrigatório e interações do Flutter Web.
-AUTH-P2-01 foi deliberadamente adiado para o último item deste roadmap.
+**Próximos refinamentos frontend:** UX-AUTH-03 (entrada por painel lateral e
+navegação), AUTH-P2-02 (mensagens de autenticação) e UI-P2-03 (seleção de texto).
+Preservar login, MFA obrigatório e interações do Flutter Web. AUTH-P2-01 foi
+adiado para o último item deste roadmap.
+
+### UX-AUTH-03 — Entrada por painel lateral e correção da navegação pública
+
+- **Descrição:** na home page pública, o botão **Entrar** abre um painel
+  lateral de login à direita (aprox. 420 px no desktop e tela cheia no
+  celular), em vez de substituir a home pela rota `/#/demandas`. Manter a
+  URL pública enquanto o painel estiver aberto; fechar com X, Escape ou
+  Voltar do navegador, retornando à home sem perder a navegação. Reutilizar
+  o formulário e os fluxos existentes de login/recuperação.
+- **Prioridade:** P2, antes da consolidação das mensagens de autenticação.
+- **Estado:** Solução aprovada em 30/10/2026; pendente de implementação.
+- **Dependências:** UX-FUT-06 (home page já publicada); preservar AuthGate,
+  provisioning, AAL2/MFA, callback, convite, recuperação de senha e proteção
+  das rotas privadas. Não duplicar AuthGate nem a lógica de autenticação.
+- **Critérios de aceite:** Entrar não navega para `/#/demandas` sem sessão;
+  painel abre/fecha corretamente, inclusive com Voltar; após login válido
+  o fluxo de MFA existente continua e só então libera o aplicativo; links
+  profundos privados continuam funcionando sob AuthGate. Somente frontend.
 
 ### AUTH-P2-02 — Mensagens e estados de autenticação
 
@@ -420,6 +439,36 @@ desta seção autoriza implementação automática.
   registrar uma descrição; a descrição fica associada ao apontamento correto e
   pode ser consultada posteriormente de forma clara.
 
+### LOG-P2-01 — Pré-preencher observação ao editar Log Time
+
+- **Descrição:** ao editar um lançamento de horas existente na agenda de Log
+  Time, carregar no campo **Observação (opcional)** o texto já salvo para
+  aquele registro; quando não houver observação, mostrar o campo vazio.
+- **Prioridade:** P2 — correção de UX.
+- **Estado:** Aprovado em 30/10/2026; pendente de implementação.
+- **Dependências:** observação opcional de RegistroTempo já entregue no Pacote
+  4; preservar associação com o registro, data, horas e regras de edição.
+- **Critérios de aceite:** a observação existente aparece integralmente ao
+  abrir a edição e permanece vinculada ao registro correto ao salvar;
+  lançamentos sem texto exibem campo em branco, sem texto artificial.
+
+### LOG-P2-02 — Pesquisa de Demandas no seletor de Log Time
+
+- **Descrição:** substituir o seletor suspenso simples do popup **Selecionar
+  demanda** por um campo pesquisável/autocomplete, para localizar rapidamente
+  a Demanda ao lançar horas na agenda. Exibir identificação suficiente
+  (ID e título) e preservar as opções elegíveis e a seleção atual.
+- **Prioridade:** P2 — melhoria de produtividade.
+- **Estado:** Aprovado em 30/10/2026; pendente de implementação.
+- **Dependências:** reutilizar a lista e as regras atuais de Demandas
+  disponíveis para Log Time; não alterar backend, hierarquia ou permissões.
+- **Critérios de aceite:** busca por ID e título, sem diferenciar caixa ou
+  acentos; seleção por mouse, toque e teclado; campo vazio e nenhum resultado
+  tratados claramente, sem criar novas Demandas nem novos filtros.
+- **Evolução futura:** prever espaço/estrutura para ícone de filtro no campo
+  quando houver volume elevado de Demandas. **Não implementar filtros agora**;
+  critérios e comportamento serão decididos em etapa posterior.
+
 ### Pacote 4 — Painel lateral de Demandas
 
 - **Estado:** Concluído, publicado e homologado em PROD (29/10/2026). Migration
@@ -512,7 +561,7 @@ desta seção autoriza implementação automática.
   discretamente a **versão do sistema** no rodapé da página inicial e no
   menu do aplicativo, com número de versão e SHA curto do commit do build.
 - **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
-- **Estado:** **Home page pública concluída e aceita pelo responsável em 30/10/2026** (commit `ebac0323`): apresentação em cinco seções, prévias locais, navegação responsiva, entrada para o login existente, tema e integração ao AuthGate. **Ainda pendentes do escopo original:** formulário de login lateral, Aviso de Privacidade público e versão/SHA do build. Não declarar UX-FUT-06 integralmente encerrado até esses itens serem entregues.
+- **Estado:** **Home page pública concluída e aceita pelo responsável em 30/10/2026** (commit `ebac0323`): apresentação em cinco seções, prévias locais, navegação responsiva, entrada para o login existente, tema e integração ao AuthGate. **Ainda pendentes do escopo original:** implementação do painel lateral de login (UX-AUTH-03, aprovado), Aviso de Privacidade público e versão/SHA do build. Não declarar UX-FUT-06 integralmente encerrado até esses itens serem entregues.
 - **Dependências:** evolução responsiva, temas, identificação automática
   da versão a partir de `app/pubspec.yaml` e SHA incorporado na compilação
   do Flutter Web, sem versão duplicada manualmente nem consulta ao servidor;
