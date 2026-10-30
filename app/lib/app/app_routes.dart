@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'public_home_entry.dart';
+
 import '../view/demanda_detalhe_page.dart';
 import '../view/demandas_page.dart';
 import '../view/log_time_page.dart';
@@ -9,6 +11,7 @@ import '../view/sprint_page.dart';
 import '../view/auth_callback_page.dart';
 
 abstract final class AppRoutes {
+  static const home = '/';
   static const demandas = '/demandas';
   static const authCallback = '/auth/callback';
   static const authConfirm = '/auth/confirm';
@@ -42,6 +45,7 @@ abstract final class AppRoutes {
         ? int.tryParse(segmentosSprint[1])
         : null;
     final page = switch (uri?.path) {
+      home => const PublicHomeEntry(),
       authCallback => AuthCallbackPage(uri: callbackUri ?? Uri.base),
       authConfirm => AuthCallbackPage.confirm(uri: callbackUri ?? Uri.base),
       demandaDetalhe => switch (demandaId) {

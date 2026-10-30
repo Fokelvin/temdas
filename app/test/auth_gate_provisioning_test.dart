@@ -1,3 +1,5 @@
+import 'package:temdas/app/public_home_entry.dart';
+import 'package:temdas/view/home_page.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -14,6 +16,47 @@ import 'package:temdas/view/totp_enrollment_qr.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 void main() {
+  for (final mode in ['enroll', 'challenge', 'authenticated']) {
+    testWidgets(
+      'entrada pública preserva o destino $mode da sessão existente',
+      (tester) async {
+        final server = _AuthServer()
+          ..aal = mode == 'authenticated' ? 'aal2' : 'aal1'
+          ..verifiedTotp = mode == 'challenge';
+        await server.signIn();
+        final provisioning = AuthProvisioning(
+          provisionar: () async => _me(7, server.aal),
+          me: () async => _me(7, server.aal),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PublicHomeEntry(
+              session: server.session,
+              provisioning: provisioning,
+              authenticatedChild: const Scaffold(body: Text('protected')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(HomePage), findsNothing);
+        if (mode == 'enroll') {
+          expect(find.byType(MfaEnrollPage), findsOneWidget);
+        }
+        if (mode == 'challenge') {
+          expect(find.byType(MfaChallengePage), findsOneWidget);
+        }
+        if (mode == 'authenticated') {
+          expect(find.text('protected'), findsOneWidget);
+        }
+        await server.session.signOut();
+        await tester.pumpAndSettle();
+        expect(find.byType(HomePage), findsOneWidget);
+        expect(find.text('protected'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('sign-in while gate is mounted provisions before MFA', (
     tester,
   ) async {
@@ -445,8 +488,7 @@ class _AuthServer {
       if (request.url.path.endsWith('/logout')) {
         return http.Response('', 204);
       }
-      if (request.url.path.endsWith('/factors') &&
-          request.method == 'POST') {
+      if (request.url.path.endsWith('/factors') && request.method == 'POST') {
         return _json({
           'id': 'new-factor',
           'type': 'totp',

@@ -3,9 +3,9 @@
     "short_name": "TEMDAS",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F7F7FB",
-    "theme_color": "#4F46E5",
-    "description": "Gestão de demandas e controle de tempo.",
+    "background_color": "#F7F9FC",
+    "theme_color": "#4C8DFF",
+    "description": "Organize suas demandas e acompanhe o tempo dedicado a cada atividade.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

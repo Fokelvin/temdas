@@ -40,7 +40,7 @@ class _TemdasAppState extends State<TemdasApp> {
         : isCallback
         ? AppRoutes.authCallback
         : null;
-    final initialRoute = authRoute ?? AppRoutes.demandas;
+    final initialRoute = authRoute ?? initialAppLocation(startupUri);
     return ThemePreferenceScope(
       notifier: _theme,
       child: ListenableBuilder(
@@ -67,6 +67,7 @@ class _TemdasAppState extends State<TemdasApp> {
   Route<dynamic> _onGenerateRoute(RouteSettings settings, {Uri? callbackUri}) {
     final route = AppRoutes.onGenerateRoute(settings, callbackUri: callbackUri);
     if (const {
+      AppRoutes.home,
       AppRoutes.authCallback,
       AppRoutes.authConfirm,
     }.contains(Uri.tryParse(settings.name ?? '')?.path)) {
@@ -91,4 +92,22 @@ bool isAuthCallbackLocation(Uri uri) {
 bool isAuthConfirmationLocation(Uri uri) {
   if (uri.path == AppRoutes.authConfirm) return true;
   return Uri.tryParse(uri.fragment)?.path == AppRoutes.authConfirm;
+}
+
+/// Keeps clean and hash deep links while making only the root public.
+String initialAppLocation(Uri uri) {
+  if (uri.scheme != 'https' && uri.scheme != 'http') return AppRoutes.home;
+  final fragment = Uri.tryParse(uri.fragment);
+  if (fragment != null &&
+      fragment.path.startsWith('/') &&
+      fragment.path != '/') {
+    return fragment.toString();
+  }
+  if (uri.path.isNotEmpty && uri.path != '/') {
+    return Uri(
+      path: uri.path,
+      query: uri.hasQuery ? uri.query : null,
+    ).toString();
+  }
+  return AppRoutes.home;
 }

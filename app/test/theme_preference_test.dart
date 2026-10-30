@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temdas/app/temdas_app.dart';
 import 'package:temdas/theme/theme_preference.dart';
@@ -51,6 +52,9 @@ void main() {
     'preferência altera MaterialApp inteiro e sobrevive à recriação',
     (tester) async {
       await tester.pumpWidget(const TemdasApp());
+      await tester.pumpAndSettle();
+      // Let the bundled font metrics settle before animating theme colors.
+      await tester.runAsync(() => GoogleFonts.pendingFonts());
       await tester.pumpAndSettle();
       final context = tester.element(find.byType(Navigator).first);
       final preference = ThemePreferenceScope.maybeOf(context)!;
