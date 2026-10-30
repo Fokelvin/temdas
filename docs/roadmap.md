@@ -171,9 +171,7 @@ adiado para o último item deste roadmap.
   Voltar do navegador, retornando à home sem perder a navegação. Reutilizar
   o formulário e os fluxos existentes de login/recuperação.
 - **Prioridade:** P2, antes da consolidação das mensagens de autenticação.
-- **Estado:** Implementado e validado em 30/10/2026; aguardando homologação
-  do login lateral após publicação. Painel de 420 px no desktop e tela cheia
-  no mobile, com fechamento por X/Escape/Voltar e preservação da home/URL.
+- **Estado:** **Concluído, publicado e homologado manualmente em PROD em 30/10/2026** (commit `23f3ec4`). Painel de 420 px no desktop e tela cheia no mobile, com fechamento por X/Escape/Voltar e preservação da home/URL.
 - **Dependências:** UX-FUT-06 (home page já publicada); preservar AuthGate,
   provisioning, AAL2/MFA, callback, convite, recuperação de senha e proteção
   das rotas privadas. Não duplicar AuthGate nem a lógica de autenticação.
@@ -188,9 +186,7 @@ adiado para o último item deste roadmap.
   autenticação, recuperação de senha e falhas recuperáveis, sem expor dados de
   conta ou detalhes sensíveis do provedor.
 - **Prioridade:** P2.
-- **Estado:** Implementado e validado em 30/10/2026; aguardando homologação.
-  Login, recuperação e MFA compartilham feedback acessível e carregamento
-  explícito; erros do provedor são sanitizados e permitem nova tentativa.
+- **Estado:** **Concluído, publicado e homologado manualmente em PROD em 30/10/2026** (commit `23f3ec4`). Login, recuperação e MFA compartilham feedback acessível e carregamento explícito; erros do provedor são sanitizados e permitem nova tentativa.
   Recuperação mantém confirmação genérica e login não distingue contas
   inexistentes, credenciais incorretas ou e-mail não confirmado.
   Validação conjunta com UX-AUTH-03: `flutter analyze` sem ocorrências e
@@ -614,7 +610,7 @@ desta seção autoriza implementação automática.
   discretamente a **versão do sistema** no rodapé da página inicial e no
   menu do aplicativo, com número de versão e SHA curto do commit do build.
 - **Prioridade:** P3 — longo prazo, após as demais evoluções de UX.
-- **Estado:** **Home page pública concluída e aceita pelo responsável em 30/10/2026** (commit `ebac0323`): apresentação em cinco seções, prévias locais, navegação responsiva, entrada para o login existente, tema e integração ao AuthGate. **Ainda pendentes do escopo original:** implementação do painel lateral de login (UX-AUTH-03, aprovado), Aviso de Privacidade público e versão/SHA do build. Não declarar UX-FUT-06 integralmente encerrado até esses itens serem entregues.
+- **Estado:** **Home page pública concluída e aceita pelo responsável em 30/10/2026** (commit `ebac0323`): apresentação em cinco seções, prévias locais, navegação responsiva, entrada para o login existente, tema e integração ao AuthGate. **Login lateral concluído e homologado em PROD** (UX-AUTH-03, `23f3ec4`). **Ainda pendentes do escopo original:** Aviso de Privacidade público e versão/SHA do build. Não declarar UX-FUT-06 integralmente encerrado até esses itens serem entregues.
 - **Dependências:** evolução responsiva, temas, identificação automática
   da versão a partir de `app/pubspec.yaml` e SHA incorporado na compilação
   do Flutter Web, sem versão duplicada manualmente nem consulta ao servidor;
