@@ -32,7 +32,7 @@ void main() {
     await tester.tap(find.text('Desvincular e voltar'));
     await tester.pumpAndSettle();
     expect(find.text('Sem Sprint'), findsNWidgets(4));
-    expect(find.text('Sprint: Ciclo 1'), findsNothing);
+    expect(find.text('Sprint Ciclo 1 · Ativa'), findsNothing);
   });
 
   testWidgets(
@@ -61,7 +61,7 @@ void main() {
       repository.vinculosPendentes = null;
       pending.complete([]);
       await tester.pumpAndSettle();
-      expect(find.text('Sprint: Ciclo 1'), findsOneWidget);
+      expect(find.text('Sprint Ciclo 1 · Ativa'), findsOneWidget);
       expect(
         find.byTooltip('Tentar consultar Sprints novamente'),
         findsNothing,
@@ -69,46 +69,45 @@ void main() {
     },
   );
 
-  testWidgets(
-    'board usa somente SprintDemanda aberta, preserva compacto e abre resumo',
-    (tester) async {
-      final repository = FakeSprintRepository(
-        sprints: [
-          _sprint(1, backend.SprintStatus.ativa),
-          _sprint(2, backend.SprintStatus.concluida),
-          _sprint(3, backend.SprintStatus.cancelada),
-          _sprint(4, backend.SprintStatus.planejada),
-        ],
-        vinculosPorSprint: {
-          for (final id in [1, 2, 3, 4])
-            id: [backend.SprintDemanda(sprintId: id, demandaId: id)],
-        },
-      );
-      await _abrir(tester, repository);
-      expect(find.text('Sprint: Ciclo 1'), findsOneWidget);
-      expect(find.text('Sprint: Ciclo 4'), findsOneWidget);
-      expect(find.text('Sem Sprint'), findsNWidgets(2));
-      expect(repository.chamadasVinculos, 2);
-      expect(
-        tester.widget<DemandaCard>(find.byType(DemandaCard).first).densidade,
-        DensidadeDemanda.compacta,
-      );
-      await tester.tap(find.byKey(const ValueKey('sprint-da-demanda-1')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('resumo-sprint-dialog')),
-        findsOneWidget,
-      );
-      expect(find.text('Demandas vinculadas (1)'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byTooltip('Fechar Sprint'));
-      await tester.pumpAndSettle();
-      expect(find.text('Sprint: Ciclo 1'), findsOneWidget);
-    },
-  );
+  testWidgets('board inclui histórico e preserva compacto e resumo', (
+    tester,
+  ) async {
+    final repository = FakeSprintRepository(
+      sprints: [
+        _sprint(1, backend.SprintStatus.ativa),
+        _sprint(2, backend.SprintStatus.concluida),
+        _sprint(3, backend.SprintStatus.cancelada),
+        _sprint(4, backend.SprintStatus.planejada),
+      ],
+      vinculosPorSprint: {
+        for (final id in [1, 2, 3, 4])
+          id: [backend.SprintDemanda(sprintId: id, demandaId: id)],
+      },
+    );
+    await _abrir(tester, repository);
+    expect(find.text('Sprint Ciclo 1 · Ativa'), findsOneWidget);
+    expect(find.text('Sprint Ciclo 4 · Planejada'), findsOneWidget);
+    expect(find.text('Sprint Ciclo 2 · Finalizada'), findsOneWidget);
+    expect(find.text('Sprint Ciclo 3 · Cancelada'), findsOneWidget);
+    expect(find.text('Sem Sprint'), findsNothing);
+    expect(repository.chamadasContexto, 1);
+    expect(repository.chamadasVinculos, 0);
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard).first).densidade,
+      DensidadeDemanda.compacta,
+    );
+    await tester.tap(find.byKey(const ValueKey('sprint-da-demanda-1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('resumo-sprint-dialog')), findsOneWidget);
+    expect(find.text('Demandas vinculadas (1)'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('adicionar-demanda-sprint-resumo')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byTooltip('Fechar Sprint'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sprint Ciclo 1 · Ativa'), findsOneWidget);
+  });
 
   testWidgets(
     'consultando e falha de Sprint não exibem vínculo falso, permite tentar novamente',
@@ -143,6 +142,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Organização de Sprints'), findsOneWidget);
   });
+  testWidgets(
+    'Sprint 72 finalizada aparece retroativamente sem Sprint aberta',
+    (tester) async {
+      await _abrir(
+        tester,
+        FakeSprintRepository(
+          sprints: [
+            _sprint(
+              72,
+              backend.SprintStatus.concluida,
+            ).copyWith(nome: 'Sprint 72'),
+          ],
+          vinculosPorSprint: {
+            72: [backend.SprintDemanda(sprintId: 72, demandaId: 1)],
+          },
+        ),
+      );
+      expect(find.text('Sprint 72 · Finalizada'), findsOneWidget);
+      expect(find.text('Sem Sprint'), findsNWidgets(3));
+    },
+  );
 }
 
 Future<void> _abrir(

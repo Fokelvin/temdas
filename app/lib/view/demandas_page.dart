@@ -1,4 +1,5 @@
-import '../ui/theme/tokens.dart';
+import 'widgets/sprints_da_demanda.dart';
+import 'formatters/sprint_apresentacao.dart';
 import '../ui/components/app_shell.dart';
 import '../ui/components/demand_components.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -42,7 +43,7 @@ class _DemandasPageState extends State<DemandasPage> {
   late final DemandasViewModel _viewModel;
   late final bool _possuiViewModel;
   late final SprintViewModel _sprintViewModel;
-  Map<int, backend.Sprint> _sprintsPorDemanda = const {};
+  Map<int, List<backend.Sprint>> _sprintsPorDemanda = const {};
   bool _carregandoSprints = true;
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
@@ -105,8 +106,7 @@ class _DemandasPageState extends State<DemandasPage> {
       _aguardandoConsultaSprint = true;
       return;
     }
-    final vinculos = await _sprintViewModel
-        .carregarDemandasDeOutrasSprintsAbertas();
+    final vinculos = await _sprintViewModel.carregarSprintsDasDemandas();
     if (!mounted) return;
     setState(() {
       _carregandoSprints = false;
@@ -127,45 +127,22 @@ class _DemandasPageState extends State<DemandasPage> {
         style: Theme.of(context).textTheme.bodySmall,
       );
     }
-    final sprint = _sprintsPorDemanda[demanda.id];
-    return SprintTag(
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton(
-          key: ValueKey('sprint-da-demanda-${demanda.id}'),
-          style: TextButton.styleFrom(
-            foregroundColor: AppTokens.of(context).text2,
-            padding: EdgeInsets.zero,
-            minimumSize: Size(
-              0,
-              MediaQuery.sizeOf(context).width < 900 ? 32 : 24,
-            ),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 12,
-              color: AppTokens.of(context).text2,
-            ),
-          ),
-          child: Text(
-            sprint == null ? 'Sem Sprint' : 'Sprint: ${sprint.nome}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          onPressed: () async {
-            if (sprint == null) {
-              await Navigator.of(context).pushNamed(AppRoutes.sprint);
-            } else {
-              await mostrarResumoSprint(
-                context,
-                sprint: sprint,
-                viewModel: _sprintViewModel,
-                demandasViewModel: _viewModel,
-              );
-            }
-            if (mounted) await _carregarSprints();
-          },
-        ),
-      ),
+    return SprintsDaDemanda(
+      sprints: _sprintsPorDemanda[demanda.id] ?? const [],
+      demandaId: demanda.id,
+      onAbrir: (sprint) async {
+        if (sprint == null) {
+          await Navigator.of(context).pushNamed(AppRoutes.sprint);
+        } else {
+          await mostrarResumoSprint(
+            context,
+            sprint: sprint,
+            viewModel: _sprintViewModel,
+            demandasViewModel: _viewModel,
+          );
+        }
+        if (mounted) await _carregarSprints();
+      },
     );
   }
 
@@ -203,8 +180,11 @@ class _DemandasPageState extends State<DemandasPage> {
               demanda.prioridade == _filtroPrioridade) &&
           (_filtroSprint == null ||
               (_filtroSprint == -1
-                  ? !_sprintsPorDemanda.containsKey(demanda.id)
-                  : _sprintsPorDemanda[demanda.id]?.id == _filtroSprint)),
+                  ? !(_sprintsPorDemanda[demanda.id] ??
+                            const <backend.Sprint>[])
+                        .any(sprintAberta)
+                  : (_sprintsPorDemanda[demanda.id] ?? const <backend.Sprint>[])
+                        .any((s) => sprintAberta(s) && s.id == _filtroSprint))),
     );
     final candidatas = demandasComPrioridade.toList();
     List<backend.Demanda> correspondentes;
@@ -1030,7 +1010,7 @@ class _DemandasPageState extends State<DemandasPage> {
                         DropdownMenuItem(
                           value: sprint.id,
                           child: Text(
-                            sprint.nome,
+                            nomeSprint(sprint.nome),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1076,7 +1056,8 @@ class _DemandasPageState extends State<DemandasPage> {
         if (sprint.status == backend.SprintStatus.planejada ||
             sprint.status == backend.SprintStatus.ativa)
           sprint.id: sprint,
-      for (final sprint in _sprintsPorDemanda.values) sprint.id: sprint,
+      for (final lista in _sprintsPorDemanda.values)
+        for (final sprint in lista.where(sprintAberta)) sprint.id: sprint,
     };
     final sprints = porId.values.toList()
       ..sort(

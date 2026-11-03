@@ -1,3 +1,4 @@
+import 'formatters/sprint_apresentacao.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -490,7 +491,7 @@ class _CriarSprintDialogState extends State<_CriarSprintDialog> {
     super.initState();
     final sprint = widget.sprint;
     if (sprint == null) return;
-    _nomeController.text = sprint.nome;
+    _nomeController.text = complementoSprint(sprint.nome);
     _dataInicioController.text = _formatarDataCalendario(sprint.dataInicio);
     _dataFimController.text = _formatarDataCalendario(sprint.dataFim);
     _tempoController.text = _formatarTempoSprint(sprint.tempoPrevistoMinutos);
@@ -526,8 +527,20 @@ class _CriarSprintDialogState extends State<_CriarSprintDialog> {
                 autofocus: true,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Nome'),
-                validator: (value) => value == null || value.trim().isEmpty
+                inputFormatters: const [ComplementoSprintFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Nome',
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.only(left: 12, right: 6),
+                    child: Text('Sprint'),
+                  ),
+                  prefixIconConstraints: BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
+                  ),
+                ),
+                validator: (value) =>
+                    value == null || complementoSprint(value).isEmpty
                     ? 'Informe o nome da Sprint.'
                     : null,
               ),
@@ -679,7 +692,7 @@ class _CriarSprintDialogState extends State<_CriarSprintDialog> {
     });
     try {
       final erro = await widget.onSalvar(
-        nome: _nomeController.text.trim(),
+        nome: complementoSprint(_nomeController.text),
         dataInicio: dataInicio,
         dataFim: dataFim,
         tempoPrevistoMinutos: tempoPrevistoMinutos,
@@ -814,7 +827,7 @@ class _SprintListaCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'Sprint ${sprint.nome}',
+                    nomeSprint(sprint.nome),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   _SprintStatusChip(status: sprint.status),
@@ -958,12 +971,13 @@ mixin _SprintAcoesContextuais<T extends StatefulWidget> on State<T> {
     final vinculada = await showDialog<bool>(
       context: context,
       builder: (_) => _SelecionarDemandaSprintDialog(
+        sprint: sprint,
         demandas: _demandasViewModel.demandas,
         idsJaVinculados: _viewModel.vinculos
             .map((vinculo) => vinculo.demandaId)
             .toSet(),
         carregarIndisponiveis: () =>
-            _viewModel.carregarDemandasDeOutrasSprintsAbertas(sprintId),
+            _viewModel.carregarSprintsDasDemandas(sprintIdIgnorada: sprintId),
         onVincular: (demandaIds) async {
           final sucesso = await _viewModel.vincularDemandas(
             sprintId: sprintId,
@@ -1089,7 +1103,7 @@ mixin _SprintAcoesContextuais<T extends StatefulWidget> on State<T> {
         key: const ValueKey('sprint-ativa-existente-dialog'),
         title: const Text('Já existe uma Sprint ativa'),
         content: Text(
-          'Sprint ${ativa.nome} está ativa. Abra-a para continuar.',
+          '${nomeSprint(ativa.nome)} está ativa. Abra-a para continuar.',
         ),
         actions: [
           TextButton(
@@ -1732,7 +1746,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              'Sprint ${sprint.nome}',
+                              nomeSprint(sprint.nome),
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(fontWeight: FontWeight.w800),
                             ),
@@ -1811,12 +1825,15 @@ class _SelecionarDemandaSprintDialog extends StatefulWidget {
     required this.demandas,
     required this.idsJaVinculados,
     required this.carregarIndisponiveis,
+    required this.sprint,
     required this.onVincular,
   });
 
   final List<backend.Demanda> demandas;
   final Set<int> idsJaVinculados;
-  final Future<Map<int, backend.Sprint>?> Function() carregarIndisponiveis;
+  final backend.Sprint sprint;
+  final Future<Map<int, List<backend.Sprint>>?> Function()
+  carregarIndisponiveis;
   final Future<String?> Function(List<int> demandaIds) onVincular;
 
   @override
@@ -1827,7 +1844,7 @@ class _SelecionarDemandaSprintDialog extends StatefulWidget {
 class _SelecionarDemandaSprintDialogState
     extends State<_SelecionarDemandaSprintDialog> {
   final _buscaController = TextEditingController();
-  Map<int, backend.Sprint> _indisponiveis = const {};
+  Map<int, List<backend.Sprint>> _indisponiveis = const {};
   bool _verificandoDisponibilidade = true;
   bool _falhouDisponibilidade = false;
   bool _enviando = false;
@@ -1998,17 +2015,27 @@ class _SelecionarDemandaSprintDialogState
                         final linha = linhas[index];
                         final demanda = linha.demanda;
                         final id = demanda.id!;
-                        backend.Sprint? outraSprint;
-                        for (final idDaArvore in linha.idsDaArvore) {
-                          outraSprint ??= _indisponiveis[idDaArvore];
-                        }
+                        final existentes = ordenarSprints(
+                          {
+                            for (final idDaArvore in linha.idsDaArvore)
+                              for (final s
+                                  in _indisponiveis[idDaArvore] ??
+                                      const <backend.Sprint>[])
+                                s.id: s,
+                          }.values,
+                        );
+                        final conflito = existentes.any(
+                          (s) =>
+                              sprintAberta(s) &&
+                              periodosSprintSobrepostos(s, widget.sprint),
+                        );
                         final selecionavel =
-                            outraSprint == null &&
+                            !conflito &&
                             !_verificandoDisponibilidade &&
                             !_falhouDisponibilidade;
                         final selecionada = _selecionadas.contains(id);
-                        final tooltip = outraSprint != null
-                            ? 'Já pertence à Sprint ${outraSprint.nome}'
+                        final tooltip = existentes.isNotEmpty
+                            ? '${conflito ? 'Período sobreposto: ' : 'Vínculos existentes: '}${existentes.map((s) => '${nomeSprint(s.nome)} · ${estadoSprint(s)}').join(', ')}'
                             : demanda.tempoEstimadoMinutos > 0
                             ? 'Estimativa própria: ${_duracao(demanda.tempoEstimadoMinutos)}'
                             : null;
@@ -2033,18 +2060,8 @@ class _SelecionarDemandaSprintDialogState
                                 : null,
                           ),
                           title: Text(formatarIdentificacaoDemanda(demanda)),
-                          subtitle: outraSprint != null
-                              ? Text('Já pertence à Sprint ${outraSprint.nome}')
-                              : demanda.tempoEstimadoMinutos > 0
-                              ? Text(
-                                  'Estimativa própria: ${_duracao(demanda.tempoEstimadoMinutos)}',
-                                )
-                              : tooltip == null
-                              ? null
-                              : Text(tooltip),
-                          trailing:
-                              outraSprint == null &&
-                                  demanda.tempoEstimadoMinutos > 0
+                          subtitle: tooltip == null ? null : Text(tooltip),
+                          trailing: demanda.tempoEstimadoMinutos > 0
                               ? Text(
                                   _tempoDemandaRaiz(
                                     demanda.tempoEstimadoMinutos,

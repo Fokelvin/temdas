@@ -36,6 +36,7 @@ sprint:
   - listarSprints:
   - buscarSprintPorId:
   - listarDemandasDaSprint:
+  - listarContextoDemandas:
   - criarSprint:
   - atualizarSprint:
   - ativarSprint:

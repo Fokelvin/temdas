@@ -23,7 +23,7 @@ class DemandaDetalheViewModel extends ChangeNotifier {
   final SprintViewModel _sprintViewModel;
   List<backend.AnotacaoDemanda> _anotacoes = [];
   List<backend.AnotacaoDemanda> get anotacoes => List.unmodifiable(_anotacoes);
-  backend.Sprint? sprint;
+  List<backend.Sprint> sprints = const [];
   String? erroSprint;
   bool carregandoSprint = false;
   bool carregandoAnotacoes = false;
@@ -118,10 +118,11 @@ class DemandaDetalheViewModel extends ChangeNotifier {
     carregandoSprint = true;
     erroSprint = null;
     _notificar();
-    final vinculos = await _sprintViewModel
-        .carregarDemandasDeOutrasSprintsAbertas();
+    final vinculos = await _sprintViewModel.carregarSprintsDasDemandas(
+      demandaIds: [demandaId],
+    );
     if (_descartado || versao != _versaoSprint) return;
-    sprint = vinculos?[demandaId];
+    sprints = vinculos?[demandaId] ?? const [];
     erroSprint = vinculos == null
         ? 'Não foi possível consultar a Sprint.'
         : null;

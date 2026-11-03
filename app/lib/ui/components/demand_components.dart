@@ -415,10 +415,6 @@ class DemandRow extends StatelessWidget {
                           children: [
                             PriorityTag(priority: priority),
                             const SizedBox(width: 8),
-                            if (sprint != null) ...[
-                              SizedBox(width: 44, child: sprint),
-                              const SizedBox(width: 4),
-                            ],
                             Expanded(
                               child: Align(
                                 alignment: Alignment.centerRight,
@@ -441,50 +437,74 @@ class DemandRow extends StatelessWidget {
                             SizedBox(width: 112, child: statusWidget(context)),
                           ],
                         ),
+                        if (sprint != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: sprint,
+                            ),
+                          ),
                       ],
                     )
                   : ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 40),
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          SizedBox(
-                            width: MediaQuery.sizeOf(context).width < 1024
-                                ? 44
-                                : 28,
-                            child: chevron,
-                          ),
-                          SizedBox(width: 44, child: _id(context)),
-                          Expanded(child: _title(context)),
-                          SizedBox(
-                            width: desktop ? 100 : 76,
-                            child: PriorityTag(priority: priority),
-                          ),
-                          if (desktop) ...[
-                            SizedBox(width: 84, child: sprint),
-                            SizedBox(
-                              width: 64,
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: HoursLabel(minutes: estimate),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: MediaQuery.sizeOf(context).width < 1024
+                                    ? 44
+                                    : 28,
+                                child: chevron,
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                          SizedBox(
-                            width: desktop ? 112 : 108,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: hoursWidget,
-                            ),
+                              SizedBox(width: 44, child: _id(context)),
+                              Expanded(child: _title(context)),
+                              SizedBox(
+                                width: desktop ? 100 : 76,
+                                child: PriorityTag(priority: priority),
+                              ),
+                              if (desktop) ...[
+                                SizedBox(
+                                  width: 64,
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: HoursLabel(minutes: estimate),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              SizedBox(
+                                width: desktop ? 112 : 108,
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: hoursWidget,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 136,
+                                child: statusWidget(context),
+                              ),
+                              SizedBox(
+                                width: MediaQuery.sizeOf(context).width < 1024
+                                    ? 44
+                                    : 32,
+                                child: actions,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          SizedBox(width: 136, child: statusWidget(context)),
-                          SizedBox(
-                            width: MediaQuery.sizeOf(context).width < 1024
-                                ? 44
-                                : 32,
-                            child: actions,
-                          ),
+                          if (sprint != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 72,
+                                bottom: 4,
+                              ),
+                              child: sprint,
+                            ),
                         ],
                       ),
                     ),
@@ -580,9 +600,7 @@ class DemandCard extends StatelessWidget {
                   children: [
                     PriorityTag(priority: demand.prioridade),
                     const SizedBox(width: 8),
-                    if (sprint != null)
-                      Expanded(child: ClipRect(child: sprint!)),
-                    if (sprint == null) const Spacer(),
+                    const Spacer(),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Column(
@@ -603,6 +621,11 @@ class DemandCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (sprint != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: sprint,
+                  ),
               ],
             ),
           ),

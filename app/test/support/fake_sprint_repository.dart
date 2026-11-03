@@ -66,6 +66,25 @@ class FakeSprintRepository implements SprintRepository {
     }
   }
 
+  int chamadasContexto = 0;
+  @override
+  Future<backend.SprintContextoDemandas> listarContextoDemandas({
+    List<int>? demandaIds,
+  }) async {
+    chamadasContexto++;
+    if (erroListagem case final erro?) throw erro;
+    if (erroVinculos case final erro?) throw erro;
+    final lista = await (listaPendente?.future ?? Future.value(sprints));
+    return backend.SprintContextoDemandas(
+      sprints: lista,
+      vinculos: [
+        for (final vinculos in vinculosPorSprint.values)
+          for (final v in vinculos)
+            if (demandaIds == null || demandaIds.contains(v.demandaId)) v,
+      ],
+    );
+  }
+
   @override
   Future<List<backend.Sprint>> listarSprints() {
     chamadasListagem++;

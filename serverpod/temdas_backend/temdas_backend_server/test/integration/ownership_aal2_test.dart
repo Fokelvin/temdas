@@ -1,3 +1,4 @@
+import 'package:temdas_backend_server/src/sprints/sprint_custom_schema.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -19,6 +20,7 @@ import 'package:test/test.dart';
 import 'test_tools/serverpod_test_tools.dart';
 
 void main() {
+  registerSprintCustomIndexes();
   withServerpod('AAL2 and ownership of business endpoints', (
     sessionBuilder,
     _,
@@ -207,6 +209,23 @@ void main() {
         isFalse,
       );
 
+      final contexto = await sprints.listarContextoDemandas(a, [
+        demandaA.id!,
+        demandaB.id!,
+      ]);
+      expect(contexto.vinculos.map((v) => v.demandaId), [demandaA.id]);
+      expect(contexto.sprints.map((s) => s.id), [sprintA.id]);
+      await expectLater(
+        sprints.listarContextoDemandas(aAal1, null),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.codigo,
+            'codigo',
+            'aal2Required',
+          ),
+        ),
+      );
+
       final momento = DateTime.utc(2026, 10, 2, 12);
       await expectLater(
         tempos.registrarTempo(
@@ -346,5 +365,5 @@ void main() {
       );
       expect((await sprints.buscarSprintPorId(a, sprintA.id!)).id, sprintA.id);
     });
-  });
+  }, applyMigrations: false);
 }

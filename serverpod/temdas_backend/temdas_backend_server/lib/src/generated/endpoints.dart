@@ -720,6 +720,25 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['sprintId'],
                   ),
         ),
+        'listarContextoDemandas': _i1.MethodConnector(
+          name: 'listarContextoDemandas',
+          params: {
+            'demandaIds': _i1.ParameterDescription(
+              name: 'demandaIds',
+              type: _i1.getType<List<int>?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sprint'] as _i9.SprintEndpoint)
+                  .listarContextoDemandas(
+                    session,
+                    params['demandaIds'],
+                  ),
+        ),
         'criarSprint': _i1.MethodConnector(
           name: 'criarSprint',
           params: {

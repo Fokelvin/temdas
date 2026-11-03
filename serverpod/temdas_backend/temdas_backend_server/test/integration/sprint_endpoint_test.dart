@@ -1,3 +1,4 @@
+import 'package:temdas_backend_server/src/sprints/sprint_custom_schema.dart';
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
@@ -9,6 +10,7 @@ Matcher throwsSprint(SprintErroCodigo codigo) => throwsA(
 );
 
 void main() {
+  registerSprintCustomIndexes();
   final prefixo = 'teste-sprint-${DateTime.now().microsecondsSinceEpoch}';
 
   withServerpod('Base de domínio de sprint', (sessionBuilder, endpoints) {
@@ -25,6 +27,309 @@ void main() {
         where: (t) => t.titulo.like('$prefixo%'),
       );
     });
+
+    test(
+      'lote retorna todos estados sem limitar uma Sprint por Demanda',
+      () async {
+        final d = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo todos estados',
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        final hoje = _hojeUtc();
+        final estados = [
+          SprintStatus.concluida,
+          SprintStatus.ativa,
+          SprintStatus.planejada,
+          SprintStatus.cancelada,
+        ];
+        for (var i = 0; i < 4; i++) {
+          final inicio = hoje.add(Duration(days: (i - 1) * 10));
+          final s = await endpoints.sprint.criarSprint(
+            sessionBuilder,
+            SprintCreateRequest(
+              nome: '$prefixo estado $i',
+              dataInicio: inicio,
+              dataFim: inicio.add(const Duration(days: 5)),
+              tempoPrevistoMinutos: 60,
+            ),
+          );
+          await endpoints.sprint.vincularDemanda(sessionBuilder, s.id!, d.id!);
+          if (i == 0) {
+            await Sprint.db.updateById(
+              sessionBuilder.build(),
+              s.id!,
+              columnValues: (t) => [t.status(SprintStatus.concluida)],
+            );
+          } else if (i == 1) {
+            await endpoints.sprint.ativarSprint(sessionBuilder, s.id!);
+          } else if (i == 3) {
+            await endpoints.sprint.cancelarSprint(sessionBuilder, s.id!);
+          }
+        }
+        final contexto = await endpoints.sprint.listarContextoDemandas(
+          sessionBuilder,
+          null,
+        );
+        expect(contexto.vinculos, hasLength(4));
+        expect(contexto.sprints.map((s) => s.status), unorderedEquals(estados));
+        final vazio = await endpoints.sprint.listarContextoDemandas(
+          sessionBuilder,
+          [],
+        );
+        expect(vazio.sprints, isEmpty);
+        expect(vazio.vinculos, isEmpty);
+      },
+    );
+
+    test(
+      'consulta em lote inclui Sprint 72 finalizada sem ativa e isola usuários',
+      () async {
+        final demanda = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo lote',
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        final sprint = await endpoints.sprint.criarSprint(
+          sessionBuilder,
+          SprintCreateRequest(
+            nome: 'Sprint Sprint 72',
+            dataInicio: DateTime.utc(2020, 1, 1),
+            dataFim: DateTime.utc(2020, 1, 7),
+          ),
+        );
+        expect(sprint.nome, '72');
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          sprint.id!,
+          demanda.id!,
+        );
+        await Sprint.db.updateById(
+          sessionBuilder.build(),
+          sprint.id!,
+          columnValues: (t) => [t.status(SprintStatus.concluida)],
+        );
+        final historico = await endpoints.sprint.listarContextoDemandas(
+          sessionBuilder,
+          [demanda.id!],
+        );
+        expect(historico.vinculos.single.demandaId, demanda.id);
+        expect(historico.sprints.single.nome, '72');
+        expect(historico.sprints.single.status, SprintStatus.concluida);
+        await installAal2TestUser(sessionBuilder, 'sprint-other-owner');
+        final isolado = await endpoints.sprint.listarContextoDemandas(
+          sessionBuilder,
+          [demanda.id!],
+        );
+        expect(isolado.vinculos, isEmpty);
+        expect(isolado.sprints, isEmpty);
+        await Sprint.db.deleteRow(sessionBuilder.build(), sprint);
+      },
+    );
+
+    test(
+      'ativa e várias futuras herdam a árvore; conclusão mantém futuro e horas únicas',
+      () async {
+        final hoje = _hojeUtc();
+        final mae = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo multi mae',
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        final sprints = <Sprint>[];
+        for (var i = 0; i < 3; i++) {
+          final sprint = await endpoints.sprint.criarSprint(
+            sessionBuilder,
+            SprintCreateRequest(
+              nome: '$prefixo multi $i',
+              dataInicio: hoje.add(Duration(days: i * 10)),
+              dataFim: hoje.add(Duration(days: i * 10 + 5)),
+              tempoPrevistoMinutos: 60,
+            ),
+          );
+          sprints.add(sprint);
+          await endpoints.sprint.vincularDemanda(
+            sessionBuilder,
+            sprint.id!,
+            mae.id!,
+          );
+        }
+        await endpoints.sprint.ativarSprint(sessionBuilder, sprints.first.id!);
+        final filha = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo multi filha',
+            demandaPaiId: mae.id,
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        final contexto = await endpoints.sprint.listarContextoDemandas(
+          sessionBuilder,
+          [mae.id!, filha.id!],
+        );
+        expect(contexto.vinculos, hasLength(6));
+        final registro = await RegistroTempo.db.insertRow(
+          sessionBuilder.build(),
+          RegistroTempo(
+            demandaId: filha.id!,
+            inicioEm: hoje.add(const Duration(hours: 9)),
+            duracaoMinutos: 30,
+            criadoEm: hoje,
+          ),
+        );
+        final conclusao = await endpoints.sprint.concluirSprint(
+          sessionBuilder,
+          sprints.first.id!,
+        );
+        expect(conclusao.indicadores.tempoExecutadoMinutos, 30);
+        expect(
+          (await endpoints.sprint.calcularIndicadoresSprint(
+            sessionBuilder,
+            sprints[1].id!,
+          )).tempoExecutadoMinutos,
+          0,
+        );
+        expect(
+          await RegistroTempo.db.count(
+            sessionBuilder.build(),
+            where: (t) => t.id.equals(registro.id!),
+          ),
+          1,
+        );
+        expect(
+          (await endpoints.sprint.listarContextoDemandas(sessionBuilder, [
+            mae.id!,
+            filha.id!,
+          ])).vinculos,
+          hasLength(6),
+        );
+        await expectLater(
+          endpoints.sprint.desvincularDemanda(
+            sessionBuilder,
+            sprints[1].id!,
+            filha.id!,
+          ),
+          throwsSprint(SprintErroCodigo.demandaFilhaComMaeVinculada),
+        );
+      },
+    );
+
+    test(
+      'reabrir revalida árvore alterada no cancelamento, sem fabricar vínculos',
+      () async {
+        final mae = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo reabrir mae',
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        final sprint = await endpoints.sprint.criarSprint(
+          sessionBuilder,
+          SprintCreateRequest(
+            nome: '$prefixo reabrir arvore',
+            dataInicio: DateTime.utc(2401, 1, 1),
+            dataFim: DateTime.utc(2401, 1, 5),
+          ),
+        );
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          sprint.id!,
+          mae.id!,
+        );
+        await endpoints.sprint.cancelarSprint(sessionBuilder, sprint.id!);
+        await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo nova filha cancelada',
+            demandaPaiId: mae.id,
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        await expectLater(
+          endpoints.sprint.reabrirSprint(sessionBuilder, sprint.id!),
+          throwsSprint(SprintErroCodigo.hierarquiaSprintInvalida),
+        );
+        expect(
+          (await endpoints.sprint.buscarSprintPorId(
+            sessionBuilder,
+            sprint.id!,
+          )).status,
+          SprintStatus.cancelada,
+        );
+        expect(
+          (await endpoints.sprint.listarContextoDemandas(sessionBuilder, [
+            mae.id!,
+          ])).vinculos,
+          hasLength(1),
+        );
+        await expectLater(
+          endpoints.sprint.desvincularDemanda(
+            sessionBuilder,
+            sprint.id!,
+            mae.id!,
+          ),
+          throwsSprint(SprintErroCodigo.vinculoStatusProibido),
+        );
+      },
+    );
+
+    test(
+      'reabertura com histórico rejeita vínculo de período ocupado sem perder dados',
+      () async {
+        final d = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo conflito reabertura',
+            tempoEstimadoMinutos: 30,
+          ),
+        );
+        Future<Sprint> criar(String nome) => endpoints.sprint.criarSprint(
+          sessionBuilder,
+          SprintCreateRequest(
+            nome: '$prefixo $nome',
+            dataInicio: DateTime.utc(2402, 1, 1),
+            dataFim: DateTime.utc(2402, 1, 5),
+          ),
+        );
+        final antiga = await criar('antiga cancelada');
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          antiga.id!,
+          d.id!,
+        );
+        await endpoints.sprint.cancelarSprint(sessionBuilder, antiga.id!);
+        final atual = await criar('atual planejada');
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          atual.id!,
+          d.id!,
+        );
+        await expectLater(
+          endpoints.sprint.reabrirSprint(sessionBuilder, antiga.id!),
+          throwsSprint(SprintErroCodigo.periodoSobreposto),
+        );
+        expect(
+          (await endpoints.sprint.buscarSprintPorId(
+            sessionBuilder,
+            antiga.id!,
+          )).status,
+          SprintStatus.cancelada,
+        );
+        expect(
+          (await endpoints.sprint.listarContextoDemandas(sessionBuilder, [
+            d.id!,
+          ])).vinculos,
+          hasLength(2),
+        );
+      },
+    );
 
     test(
       'cria planejada com nome e datas de calendário normalizados',
@@ -562,81 +867,86 @@ void main() {
       );
     });
 
-    test('triggers do banco protegem vínculo aberto e reabertura', () async {
-      final session = sessionBuilder.build();
-      final demanda = await endpoints.demanda.criarDemanda(
-        sessionBuilder,
-        DemandaCreateRequest(
-          titulo: '$prefixo trigger demanda',
-          tempoEstimadoMinutos: 60,
-        ),
-      );
-      Future<Sprint> inserirSprint(
-        String sufixo,
-        DateTime inicio,
-        DateTime fim,
-        SprintStatus status,
-      ) => Sprint.db.insertRow(
-        session,
-        Sprint(
-          usuarioId: demanda.usuarioId,
-          nome: '$prefixo trigger $sufixo',
-          nomeNormalizado: '$prefixo trigger $sufixo'.toLowerCase(),
-          dataInicio: inicio,
-          dataFim: fim,
-          status: status,
-        ),
-      );
+    test(
+      'triggers permitem vínculos e reabertura em períodos diferentes',
+      () async {
+        final session = sessionBuilder.build();
+        final demanda = await endpoints.demanda.criarDemanda(
+          sessionBuilder,
+          DemandaCreateRequest(
+            titulo: '$prefixo trigger demanda',
+            tempoEstimadoMinutos: 60,
+          ),
+        );
+        Future<Sprint> inserirSprint(
+          String sufixo,
+          DateTime inicio,
+          DateTime fim,
+          SprintStatus status,
+        ) => Sprint.db.insertRow(
+          session,
+          Sprint(
+            usuarioId: demanda.usuarioId,
+            nome: '$prefixo trigger $sufixo',
+            nomeNormalizado: '$prefixo trigger $sufixo'.toLowerCase(),
+            dataInicio: inicio,
+            dataFim: fim,
+            status: status,
+          ),
+        );
 
-      final cancelada = await inserirSprint(
-        'cancelada',
-        DateTime.utc(2027, 1, 20),
-        DateTime.utc(2027, 1, 25),
-        SprintStatus.planejada,
-      );
-      await SprintDemanda.db.insertRow(
-        session,
-        SprintDemanda(sprintId: cancelada.id!, demandaId: demanda.id!),
-      );
-      await Sprint.db.updateById(
-        session,
-        cancelada.id!,
-        columnValues: (t) => [t.status(SprintStatus.cancelada)],
-      );
+        final cancelada = await inserirSprint(
+          'cancelada',
+          DateTime.utc(2027, 1, 20),
+          DateTime.utc(2027, 1, 25),
+          SprintStatus.planejada,
+        );
+        await SprintDemanda.db.insertRow(
+          session,
+          SprintDemanda(sprintId: cancelada.id!, demandaId: demanda.id!),
+        );
+        await Sprint.db.updateById(
+          session,
+          cancelada.id!,
+          columnValues: (t) => [t.status(SprintStatus.cancelada)],
+        );
 
-      final aberta = await inserirSprint(
-        'aberta',
-        DateTime.utc(2027, 2, 1),
-        DateTime.utc(2027, 2, 5),
-        SprintStatus.planejada,
-      );
-      await SprintDemanda.db.insertRow(
-        session,
-        SprintDemanda(sprintId: aberta.id!, demandaId: demanda.id!),
-      );
-      final outraAberta = await inserirSprint(
-        'outra aberta',
-        DateTime.utc(2027, 2, 6),
-        DateTime.utc(2027, 2, 10),
-        SprintStatus.planejada,
-      );
+        final aberta = await inserirSprint(
+          'aberta',
+          DateTime.utc(2027, 2, 1),
+          DateTime.utc(2027, 2, 5),
+          SprintStatus.planejada,
+        );
+        await SprintDemanda.db.insertRow(
+          session,
+          SprintDemanda(sprintId: aberta.id!, demandaId: demanda.id!),
+        );
+        final outraAberta = await inserirSprint(
+          'outra aberta',
+          DateTime.utc(2027, 2, 6),
+          DateTime.utc(2027, 2, 10),
+          SprintStatus.planejada,
+        );
 
-      await expectLater(
-        SprintDemanda.db.insertRow(
+        await SprintDemanda.db.insertRow(
           session,
           SprintDemanda(sprintId: outraAberta.id!, demandaId: demanda.id!),
-        ),
-        throwsA(isA<Exception>()),
-      );
-      await expectLater(
-        Sprint.db.updateById(
+        );
+        final reaberta = await Sprint.db.updateById(
           session,
           cancelada.id!,
           columnValues: (t) => [t.status(SprintStatus.planejada)],
-        ),
-        throwsA(isA<Exception>()),
-      );
-    });
+        );
+        expect(reaberta!.status, SprintStatus.planejada);
+        expect(
+          await SprintDemanda.db.count(
+            session,
+            where: (t) => t.demandaId.equals(demanda.id!),
+          ),
+          3,
+        );
+      },
+    );
 
     test('vincula e desvincula uma árvore inteira de demandas', () async {
       final raiz = await endpoints.demanda.criarDemanda(
@@ -899,95 +1209,51 @@ void main() {
     );
 
     test(
-      'serializa vínculos concorrentes em sprints abertas distintas',
+      'permite vincular Demanda em outra Sprint aberta de período diferente',
       () async {
         final demanda = await endpoints.demanda.criarDemanda(
           sessionBuilder,
           DemandaCreateRequest(
-            titulo: '$prefixo concorrência demanda',
+            titulo: '$prefixo conflito sprint aberta',
             tempoEstimadoMinutos: 60,
           ),
         );
         final primeira = await endpoints.sprint.criarSprint(
           sessionBuilder,
           SprintCreateRequest(
-            nome: '$prefixo concorrência um',
-            dataInicio: DateTime.utc(2027, 6, 1),
-            dataFim: DateTime.utc(2027, 6, 5),
+            nome: '$prefixo conflito primeira',
+            dataInicio: DateTime.utc(2027, 6, 20),
+            dataFim: DateTime.utc(2027, 6, 22),
           ),
         );
         final segunda = await endpoints.sprint.criarSprint(
           sessionBuilder,
           SprintCreateRequest(
-            nome: '$prefixo concorrência dois',
-            dataInicio: DateTime.utc(2027, 6, 10),
-            dataFim: DateTime.utc(2027, 6, 15),
+            nome: '$prefixo conflito segunda',
+            dataInicio: DateTime.utc(2027, 6, 23),
+            dataFim: DateTime.utc(2027, 6, 25),
           ),
         );
-
-        Future<Object> tentarVincular(int sprintId) async {
-          try {
-            return await endpoints.sprint.vincularDemanda(
-              sessionBuilder,
-              sprintId,
-              demanda.id!,
-            );
-          } catch (erro) {
-            return erro;
-          }
-        }
-
-        final resultados = await Future.wait([
-          tentarVincular(primeira.id!),
-          tentarVincular(segunda.id!),
-        ]);
-        expect(resultados.whereType<List<SprintDemanda>>(), hasLength(1));
-        final vinculos = await SprintDemanda.db.find(
-          sessionBuilder.build(),
-          where: (t) => t.demandaId.equals(demanda.id!),
+        await endpoints.sprint.vincularDemanda(
+          sessionBuilder,
+          primeira.id!,
+          demanda.id!,
         );
-        expect(vinculos, hasLength(1));
-      },
-    );
-
-    test('informa código ao vincular Demanda em outra Sprint aberta', () async {
-      final demanda = await endpoints.demanda.criarDemanda(
-        sessionBuilder,
-        DemandaCreateRequest(
-          titulo: '$prefixo conflito sprint aberta',
-          tempoEstimadoMinutos: 60,
-        ),
-      );
-      final primeira = await endpoints.sprint.criarSprint(
-        sessionBuilder,
-        SprintCreateRequest(
-          nome: '$prefixo conflito primeira',
-          dataInicio: DateTime.utc(2027, 6, 20),
-          dataFim: DateTime.utc(2027, 6, 22),
-        ),
-      );
-      final segunda = await endpoints.sprint.criarSprint(
-        sessionBuilder,
-        SprintCreateRequest(
-          nome: '$prefixo conflito segunda',
-          dataInicio: DateTime.utc(2027, 6, 23),
-          dataFim: DateTime.utc(2027, 6, 25),
-        ),
-      );
-      await endpoints.sprint.vincularDemanda(
-        sessionBuilder,
-        primeira.id!,
-        demanda.id!,
-      );
-      await expectLater(
-        endpoints.sprint.vincularDemanda(
+        final vinculos = await endpoints.sprint.vincularDemanda(
           sessionBuilder,
           segunda.id!,
           demanda.id!,
-        ),
-        throwsSprint(SprintErroCodigo.demandaOutraSprintAberta),
-      );
-    });
+        );
+        expect(vinculos.single.sprintId, segunda.id);
+        expect(
+          await SprintDemanda.db.count(
+            sessionBuilder.build(),
+            where: (t) => t.demandaId.equals(demanda.id!),
+          ),
+          2,
+        );
+      },
+    );
 
     test(
       'conclui manualmente, preserva histórico e calcula indicadores dinâmicos',
@@ -1114,7 +1380,7 @@ void main() {
     });
 
     test(
-      'cancelamento remove vínculos sem alterar demandas ou registros',
+      'cancelamento preserva vínculos sem alterar demandas ou registros',
       () async {
         final demanda = await endpoints.demanda.criarDemanda(
           sessionBuilder,
@@ -1171,7 +1437,7 @@ void main() {
             sessionBuilder.build(),
             where: (t) => t.sprintId.equals(sprint.id!),
           ),
-          isEmpty,
+          hasLength(1),
         );
         expect(
           await Demanda.db.findById(sessionBuilder.build(), demanda.id!),
@@ -1358,7 +1624,80 @@ void main() {
         );
       },
     );
-  });
+  }, applyMigrations: false);
+  withServerpod(
+    'Concorrência real de múltiplos vínculos',
+    (sessionBuilder, endpoints) {
+      setUp(
+        () => installAal2TestUser(sessionBuilder, 'sprint-concurrent-owner'),
+      );
+      tearDown(clearAal2TestUser);
+      tearDown(() async {
+        final session = sessionBuilder.build();
+        await Sprint.db.deleteWhere(
+          session,
+          where: (t) => t.nome.like('$prefixo%'),
+        );
+        await Demanda.db.deleteWhere(
+          session,
+          where: (t) => t.titulo.like('$prefixo%'),
+        );
+      });
+      test(
+        'serializa vínculos concorrentes em sprints abertas distintas',
+        () async {
+          final demanda = await endpoints.demanda.criarDemanda(
+            sessionBuilder,
+            DemandaCreateRequest(
+              titulo: '$prefixo concorrência demanda',
+              tempoEstimadoMinutos: 60,
+            ),
+          );
+          final primeira = await endpoints.sprint.criarSprint(
+            sessionBuilder,
+            SprintCreateRequest(
+              nome: '$prefixo concorrência um',
+              dataInicio: DateTime.utc(2027, 6, 1),
+              dataFim: DateTime.utc(2027, 6, 5),
+            ),
+          );
+          final segunda = await endpoints.sprint.criarSprint(
+            sessionBuilder,
+            SprintCreateRequest(
+              nome: '$prefixo concorrência dois',
+              dataInicio: DateTime.utc(2027, 6, 10),
+              dataFim: DateTime.utc(2027, 6, 15),
+            ),
+          );
+
+          Future<Object> tentarVincular(int sprintId) async {
+            try {
+              return await endpoints.sprint.vincularDemanda(
+                sessionBuilder,
+                sprintId,
+                demanda.id!,
+              );
+            } catch (erro) {
+              return erro;
+            }
+          }
+
+          final resultados = await Future.wait([
+            tentarVincular(primeira.id!),
+            tentarVincular(segunda.id!),
+          ]);
+          expect(resultados.whereType<List<SprintDemanda>>(), hasLength(2));
+          final vinculos = await SprintDemanda.db.find(
+            sessionBuilder.build(),
+            where: (t) => t.demandaId.equals(demanda.id!),
+          );
+          expect(vinculos, hasLength(2));
+        },
+      );
+    },
+    applyMigrations: false,
+    rollbackDatabase: RollbackDatabase.disabled,
+  );
 }
 
 DateTime _hojeUtc() {

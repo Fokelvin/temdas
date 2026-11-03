@@ -43,14 +43,16 @@ import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
     as _i17;
 import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
     as _i18;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_contexto_demandas.dart'
     as _i19;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
     as _i20;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_conclusao_response.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
     as _i21;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_indicadores.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_conclusao_response.dart'
     as _i22;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_indicadores.dart'
+    as _i23;
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:temdas_backend_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -1261,9 +1263,40 @@ class _SprintEndpoint {
     });
   }
 
+  _i3.Future<_i19.SprintContextoDemandas> listarContextoDemandas(
+    _i1.TestSessionBuilder sessionBuilder,
+    List<int>? demandaIds,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sprint',
+            method: 'listarContextoDemandas',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sprint',
+          methodName: 'listarContextoDemandas',
+          parameters: _i1.testObjectToJson({'demandaIds': demandaIds}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i19.SprintContextoDemandas>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _i3.Future<_i17.Sprint> criarSprint(
     _i1.TestSessionBuilder sessionBuilder,
-    _i19.SprintCreateRequest request,
+    _i20.SprintCreateRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1294,7 +1327,7 @@ class _SprintEndpoint {
 
   _i3.Future<_i17.Sprint> atualizarSprint(
     _i1.TestSessionBuilder sessionBuilder,
-    _i20.SprintUpdateRequest request,
+    _i21.SprintUpdateRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1385,7 +1418,7 @@ class _SprintEndpoint {
     });
   }
 
-  _i3.Future<_i21.SprintConclusaoResponse> concluirSprint(
+  _i3.Future<_i22.SprintConclusaoResponse> concluirSprint(
     _i1.TestSessionBuilder sessionBuilder,
     int id,
   ) async {
@@ -1408,7 +1441,7 @@ class _SprintEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i21.SprintConclusaoResponse>);
+                as _i3.Future<_i22.SprintConclusaoResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1416,7 +1449,7 @@ class _SprintEndpoint {
     });
   }
 
-  _i3.Future<_i21.SprintConclusaoResponse> obterResumoConclusaoSprint(
+  _i3.Future<_i22.SprintConclusaoResponse> obterResumoConclusaoSprint(
     _i1.TestSessionBuilder sessionBuilder,
     int id,
   ) async {
@@ -1439,7 +1472,7 @@ class _SprintEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i21.SprintConclusaoResponse>);
+                as _i3.Future<_i22.SprintConclusaoResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1447,7 +1480,7 @@ class _SprintEndpoint {
     });
   }
 
-  _i3.Future<_i22.SprintIndicadores> calcularIndicadoresSprint(
+  _i3.Future<_i23.SprintIndicadores> calcularIndicadoresSprint(
     _i1.TestSessionBuilder sessionBuilder,
     int id,
   ) async {
@@ -1470,7 +1503,7 @@ class _SprintEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i22.SprintIndicadores>);
+                as _i3.Future<_i23.SprintIndicadores>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

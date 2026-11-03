@@ -9,10 +9,13 @@ void main() {
   test(
     'latest migration preserves the complete managed backend target',
     () {
+      final version = File(
+        'migrations/migration_registry.txt',
+      ).readAsLinesSync().last;
       final definition = DatabaseDefinition.fromJson(
         jsonDecode(
               File(
-                'migrations/20261029183226724-pacote4-demandas/definition.json',
+                'migrations/$version/definition.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -31,7 +34,7 @@ void main() {
         definition.installedModules
             .singleWhere((module) => module.module == 'temdas_backend')
             .version,
-        '20261029183226724-pacote4-demandas',
+        version,
       );
     },
   );

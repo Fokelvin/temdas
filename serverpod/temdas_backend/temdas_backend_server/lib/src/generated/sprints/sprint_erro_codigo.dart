@@ -29,7 +29,8 @@ enum SprintErroCodigo implements _i1.SerializableModel {
   demandaFilhaComMaeVinculada,
   demandaNaoEncontrada,
   usuarioDiferenteDaSprint,
-  historicoSprintConcluida;
+  historicoSprintConcluida,
+  hierarquiaSprintInvalida;
 
   static SprintErroCodigo fromJson(String name) {
     switch (name) {
@@ -65,6 +66,8 @@ enum SprintErroCodigo implements _i1.SerializableModel {
         return SprintErroCodigo.usuarioDiferenteDaSprint;
       case 'historicoSprintConcluida':
         return SprintErroCodigo.historicoSprintConcluida;
+      case 'hierarquiaSprintInvalida':
+        return SprintErroCodigo.hierarquiaSprintInvalida;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "SprintErroCodigo"',

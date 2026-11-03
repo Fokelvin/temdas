@@ -1,3 +1,4 @@
+import 'widgets/sprints_da_demanda.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -240,11 +241,9 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
                   onPressed: () => _viewModel.carregarSprint(widget.demandaId),
                   child: const Text('Tentar consultar Sprint novamente'),
                 )
-              : TextButton.icon(
-                  icon: const Icon(Icons.directions_run),
-                  onPressed: () =>
-                      Navigator.pushNamed(context, AppRoutes.sprint),
-                  label: Text(_viewModel.sprint?.nome ?? 'Sem Sprint'),
+              : SprintsDaDemanda(
+                  sprints: _viewModel.sprints,
+                  demandaId: widget.demandaId,
                 ),
         ),
         const SizedBox(height: 6),

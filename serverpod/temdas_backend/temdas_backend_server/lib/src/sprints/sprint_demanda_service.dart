@@ -143,7 +143,7 @@ class SprintDemandaService {
       lockMode: LockMode.forUpdate,
     );
     if (vinculos.isEmpty) return false;
-    if (sprint.status == SprintStatus.concluida) {
+    if (!_estaAberta(sprint.status)) {
       throw SprintException(codigo: SprintErroCodigo.vinculoStatusProibido);
     }
 
@@ -195,9 +195,6 @@ class SprintDemandaService {
       transaction: transaction,
       lockMode: LockMode.forUpdate,
     );
-    if (sprintsAbertas.length > 1) {
-      throw SprintException(codigo: SprintErroCodigo.demandaOutraSprintAberta);
-    }
     if (sprintsAbertas.isEmpty) return;
 
     final demandaFilha = await UsuarioScope(usuarioId).demanda(
@@ -209,16 +206,14 @@ class SprintDemandaService {
     if (demandaFilha == null) {
       throw SprintException(codigo: SprintErroCodigo.demandaNaoEncontrada);
     }
-    _validarMesmoUsuario(sprintsAbertas.single, [demandaFilha]);
-
-    await SprintDemanda.db.insertRow(
-      session,
-      SprintDemanda(
-        sprintId: sprintsAbertas.single.id!,
-        demandaId: demandaFilhaId,
-      ),
-      transaction: transaction,
-    );
+    for (final sprint in sprintsAbertas) {
+      _validarMesmoUsuario(sprint, [demandaFilha]);
+      await SprintDemanda.db.insertRow(
+        session,
+        SprintDemanda(sprintId: sprint.id!, demandaId: demandaFilhaId),
+        transaction: transaction,
+      );
+    }
   }
 
   Future<void> validarReabertura(
@@ -233,9 +228,44 @@ class SprintDemandaService {
       transaction: transaction,
       lockMode: LockMode.forUpdate,
     );
+    final sprint = (await Sprint.db.findById(
+      session,
+      sprintId,
+      transaction: transaction,
+    ))!;
+    final ids = vinculos.map((v) => v.demandaId).toSet();
+    if (ids.isEmpty) return;
+    final demandas = await Demanda.db.find(
+      session,
+      where: (t) => t.id.inSet(ids),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    _validarMesmoUsuario(sprint, demandas);
+    final filhas = await Demanda.db.find(
+      session,
+      where: (t) => t.demandaPaiId.inSet(ids),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    if (demandas.length != ids.length ||
+        demandas.any(
+          (d) => d.demandaPaiId != null && !ids.contains(d.demandaPaiId),
+        ) ||
+        filhas.any(
+          (d) => !ids.contains(d.id) || d.usuarioId != sprint.usuarioId,
+        )) {
+      throw SprintException(codigo: SprintErroCodigo.hierarquiaSprintInvalida);
+    }
+    final todosVinculos = await SprintDemanda.db.find(
+      session,
+      where: (t) => t.demandaId.inSet(ids),
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
     await _validarSemOutraSprintAberta(
       session,
-      vinculos,
+      todosVinculos,
       sprintId,
       transaction,
     );
@@ -414,8 +444,17 @@ class SprintDemandaService {
       transaction: transaction,
       lockMode: LockMode.forUpdate,
     );
-    if (sprintsAbertas.isNotEmpty) {
-      throw SprintException(codigo: SprintErroCodigo.demandaOutraSprintAberta);
+    final destino = (await Sprint.db.findById(
+      session,
+      sprintId,
+      transaction: transaction,
+    ))!;
+    if (sprintsAbertas.any(
+      (outra) =>
+          !outra.dataInicio.isAfter(destino.dataFim) &&
+          !outra.dataFim.isBefore(destino.dataInicio),
+    )) {
+      throw SprintException(codigo: SprintErroCodigo.periodoSobreposto);
     }
   }
 
