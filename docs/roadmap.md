@@ -45,9 +45,12 @@ Um único build Web release foi concluído em 40,9 s, com aviso de fonte
 Cupertino. SHA-256 de `main.dart.js`:
 `3ddc0e9e05b4e22b87c012f60ac3c1fcbdc487153dd676187cbf0a3d7312c80d`.
 
-Homologação manual pendente: seleção e cópia por toque em navegador móvel,
-convivência com arraste e menus, títulos longos em Sprint compacta e cadastro
-de Demanda durante lançamento com teclado virtual.
+**Estado:** pacote publicado e homologado funcionalmente pelo responsável
+em PROD em 03/11/2026. O ajuste adicional da agenda semanal do Log Time
+(domingo a sábado) foi publicado no commit `bc50b1a` e homologado pelo
+responsável. Os cenários de seleção/cópia por toque, arraste, títulos longos e
+teclado virtual permanecem cobertos pelas validações automatizadas pertinentes
+e sujeitos a acompanhamento de regressões em dispositivos reais.
 
 ## Resumo das funcionalidades
 
@@ -234,8 +237,8 @@ adiado para o último item deste roadmap.
 - **Descrição:** habilitar seleção de texto global com `SelectionArea`, sem
   prejudicar menus, botões, campos ou gestos de interação.
 - **Prioridade:** P2.
-- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
-  manual pendente.
+- **Estado:** Implementado, publicado e homologado funcionalmente em PROD
+  pelo responsável em 03/11/2026 (pacote de refinamento UX de novembro).
 - **Dependências:** validar interações nas telas e componentes interativos.
 - **Critérios de aceite:** textos informativos podem ser selecionados nas
   telas principais e ações e campos continuam operáveis.
@@ -551,8 +554,8 @@ desta seção autoriza implementação automática.
   Time, carregar no campo **Observação (opcional)** o texto já salvo para
   aquele registro; quando não houver observação, mostrar o campo vazio.
 - **Prioridade:** P2 — correção de UX.
-- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
-  manual pendente.
+- **Estado:** Implementado, publicado e homologado funcionalmente em PROD
+  pelo responsável em 03/11/2026 (pacote de refinamento UX de novembro).
 - **Dependências:** observação opcional de RegistroTempo já entregue no Pacote
   4; preservar associação com o registro, data, horas e regras de edição.
 - **Critérios de aceite:** a observação existente aparece integralmente ao
@@ -567,8 +570,8 @@ desta seção autoriza implementação automática.
   editável/pesquisável por ID ou título, com opções elegíveis selecionáveis,
   e um botão **+** ao lado para cadastrar uma Demanda sem sair do fluxo.
 - **Prioridade:** P2 — melhoria de produtividade.
-- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
-  manual pendente.
+- **Estado:** Implementado, publicado e homologado funcionalmente em PROD
+  pelo responsável em 03/11/2026 (pacote de refinamento UX de novembro).
 - **Criação rápida:** o botão **+** deve abrir o **mesmo formulário completo**
   de criação de Demanda da tela de Demandas, preferencialmente extraído como
   componente compartilhado, sem duplicação de regras. Após criação bem-sucedida,
