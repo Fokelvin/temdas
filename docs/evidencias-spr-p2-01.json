@@ -15,14 +15,6 @@
     "second_build_explicitly_authorized": true,
     "release_build": "passed"
   },
-  "boundaries": {
-    "migration_sql_executed": false,
-    "test_database": "owned disposable local PostgreSQL 17.11; clean definition only; automatic migrations disabled",
-    "shared_or_production_data_changed": false,
-    "main_integrated": false,
-    "pushed": false,
-    "production_deployed": false
-  },
   "coverage": [
     "multiple disjoint active/planned links",
     "retroactive Sprint 72 finalizada without active Sprint",
@@ -40,8 +32,8 @@
   ],
   "migration": {
     "version": "20261103123548408-spr-p2-01",
-    "applied": false,
-    "incremental_rehearsal": "pending separate authorization",
+    "applied": true,
+    "incremental_rehearsal": "passed; approved separately 2026-11-03",
     "artifacts": {
       "migration.sql": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
       "migration.json": "ee848bd1b1810eb6e79c7f96b18342c5b310fcbd4e7e1ad6bc49b04eb11ec126",
@@ -138,5 +130,123 @@
       "sha256": "a0eda589414b98c1637e237f8063b9ff743cd3bac9c3782e9aed642ac0bebcf6"
     }
   ],
-  "publication_strategy": "docs/spr-p2-01-multiplas-sprints.md; approval pending before merge or deployment"
+  "publication_strategy": "docs/spr-p2-01-multiplas-sprints.md; explicitly authorized coordinated production release 2026-11-03",
+  "implementation_session_boundaries": {
+    "migration_sql_executed": false,
+    "test_database": "owned disposable local PostgreSQL 17.11; clean definition only; automatic migrations disabled",
+    "shared_or_production_data_changed": false,
+    "main_integrated": false,
+    "pushed": false,
+    "production_deployed": false
+  },
+  "rehearsal": {
+    "backup": {
+      "external_copy_verified": true,
+      "sha256": "e4f4f92536671edd9bc6acd563c82a2176c2df7c6a5d52ff2cc1d2a1ea103f9f",
+      "utc": "2026-11-03T10:21:02.291189+00:00"
+    },
+    "baseline": "20261029220000000-restore-schema-guards",
+    "checks": [
+      "authorized_backup_restored_exact_baseline",
+      "incremental_preserves_all_original_data_and_expected_catalog_delta",
+      "incremental_multiple_history72_cancel_reopen_integrity_time",
+      "reapply_rejected_atomically",
+      "clean_install_matches_incremental_custom_and_managed_core",
+      "clean_multiple_history72_cancel_reopen_integrity_time"
+    ],
+    "commit": "2564db0",
+    "existing_docker_resources_preserved": true,
+    "incremental_seconds": 0.171,
+    "migration": "20261103123548408-spr-p2-01",
+    "original_sprint72_links_present": true,
+    "production_or_dev_connection": false,
+    "publication_readiness": "migration rehearsal passed; separate coordinated approval and current PROD preflight still required",
+    "repository_modified": false,
+    "sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
+    "status": "passed"
+  },
+  "publication": {
+    "authorized_commit": "2564db0",
+    "backup": {
+      "external_copy_verified": true,
+      "sha256": "e4f4f92536671edd9bc6acd563c82a2176c2df7c6a5d52ff2cc1d2a1ea103f9f",
+      "utc": "2026-11-03T10:21:02.291189+00:00"
+    },
+    "migration": "20261103123548408-spr-p2-01",
+    "migration_seconds": 0.801,
+    "pending_operations": {
+      "locks": 0,
+      "prepared": 0,
+      "transactions": 0
+    },
+    "preserved_business_rows": {
+      "demandas": 14,
+      "registros_tempo": 29,
+      "sprints": 2,
+      "sprints_demandas": 13
+    },
+    "sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
+    "status": "migration_backend_frontend_published_pending_authenticated_homologation",
+    "verification": [
+      "history",
+      "managed_schema",
+      "seven_unchanged_enabled_triggers",
+      "target_index",
+      "custom_constraints_and_btree_gist",
+      "all_business_rows_preserved"
+    ],
+    "writes_paused": true,
+    "integration_commit": "8391659314c69412554a2de55bac83e81e18279d",
+    "preserved_main_documentation_commit": "c32d0dd",
+    "railway": {
+      "deployment": "d21f891d-50e8-44a7-b5e8-30ed513b1496",
+      "status": "SUCCESS",
+      "serverpod": "3.4.11",
+      "automatic_migrations": false,
+      "readyz_internal": 200,
+      "unauthenticated_read_rpcs": "AuthException/tokenMissing"
+    },
+    "cloudflare": {
+      "workflow_run": 41673125176,
+      "commit": "8391659314c69412554a2de55bac83e81e18279d",
+      "status": "success",
+      "url": "https://2be57445.temdas-web.pages.dev",
+      "domain": "https://temdas.com.br",
+      "https_status": 200,
+      "flutter_rendered": true,
+      "javascript_errors": [],
+      "main_js_sha256": "f8dda7e89e11a49fe01e97433bb38297193466cfc01c104fd6f54a441d7b90fc",
+      "matches_approved_build": true,
+      "new_rpc_contract": true,
+      "production_backend_contract": true,
+      "direct_preview_asset_request": 403
+    },
+    "public_port": 8089,
+    "original_public_port": 8080,
+    "original_regions_restored": {
+      "iad": 1
+    },
+    "pending": [
+      "manual_positive_aal2_read_rpc_and_retrospective_links",
+      "restore_public_domain_port_8080_after_checks",
+      "manual_visual_authenticated_homologation"
+    ],
+    "final_read_only_database": {
+      "utc": "2026-11-03T16:33:04.473702+00:00",
+      "migration": "20261103123548408-spr-p2-01",
+      "read_only": "on",
+      "sprints": 2,
+      "links": 13,
+      "demands": 14,
+      "time_rows": 29,
+      "historical_sprint72_links_present": true,
+      "orphan_or_foreign_links": 0
+    },
+    "authenticated_read_rpcs_homologated": false,
+    "aal2_positive_check": "pending: owner remote on phone, no existing local session/token; no token extraction, MFA bypass, or test credentials",
+    "temporary_registered_ssh_key_removed": true,
+    "recovery": "keep compatible backend and block public access on failure; no automatic rollback or restore",
+    "browser_screenshot_sha256": "1aa76ad25944fcc9c6353380224167d9ddd3eee08b26914472625fbd97141241",
+    "manual_completion_runbook": "docs/spr-p2-01-multiplas-sprints.md#concluir-a-homologação-manual-e-liberar-a-janela"
+  }
 }
