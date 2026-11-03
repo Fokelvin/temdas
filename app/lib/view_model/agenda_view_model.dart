@@ -60,7 +60,7 @@ class AgendaViewModel extends ChangeNotifier {
 
   DateTime get inicioSemana {
     final dia =
-        _dataSelecionada.day - (_dataSelecionada.weekday - DateTime.monday);
+        _dataSelecionada.day - _dataSelecionada.weekday % DateTime.daysPerWeek;
     return DateTime(_dataSelecionada.year, _dataSelecionada.month, dia);
   }
 

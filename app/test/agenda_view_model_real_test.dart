@@ -27,7 +27,7 @@ void main() {
       expect(periodo.fim.isUtc, isTrue);
     });
 
-    test('consulta segunda a segunda no modo semanal', () async {
+    test('consulta domingo a domingo no modo semanal', () async {
       final registroRepository = FakeRegistroTempoRepository();
       final viewModel = AgendaViewModel(
         demandaRepository: FakeAgendaDemandaRepository(),
@@ -39,10 +39,10 @@ void main() {
       await viewModel.carregarAgenda();
 
       final periodo = registroRepository.periodosConsultados.single;
-      expect(periodo.inicio, DateTime(2026, 9, 7).toUtc());
-      expect(periodo.fim, DateTime(2026, 9, 14).toUtc());
-      expect(viewModel.diasDaSemana.first.weekday, DateTime.monday);
-      expect(viewModel.diasDaSemana.last.weekday, DateTime.sunday);
+      expect(periodo.inicio, DateTime(2026, 9, 6).toUtc());
+      expect(periodo.fim, DateTime(2026, 9, 13).toUtc());
+      expect(viewModel.diasDaSemana.first.weekday, DateTime.sunday);
+      expect(viewModel.diasDaSemana.last.weekday, DateTime.saturday);
     });
 
     test('agrupa pelo início local e calcula os resumos persistidos', () async {

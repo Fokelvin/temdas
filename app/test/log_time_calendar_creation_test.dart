@@ -54,7 +54,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Semana'));
       await tester.pumpAndSettle();
-      for (var day = 7; day <= 13; day++) {
+      for (var day = 6; day <= 12; day++) {
         final column = _dia(DateTime(2026, 9, day));
         expect(column, findsOneWidget);
         expect(
@@ -107,7 +107,7 @@ void main() {
     tester,
   ) async {
     await _abrir(tester, size: const Size(390, 844));
-    final day = DateTime(2026, 9, 7);
+    final day = DateTime(2026, 9, 6);
     final left = tester.getTopLeft(_dia(day)).dx;
     await tester.dragFrom(_ponto(tester, day, 9 * 60), const Offset(-120, 0));
     await tester.pumpAndSettle();
