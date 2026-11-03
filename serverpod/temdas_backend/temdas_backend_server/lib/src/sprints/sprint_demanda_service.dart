@@ -96,20 +96,115 @@ class SprintDemandaService {
     required Transaction transaction,
   }) async {
     await bloquearCicloDeVida(session, transaction);
-    await _buscarSprintBloqueada(session, sprintId, transaction, usuarioId);
-    final resultado = <SprintDemanda>[];
-    for (final demandaId in demandaIds.toSet()) {
-      resultado.addAll(
-        await vincularArvore(
-          session,
-          sprintId: sprintId,
-          demandaId: demandaId,
-          usuarioId: usuarioId,
-          transaction: transaction,
-        ),
+    final sprint = await _buscarSprintBloqueada(
+      session,
+      sprintId,
+      transaction,
+      usuarioId,
+    );
+    final raizes = demandaIds.toSet();
+    if (raizes.isEmpty) return [];
+    if (!_estaAberta(sprint.status)) {
+      throw SprintException(codigo: SprintErroCodigo.vinculoStatusProibido);
+    }
+
+    // UNION on IDs terminates even for repeated/overlapping subtrees. Lock the
+    // base rows, not the recursive working table. All lifecycle writers use the
+    // same advisory lock before changing the hierarchy or its Sprint links.
+    final rows = await session.db.unsafeQuery(
+      '''
+      WITH RECURSIVE arvore(id) AS (
+        SELECT d.id FROM public.demandas d
+        WHERE d.id = ANY(@raizes::bigint[]) AND d."usuarioId" = @owner
+        UNION
+        SELECT f.id FROM public.demandas f JOIN arvore a ON f."demandaPaiId" = a.id
+        WHERE f."usuarioId" = @owner
+      )
+      SELECT d.id, d."demandaPaiId" FROM public.demandas d
+      JOIN arvore a ON a.id = d.id
+      WHERE d."usuarioId" = @owner
+      ORDER BY d.id FOR UPDATE OF d
+      ''',
+      parameters: QueryParameters.named({
+        'raizes': raizes.toList(),
+        'owner': usuarioId,
+      }),
+      transaction: transaction,
+    );
+    final pais = {for (final row in rows) row[0] as int: row[1] as int?};
+    final ids = pais.keys.toSet();
+    if (!ids.containsAll(raizes)) {
+      throw SprintException(codigo: SprintErroCodigo.demandaNaoEncontrada);
+    }
+    final idsComPais = {...ids, ...pais.values.whereType<int>()};
+    final vinculos = await SprintDemanda.db.find(
+      session,
+      where: (t) => t.demandaId.inSet(idsComPais),
+      orderBy: (t) => t.id,
+      transaction: transaction,
+      lockMode: LockMode.forUpdate,
+    );
+    final vinculadasNoDestino = {
+      for (final v in vinculos)
+        if (v.sprintId == sprintId) v.demandaId,
+    };
+    // Validate the complete batch before insertion: child/parent input order
+    // and row-trigger execution order must not change the final hierarchy.
+    for (final pai in pais.values.whereType<int>()) {
+      if (!ids.contains(pai) && !vinculadasNoDestino.contains(pai)) {
+        throw SprintException(codigo: SprintErroCodigo.demandaFilhaSemMae);
+      }
+    }
+    final outrasIds = {
+      for (final v in vinculos)
+        if (ids.contains(v.demandaId) && v.sprintId != sprintId) v.sprintId,
+    };
+    if (outrasIds.isNotEmpty) {
+      final abertas = await Sprint.db.find(
+        session,
+        where: (t) =>
+            t.id.inSet(outrasIds) &
+            t.status.inSet({SprintStatus.planejada, SprintStatus.ativa}),
+        orderBy: (t) => t.id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (abertas.any(
+        (s) =>
+            !s.dataInicio.isAfter(sprint.dataFim) &&
+            !s.dataFim.isBefore(sprint.dataInicio),
+      )) {
+        throw SprintException(codigo: SprintErroCodigo.periodoSobreposto);
+      }
+    }
+    if (!vinculadasNoDestino.containsAll(ids)) {
+      await session.db.unsafeQuery(
+        '''
+        INSERT INTO public.sprints_demandas ("sprintId", "demandaId")
+        SELECT @sprint, d.id FROM public.demandas d
+        WHERE d.id = ANY(@ids::bigint[]) AND d."usuarioId" = @owner
+          AND NOT EXISTS (SELECT 1 FROM public.sprints_demandas v
+            WHERE v."sprintId" = @sprint AND v."demandaId" = d.id)
+        ORDER BY d.id
+        ON CONFLICT ("sprintId", "demandaId") DO NOTHING
+        RETURNING id, "sprintId", "demandaId"
+        ''',
+        parameters: QueryParameters.named({
+          'sprint': sprintId,
+          'ids': ids.toList(),
+          'owner': usuarioId,
+        }),
+        transaction: transaction,
       );
     }
-    return resultado;
+    // A subsequent statement sees inserted rows and preexisting pairs alike;
+    // a sibling SELECT in a data-modifying CTE would share its old snapshot.
+    return SprintDemanda.db.find(
+      session,
+      where: (t) => t.sprintId.equals(sprintId) & t.demandaId.inSet(ids),
+      orderBy: (t) => t.demandaId,
+      transaction: transaction,
+    );
   }
 
   Future<bool> desvincularArvore(

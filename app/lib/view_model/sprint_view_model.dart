@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
@@ -21,10 +23,12 @@ class SprintViewModel extends ChangeNotifier {
   bool _enviando = false;
   bool _descartado = false;
   String? _erro;
+  ({int sprintId, Set<int> demandaIds})? _vinculacaoPendente;
 
   bool get carregando => _carregando;
   bool get enviando => _enviando;
   String? get erro => _erro;
+  bool get vinculacaoInconclusiva => _vinculacaoPendente != null;
   List<backend.Sprint> get sprints => List.unmodifiable(_sprints);
   Map<int, backend.SprintIndicadores> get indicadoresPorSprint =>
       Map.unmodifiable(_indicadoresPorSprint);
@@ -80,6 +84,18 @@ class SprintViewModel extends ChangeNotifier {
     );
     if (vinculos == null) return false;
     _vinculos = List.unmodifiable(vinculos);
+    final pendente = _vinculacaoPendente;
+    if (pendente != null && pendente.sprintId == sprintId) {
+      if (_vinculosConfirmam(
+        vinculos,
+        pendente.sprintId,
+        pendente.demandaIds,
+      )) {
+        _vinculacaoPendente = null;
+      } else {
+        _erro = _mensagemDaFalha(const _VinculacaoInconclusiva(), 'vincular');
+      }
+    }
     _notificar();
     return true;
   }
@@ -268,15 +284,13 @@ class SprintViewModel extends ChangeNotifier {
     required int sprintId,
     required int demandaId,
   }) async {
-    final vinculos = await _executar<List<backend.SprintDemanda>>(
+    return _executarVinculacao(
+      sprintId: sprintId,
+      demandaIds: {demandaId},
       operacao: 'vincular a demanda à sprint',
-      executar: () =>
+      mutacao: () =>
           _repository.vincularDemanda(sprintId: sprintId, demandaId: demandaId),
     );
-    if (vinculos == null) return false;
-    _vinculos = List.unmodifiable(vinculos);
-    _notificar();
-    return true;
   }
 
   Future<bool> vincularDemandas({
@@ -284,18 +298,71 @@ class SprintViewModel extends ChangeNotifier {
     required List<int> demandaIds,
   }) async {
     if (demandaIds.isEmpty) return false;
-    final vinculos = await _executar<List<backend.SprintDemanda>>(
+    final ids = demandaIds.toSet();
+    return _executarVinculacao(
+      sprintId: sprintId,
+      demandaIds: ids,
       operacao: 'vincular as Demandas à sprint',
-      executar: () => _repository.vincularDemandas(
+      mutacao: () => _repository.vincularDemandas(
         sprintId: sprintId,
-        demandaIds: demandaIds,
+        demandaIds: ids.toList(),
       ),
+    );
+  }
+
+  Future<bool> _executarVinculacao({
+    required int sprintId,
+    required Set<int> demandaIds,
+    required String operacao,
+    required Future<List<backend.SprintDemanda>> Function() mutacao,
+  }) async {
+    final vinculos = await _executar<List<backend.SprintDemanda>>(
+      operacao: operacao,
+      executar: () async {
+        final pendente = _vinculacaoPendente;
+        if (pendente != null &&
+            (pendente.sprintId != sprintId ||
+                !setEquals(pendente.demandaIds, demandaIds))) {
+          throw const _VinculacaoInconclusiva();
+        }
+        if (pendente == null) {
+          try {
+            return await mutacao();
+          } on TimeoutException {
+            _vinculacaoPendente = (
+              sprintId: sprintId,
+              demandaIds: {...demandaIds},
+            );
+          }
+        }
+        // A timed-out HTTP call may still commit. Never resend it: even a
+        // subsequent tap for the same selection performs only this read.
+        try {
+          final atuais = await _repository.listarDemandasDaSprint(sprintId);
+          if (_vinculosConfirmam(atuais, sprintId, demandaIds)) {
+            _vinculacaoPendente = null;
+            return atuais;
+          }
+        } catch (_) {
+          // A failed reconciliation cannot establish whether the mutation ran.
+        }
+        throw const _VinculacaoInconclusiva();
+      },
     );
     if (vinculos == null) return false;
     _vinculos = List.unmodifiable(vinculos);
     _notificar();
     return true;
   }
+
+  bool _vinculosConfirmam(
+    List<backend.SprintDemanda> vinculos,
+    int sprintId,
+    Set<int> demandaIds,
+  ) => {
+    for (final v in vinculos)
+      if (v.sprintId == sprintId) v.demandaId,
+  }.containsAll(demandaIds);
 
   Future<bool> desvincularDemanda({
     required int sprintId,
@@ -358,6 +425,11 @@ class SprintViewModel extends ChangeNotifier {
   }
 
   String _mensagemDaFalha(Object error, String operacao) {
+    if (error is _VinculacaoInconclusiva) {
+      return 'Resultado da vinculação inconclusivo. A operação pode ainda estar '
+          'em andamento. Atualize os vínculos para confirmar; a solicitação '
+          'não será reenviada automaticamente.';
+    }
     if (error case final backend.SprintException erro) {
       return switch (erro.codigo) {
         backend.SprintErroCodigo.nomeObrigatorio =>
@@ -437,4 +509,8 @@ class SprintViewModel extends ChangeNotifier {
     _descartado = true;
     super.dispose();
   }
+}
+
+class _VinculacaoInconclusiva implements Exception {
+  const _VinculacaoInconclusiva();
 }

@@ -11,6 +11,9 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import nullcontext
+
+from pg_latency_proxy import PgLatencyProxy
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVER = ROOT / 'serverpod/temdas_backend/temdas_backend_server'
@@ -48,7 +51,16 @@ def main():
             SERVERPOD_DATABASE_NAME='temdas_backend_test', SERVERPOD_DATABASE_USER='postgres')
         tests = sys.argv[1:] or ['test/integration/sprint_endpoint_test.dart', 'test/integration/ownership_aal2_test.dart']
         print(json.dumps({'schema':version, 'database':'disposable-local', 'migration_sql_executed':False, 'tests':tests}), flush=True)
-        run(['dart','test','--concurrency=1','--reporter=expanded', *tests], cwd=SERVER, env=env)
+        benchmark = os.environ.get('TEMDAS_SPR_BENCHMARK') == '1'
+        with PgLatencyProxy(port) if benchmark else nullcontext() as proxy:
+            if proxy:
+                env['SERVERPOD_DATABASE_PORT'] = str(proxy.port)
+                env['TEMDAS_SPR_PROXY_CONTROL_PORT'] = str(proxy.control_port)
+            # Only explicitly opted-in, owned loopback infrastructure is exposed
+            # to the benchmark; never inherit an external control endpoint.
+            else:
+                env.pop('TEMDAS_SPR_PROXY_CONTROL_PORT', None)
+            run(['dart','test','--concurrency=1','--reporter=expanded', *tests], cwd=SERVER, env=env)
     finally:
         if cid:
             info = json.loads(subprocess.check_output(['docker','inspect',cid]))[0]

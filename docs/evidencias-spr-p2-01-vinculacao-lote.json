@@ -1,0 +1,59 @@
+{
+  "postgres": "17.11",
+  "serverpod": "3.4.11",
+  "response_delay_ms": 500,
+  "production_access": false,
+  "measurements": [
+    {
+      "case": "legacy_insert",
+      "queries": 56,
+      "elapsed_ms": 56801,
+      "query_ms": 55777
+    },
+    {
+      "case": "legacy_repeat",
+      "queries": 46,
+      "elapsed_ms": 46741,
+      "query_ms": 45722
+    },
+    {
+      "case": "bulk_insert",
+      "queries": 8,
+      "elapsed_ms": 8546,
+      "query_ms": 7538
+    },
+    {
+      "case": "bulk_repeat",
+      "queries": 7,
+      "elapsed_ms": 7539,
+      "query_ms": 6532
+    }
+  ],
+  "date": "2026-11-03",
+  "branch": "feat/spr-p2-01-vinculacao-lote-timeout",
+  "base_commit": "1234777",
+  "postgres_driver": "3.5.16",
+  "schema": "20261103123548408-spr-p2-01",
+  "measurement": "synthetic data, loopback-only PostgreSQL ReadyForQuery response delay; not measured production RTT; one sample per case",
+  "backend_tests_unique_passed": 43,
+  "frontend_tests_unique_passed": 21,
+  "static_analysis": "targeted clean",
+  "release_build_executed": false,
+  "production_or_dev_access": false,
+  "production_modified": false,
+  "migration_sql_executed": false,
+  "published": false,
+  "integrated_main": false,
+  "unresolved_test_failures": [],
+  "initial_fixture_correction": "deferred COMMIT exposes raw postgres ServerException/23514; corrected assertion and reran only that case successfully",
+  "source_sha256": {
+    "app/lib/data/serverpod_client.dart": "4bb2061fd8fd6c20fe8c8195e49eabce98f72f75c12117f81f745173b50c25cb",
+    "app/lib/view_model/sprint_view_model.dart": "15daec7b5f80b552aeb0364001a9629c96628231ebdc2c848f981e6347a81101",
+    "serverpod/temdas_backend/temdas_backend_server/lib/src/sprints/sprint_demanda_service.dart": "f7597e7c5d8294e399900505fbeed15ac9b58a229afc74140d8aa4ca6cc3bf63",
+    "app/test/sprint_vinculacao_timeout_test.dart": "42d658289ac1184aaf91ef33331ad5136d642690bfc2dbe78e1c0812e7064698",
+    "serverpod/temdas_backend/temdas_backend_server/test/integration/sprint_bulk_test.dart": "8a1a8ce989e4d521cf9702e4dd9da1ef6ae3b7c29f43aec5adabb633c9cf619c",
+    "scripts/testing/run_sprint_tests.py": "ec06c2816d30c4177497772ad43aaeec68ce14101e49ac436e0d92c62ab114a6",
+    "scripts/testing/pg_latency_proxy.py": "45b0fb57f90cc03d69d6dcdbd5490668d0168982d5ce4818dc727660c52d02f1"
+  },
+  "unchanged_migration_sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f"
+}
