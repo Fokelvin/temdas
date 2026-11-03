@@ -517,22 +517,40 @@ desta seção autoriza implementação automática.
   abrir a edição e permanece vinculada ao registro correto ao salvar;
   lançamentos sem texto exibem campo em branco, sem texto artificial.
 
-### LOG-P2-02 — Pesquisa de Demandas no seletor de Log Time
+### LOG-P2-02 — Lançamento direto de tempo com busca e criação de Demanda
 
-- **Descrição:** substituir o seletor suspenso simples do popup **Selecionar
-  demanda** por um campo pesquisável/autocomplete, para localizar rapidamente
-  a Demanda ao lançar horas na agenda. Exibir identificação suficiente
-  (ID e título) e preservar as opções elegíveis e a seleção atual.
+- **Descrição:** remover a etapa intermediária do popup **Selecionar demanda**.
+  Ao clicar em **Lançar tempo** ou em uma posição do calendário, abrir
+  diretamente o formulário **Lançar tempo**. O campo **Demanda** deve ser
+  editável/pesquisável por ID ou título, com opções elegíveis selecionáveis,
+  e um botão **+** ao lado para cadastrar uma Demanda sem sair do fluxo.
 - **Prioridade:** P2 — melhoria de produtividade.
-- **Estado:** Aprovado em 30/10/2026; pendente de implementação.
-- **Dependências:** reutilizar a lista e as regras atuais de Demandas
-  disponíveis para Log Time; não alterar backend, hierarquia ou permissões.
-- **Critérios de aceite:** busca por ID e título, sem diferenciar caixa ou
-  acentos; seleção por mouse, toque e teclado; campo vazio e nenhum resultado
-  tratados claramente, sem criar novas Demandas nem novos filtros.
-- **Evolução futura:** prever espaço/estrutura para ícone de filtro no campo
-  quando houver volume elevado de Demandas. **Não implementar filtros agora**;
-  critérios e comportamento serão decididos em etapa posterior.
+- **Estado:** Novo fluxo aprovado em 03/11/2026, substituindo o escopo anterior
+  de busca apenas no popup inicial; pendente de implementação.
+- **Criação rápida:** o botão **+** deve abrir o **mesmo formulário completo**
+  de criação de Demanda da tela de Demandas, preferencialmente extraído como
+  componente compartilhado, sem duplicação de regras. Após criação bem-sucedida,
+  a nova Demanda deve ficar **automaticamente selecionada** no lançamento;
+  a criação não registra tempo automaticamente. Se o cadastro for cancelado
+  ou falhar, manter o lançamento aberto com os dados já digitados.
+- **Preservação do formulário:** manter data, horários e observação preenchidos
+  ao abrir/fechar o cadastro; preservar a data/hora pré-selecionadas pelo
+  clique no calendário; exigir Demanda válida antes de salvar o lançamento.
+  O diálogo de lançamento deve poder abrir mesmo com a lista de Demandas
+  vazia, permitindo criar a primeira Demanda.
+- **Dependências:** reutilizar endpoints e validações atuais de criação de
+  Demanda e registro de tempo, preservando autorização, hierarquia,
+  formulário de edição de Log Time e demais entradas de lançamento.
+  Na edição de lançamento existente, preservar o vínculo atual, sem
+  introduzir troca de Demanda por este item. Manter LOG-P2-01 separado.
+- **Critérios de aceite:** apenas um popup de lançamento no fluxo normal;
+  busca por ID/título ignorando maiúsculas e acentos, com teclado/mouse/toque;
+  botão **+** chama cadastro compartilhado; seleção automática da Demanda
+  criada; campos de data/hora/observação preservados em sucesso, erro e
+  cancelamento do cadastro; estados sem Demandas/sem resultados claros;
+  validação e salvamento sem regressão.
+- **Evolução futura:** prever espaço para filtro por status/projeto caso o
+  volume de Demandas justifique. **Não implementar filtros agora.**
 
 ### Pacote 4 — Painel lateral de Demandas
 
