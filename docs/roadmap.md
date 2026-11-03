@@ -20,7 +20,10 @@ usa prioridade operacional, conforme sua relação com homologação e produçã
 ## Pacote de refinamento UX — novembro de 2026
 
 Implementação Flutter na branch `feat/refinamento-ux-novembro-2026`, sem
-mudanças de backend e sem publicação.
+mudanças de backend. O commit `fd60790` foi publicado em produção pelo
+[workflow do Cloudflare Pages](https://github.com/Fokelvin/temdas/actions/runs/41701908873).
+A página e os arquivos de inicialização Flutter responderam HTTP 200 em
+`temdas.com.br`.
 
 - Sprint: o resumo abre a Sprint na mesma aba. A lista de vínculos oferece
   somente desvinculação confirmada, conforme estado e hierarquia. A exclusão
@@ -231,8 +234,8 @@ adiado para o último item deste roadmap.
 - **Descrição:** habilitar seleção de texto global com `SelectionArea`, sem
   prejudicar menus, botões, campos ou gestos de interação.
 - **Prioridade:** P2.
-- **Estado:** Implementado na branch de refinamento UX de novembro;
-  pendente de homologação manual e publicação.
+- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
+  manual pendente.
 - **Dependências:** validar interações nas telas e componentes interativos.
 - **Critérios de aceite:** textos informativos podem ser selecionados nas
   telas principais e ações e campos continuam operáveis.
@@ -548,8 +551,8 @@ desta seção autoriza implementação automática.
   Time, carregar no campo **Observação (opcional)** o texto já salvo para
   aquele registro; quando não houver observação, mostrar o campo vazio.
 - **Prioridade:** P2 — correção de UX.
-- **Estado:** Implementado na branch de refinamento UX de novembro;
-  pendente de homologação manual e publicação.
+- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
+  manual pendente.
 - **Dependências:** observação opcional de RegistroTempo já entregue no Pacote
   4; preservar associação com o registro, data, horas e regras de edição.
 - **Critérios de aceite:** a observação existente aparece integralmente ao
@@ -564,8 +567,8 @@ desta seção autoriza implementação automática.
   editável/pesquisável por ID ou título, com opções elegíveis selecionáveis,
   e um botão **+** ao lado para cadastrar uma Demanda sem sair do fluxo.
 - **Prioridade:** P2 — melhoria de produtividade.
-- **Estado:** Implementado na branch de refinamento UX de novembro;
-  pendente de homologação manual e publicação.
+- **Estado:** Publicado no pacote de refinamento UX de novembro. Homologação
+  manual pendente.
 - **Criação rápida:** o botão **+** deve abrir o **mesmo formulário completo**
   de criação de Demanda da tela de Demandas, preferencialmente extraído como
   componente compartilhado, sem duplicação de regras. Após criação bem-sucedida,
