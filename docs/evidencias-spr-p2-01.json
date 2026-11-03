@@ -1,0 +1,142 @@
+{
+  "date": "2026-11-03",
+  "item": "SPR-P2-01",
+  "branch": "feat/spr-p2-01-multiplas-sprints",
+  "base_main": "0bcb62d",
+  "results": {
+    "frontend_analyze": "passed",
+    "backend_analyze": "passed",
+    "targeted_tests": "passed after targeted fixture/expectation corrections",
+    "unresolved_failures": [],
+    "migration_static_tests": 3,
+    "historical_guard_tests": 5,
+    "schema_unit_tests": 2,
+    "release_build_count": 2,
+    "second_build_explicitly_authorized": true,
+    "release_build": "passed"
+  },
+  "boundaries": {
+    "migration_sql_executed": false,
+    "test_database": "owned disposable local PostgreSQL 17.11; clean definition only; automatic migrations disabled",
+    "shared_or_production_data_changed": false,
+    "main_integrated": false,
+    "pushed": false,
+    "production_deployed": false
+  },
+  "coverage": [
+    "multiple disjoint active/planned links",
+    "retroactive Sprint 72 finalizada without active Sprint",
+    "all four states in batch context",
+    "cancel preserves links",
+    "reopen period conflict and changed hierarchy",
+    "inherit all open parent links",
+    "real concurrent independent transactions",
+    "single RPC/no per-Sprint RPCs",
+    "owner isolation and AAL1 rejection",
+    "chronological ordering, detail navigation and responsive widths",
+    "Sem Sprint open-link filtering",
+    "fixed prefix/paste/legacy editing",
+    "unique time records and per-period totals"
+  ],
+  "migration": {
+    "version": "20261103123548408-spr-p2-01",
+    "applied": false,
+    "incremental_rehearsal": "pending separate authorization",
+    "artifacts": {
+      "migration.sql": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
+      "migration.json": "ee848bd1b1810eb6e79c7f96b18342c5b310fcbd4e7e1ad6bc49b04eb11ec126",
+      "definition.json": "1f4460d661e5a98f5bf2cfe5dfaed079b26371a327c14bd6c227d40eb5331426",
+      "definition.sql": "4a6b11d0629bb9f7b825c915b70bd3ebbfa218cf8fdbf5b2a59ae3044e774357",
+      "definition_project.json": "f8acecf8060605c994c37aef8b4aa9bf517a36555ba624a349bd5c0d403214d4"
+    }
+  },
+  "build_artifact": {
+    "path": "/home/kelvin/projetos/temdas/app/build/web/main.dart.js",
+    "sha256": "f8dda7e89e11a49fe01e97433bb38297193466cfc01c104fd6f54a441d7b90fc"
+  },
+  "build_source_hashes": {
+    "app/lib/data/repositories/sprint_repository.dart": "63b63fc0678583c60f587f2e08977920d9baff2b4bf5364ab77108ae72e5ce56",
+    "app/lib/ui/components/demand_components.dart": "7a459d602de6e0a5268f947e5063d031518eaab8ec574485614fe4f8ccef1bd1",
+    "app/lib/view/demanda_detalhe_page.dart": "b1a6eba8a047a578f65111492daa8972d99797914c909ea332b5dc226edeb907",
+    "app/lib/view/demandas_page.dart": "7a84e8f56be8dcb2d6e87a06da43c7511730e829a00d7a05abff5d7bc69ac9c2",
+    "app/lib/view/sprint_page.dart": "14ea1189bf5bcac684927952dd648aecae06bd66fda2da343752935bf03d857b",
+    "app/lib/view_model/demanda_detalhe_view_model.dart": "eb3668db72dbf8a24c9506abc4d5c68c59a88841c1e3c00474ad416674f7eb1f",
+    "app/lib/view_model/sprint_view_model.dart": "6e97fa8d635a4a6b4d8e77c286ed3466819e745d9a164c14a3bdff1256d17b58",
+    "serverpod/temdas_backend/temdas_backend_client/lib/src/protocol/client.dart": "707197c74136a9edf7b5e84a958abfe96528b56badc45c655266c64759a2525e",
+    "serverpod/temdas_backend/temdas_backend_client/lib/src/protocol/protocol.dart": "dac713db03e85fb4c99e21f4f329388cb24645bd86c43635fb31805a880c193e",
+    "serverpod/temdas_backend/temdas_backend_client/lib/src/protocol/sprints/sprint_erro_codigo.dart": "98cfc473e2fe2e9ded605e897c83d4639af525f0fd5e2f1d0f8a227baa1b761f",
+    "app/lib/view/formatters/sprint_apresentacao.dart": "d0a62504cd710ba387116fdff0501e98041c73f19f187b5a5a098e395398e930",
+    "app/lib/view/widgets/sprints_da_demanda.dart": "2245bd678bd48845ba425fd34ef0459d5832139052e8b94c0a36b8143fb2a898"
+  },
+  "execution_logs": [
+    {
+      "path": "/tmp/temdas-spr-analyze-final.log",
+      "sha256": "8e40dec7eb5e369d3e40fd9e286b7aae6465f24307661a342c52e20c9c0a9746"
+    },
+    {
+      "path": "/tmp/temdas-spr-backend-analyze-final.log",
+      "sha256": "42b06d809db4bbba563c0fa06a3bdd07bdb35c054cf73508984440d03fa9a1a6"
+    },
+    {
+      "path": "/tmp/temdas-spr-tests-full.log",
+      "sha256": "5f84d494896c5ead55047cfcc385e7511a37dca9bc33237f323c46fe963bfcda"
+    },
+    {
+      "path": "/tmp/temdas-spr-tests-second.log",
+      "sha256": "eccfd8dcf6220bfc8cba2941767be42498315571690cfb1991e7f223f4ce3f55"
+    },
+    {
+      "path": "/tmp/temdas-spr-tests-third.log",
+      "sha256": "5b3a13cb08b2fe38f5eea6a43aaa0731e57708d4b0379f346e432e6a5a7fa813"
+    },
+    {
+      "path": "/tmp/temdas-spr-backend-tests.log",
+      "sha256": "150f75d70c9bd95f6aeb7c99ea0edf6c7bbb7f51fa7ad0805c27a1f4a3f90684"
+    },
+    {
+      "path": "/tmp/temdas-spr-backend-retest.log",
+      "sha256": "78da432ffd9170e272d94526e4b51e8547915ebc9e2e3c363cc88724f1ad6a92"
+    },
+    {
+      "path": "/tmp/temdas-spr-backend-lote.log",
+      "sha256": "7938fee2fab8f5fcda242c0d1dc34f4960a7cb257b0a8f7bf07b39e3e6cce2fb"
+    },
+    {
+      "path": "/tmp/temdas-spr-no-migrations.log",
+      "sha256": "73447586e9d6380440c9b26082b522c01a225c304cd38a05bc6aaaed3df9a9d8"
+    },
+    {
+      "path": "/tmp/temdas-spr-schema-tests.log",
+      "sha256": "d0cc473bda5a8a9a5029a34b6d0e52e7fe46724c9fafe887812a5f47029c9d9c"
+    },
+    {
+      "path": "/tmp/temdas-spr-reabertura.log",
+      "sha256": "151274e148514cedfc41ff5091a21ff6bb2c5a83e6724a158fe3b032e8ffa8ff"
+    },
+    {
+      "path": "/tmp/temdas-spr-layout-tests-final.log",
+      "sha256": "dc31788080bbf03ad45a1debb58a9a44ff97291bbe6a5e4da340c101829d9fcf"
+    },
+    {
+      "path": "/tmp/temdas-spr-layout-retest-final.log",
+      "sha256": "9404cd1909c4e0776079907dd19c3c89094e7039db8e0cd0fa0769f6559b9b9c"
+    },
+    {
+      "path": "/tmp/temdas-spr-layout-analyze-final.log",
+      "sha256": "8e40dec7eb5e369d3e40fd9e286b7aae6465f24307661a342c52e20c9c0a9746"
+    },
+    {
+      "path": "/tmp/temdas-spr-responsive-final.log",
+      "sha256": "8994c352559e71bfb8c5e3677245009dc267a82e492fab3e3c8a4979a1bab621"
+    },
+    {
+      "path": "/tmp/temdas-spr-build.log",
+      "sha256": "a00acdfa6e60ae1de8512d09ef4b2175526bf508bfbecdfe46565cfa7f8e7e3f"
+    },
+    {
+      "path": "/tmp/temdas-spr-build-final.log",
+      "sha256": "a0eda589414b98c1637e237f8063b9ff743cd3bac9c3782e9aed642ac0bebcf6"
+    }
+  ],
+  "publication_strategy": "docs/spr-p2-01-multiplas-sprints.md; approval pending before merge or deployment"
+}

@@ -1,0 +1,4 @@
+class: SprintContextoDemandas
+fields:
+  sprints: List<Sprint>
+  vinculos: List<SprintDemanda>

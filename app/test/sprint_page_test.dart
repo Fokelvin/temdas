@@ -984,7 +984,10 @@ void main() {
           .enabled,
       isFalse,
     );
-    expect(find.text('Já pertence à Sprint Outra aberta'), findsOneWidget);
+    expect(
+      find.text('Período sobreposto: Sprint Outra aberta · Ativa'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('mostra erro amigável quando o backend rejeita o vínculo', (
@@ -1730,6 +1733,100 @@ void main() {
     repository.criacaoPendente!.complete();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('resumo-sprint-dialog')), findsOneWidget);
+  });
+  testWidgets(
+    'Sprint planejada aceita período diferente e informa vínculo existente',
+    (tester) async {
+      await _configurarTela(tester);
+      final resultado = await _abrirDetalhe(
+        tester,
+        sprints: [
+          _sprint(status: backend.SprintStatus.planejada).copyWith(
+            dataInicio: DateTime.utc(2026, 2, 1),
+            dataFim: DateTime.utc(2026, 2, 7),
+          ),
+          _sprint(id: 8, nome: 'Sprint 72', status: backend.SprintStatus.ativa),
+        ],
+        demandas: [demandaFixture(id: 41, titulo: 'Planejamento futuro')],
+        vinculosPorSprint: {
+          8: [backend.SprintDemanda(sprintId: 8, demandaId: 41)],
+        },
+      );
+      addTearDown(resultado.viewModel.dispose);
+      await tester.tap(find.byKey(const ValueKey('adicionar-demanda-sprint')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ListTile>(
+              find.byKey(const ValueKey('candidata-demanda-sprint-41')),
+            )
+            .enabled,
+        isTrue,
+      );
+      expect(
+        find.text('Vínculos existentes: Sprint 72 · Ativa'),
+        findsOneWidget,
+      );
+      expect(resultado.repository.chamadasContexto, 1);
+    },
+  );
+
+  testWidgets(
+    'prefixo fixo na criação normaliza colagem e persiste complemento',
+    (tester) async {
+      await _configurarTela(tester);
+      final repository = FakeSprintRepository(sprints: []);
+      final vm = SprintViewModel(repository: repository);
+      addTearDown(vm.dispose);
+      await _abrirTelaComCriacao(tester, vm);
+      await _preencherFormCriacao(tester, nome: 'Sprint Sprint 73');
+      final field = tester.widget<TextFormField>(
+        find.byKey(const ValueKey('criar-sprint-nome')),
+      );
+      expect(field.controller!.text, '73');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('criar-sprint-nome')),
+          matching: find.text('Sprint'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('salvar-sprint')));
+      await tester.pumpAndSettle();
+      expect(repository.nomeEnviado, '73');
+      expect(find.text('Sprint Sprint 73'), findsNothing);
+      expect(find.text('Sprint 73'), findsWidgets);
+    },
+  );
+
+  testWidgets('edição de nome legado exibe prefixo uma vez sem migração', (
+    tester,
+  ) async {
+    await _configurarTela(tester);
+    final resultado = await _abrirDetalhe(
+      tester,
+      sprints: [_sprint(nome: 'Sprint Sprint 72')],
+    );
+    addTearDown(resultado.viewModel.dispose);
+    expect(find.text('Sprint 72'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('editar-sprint')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('criar-sprint-nome')),
+          )
+          .controller!
+          .text,
+      '72',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('criar-sprint-nome')),
+      'Sprint 73',
+    );
+    await tester.tap(find.byKey(const ValueKey('salvar-edicao-sprint')));
+    await tester.pumpAndSettle();
+    expect(resultado.repository.nomeAtualizado, '73');
   });
 }
 

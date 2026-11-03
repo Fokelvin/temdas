@@ -115,6 +115,51 @@ void main() {
     expect(find.text('Total: 1h 30min'), findsOneWidget);
     expect(find.text('Editar observação'), findsOneWidget);
   });
+  testWidgets(
+    'painel da Demanda mostra histórico Sprint 72 e navega ao detalhe',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final vm = DemandaDetalheViewModel(
+        demandaRepository: FakeDemandaRepository(
+          demandas: [demandaFixture(id: 1, titulo: 'Histórico')],
+        ),
+        registroTempoRepository: FakeRegistroTempoRepository(registros: []),
+        sprintViewModel: SprintViewModel(
+          repository: FakeSprintRepository(
+            sprints: [
+              backend.Sprint(
+                id: 72,
+                usuarioId: 1,
+                nome: 'Sprint 72',
+                status: backend.SprintStatus.concluida,
+                dataInicio: DateTime.utc(2026, 1, 1),
+                dataFim: DateTime.utc(2026, 1, 7),
+              ),
+            ],
+            vinculosPorSprint: {
+              72: [backend.SprintDemanda(sprintId: 72, demandaId: 1)],
+            },
+          ),
+        ),
+      );
+      addTearDown(vm.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DemandaDetalhePage(demandaId: 1, viewModel: vm),
+          routes: {
+            '/sprint/72': (_) =>
+                const Scaffold(body: Text('Detalhes Sprint 72')),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Sprint 72 · Finalizada'), findsOneWidget);
+      await tester.tap(find.text('Sprint 72 · Finalizada'));
+      await tester.pumpAndSettle();
+      expect(find.text('Detalhes Sprint 72'), findsOneWidget);
+    },
+  );
 }
 
 backend.RegistroTempo _registro({

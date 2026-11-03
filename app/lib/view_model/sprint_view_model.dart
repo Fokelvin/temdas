@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../data/repositories/sprint_repository.dart';
+import '../view/formatters/sprint_apresentacao.dart';
 
 class SprintViewModel extends ChangeNotifier {
   SprintViewModel({SprintRepository? repository})
@@ -86,31 +87,31 @@ class SprintViewModel extends ChangeNotifier {
   /// Retorna, quando disponível, a Sprint aberta que já contém cada Demanda.
   /// Sem sprintIdAtual, inclui os vínculos de todas as Sprints abertas.
   /// A resposta serve apenas para orientar a seleção; o backend valida o vínculo.
-  Future<Map<int, backend.Sprint>?> carregarDemandasDeOutrasSprintsAbertas([
-    int? sprintIdAtual,
-  ]) async {
-    return _executar<Map<int, backend.Sprint>>(
-      operacao: 'verificar vínculos com outras sprints',
+  Future<Map<int, List<backend.Sprint>>?> carregarSprintsDasDemandas({
+    List<int>? demandaIds,
+    int? sprintIdIgnorada,
+  }) async {
+    return _executar<Map<int, List<backend.Sprint>>>(
+      operacao: 'consultar as Sprints vinculadas',
       carregar: true,
       executar: () async {
-        final sprints = await _repository.listarSprints();
-        // Reaproveita a lista já consultada, inclusive Sprints sem vínculos.
+        final contexto = await _repository.listarContextoDemandas(
+          demandaIds: demandaIds,
+        );
         _sprints
           ..clear()
-          ..addAll(sprints);
-        final resultado = <int, backend.Sprint>{};
-        for (final sprint in sprints) {
-          if (sprint.id == null || sprint.id == sprintIdAtual) continue;
-          if (sprint.status != backend.SprintStatus.planejada &&
-              sprint.status != backend.SprintStatus.ativa) {
-            continue;
-          }
-          final vinculos = await _repository.listarDemandasDaSprint(sprint.id!);
-          for (final vinculo in vinculos) {
-            resultado.putIfAbsent(vinculo.demandaId, () => sprint);
-          }
+          ..addAll(contexto.sprints);
+        final porId = {for (final s in contexto.sprints) s.id: s};
+        final resultado = <int, List<backend.Sprint>>{};
+        for (final vinculo in contexto.vinculos) {
+          final sprint = porId[vinculo.sprintId];
+          if (sprint == null || sprint.id == sprintIdIgnorada) continue;
+          final lista = resultado.putIfAbsent(vinculo.demandaId, () => []);
+          if (!lista.any((s) => s.id == sprint.id)) lista.add(sprint);
         }
-        return resultado;
+        return resultado.map(
+          (id, lista) => MapEntry(id, ordenarSprints(lista)),
+        );
       },
     );
   }
@@ -377,6 +378,8 @@ class SprintViewModel extends ChangeNotifier {
           'Informe um tempo previsto maior que zero para iniciar a Sprint.',
         backend.SprintErroCodigo.transicaoStatusInvalida =>
           'Essa transição de status não é permitida para a Sprint.',
+        backend.SprintErroCodigo.hierarquiaSprintInvalida =>
+          'A hierarquia das Demandas mudou. Revise os vínculos antes de reabrir a Sprint.',
         backend.SprintErroCodigo.demandaOutraSprintAberta =>
           'Esta Demanda já pertence a outra Sprint em aberto.',
         backend.SprintErroCodigo.vinculoStatusProibido =>

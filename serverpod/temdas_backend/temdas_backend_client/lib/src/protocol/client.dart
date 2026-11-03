@@ -41,15 +41,17 @@ import 'package:temdas_backend_client/src/protocol/relatorios/relatorio_demanda_
 import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i16;
 import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
     as _i17;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_create_request.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_contexto_demandas.dart'
     as _i18;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_update_request.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_create_request.dart'
     as _i19;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_response.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_update_request.dart'
     as _i20;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_response.dart'
     as _i21;
-import 'protocol.dart' as _i22;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
+    as _i22;
+import 'protocol.dart' as _i23;
 
 /// {@category Endpoint}
 class EndpointConvite extends _i1.EndpointRef {
@@ -364,14 +366,24 @@ class EndpointSprint extends _i1.EndpointRef {
         {'sprintId': sprintId},
       );
 
-  _i2.Future<_i16.Sprint> criarSprint(_i18.SprintCreateRequest request) =>
+  /// One RPC and three bounded queries, regardless of the number of Sprints.
+  /// Both sides of each persisted link must belong to the authenticated owner.
+  _i2.Future<_i18.SprintContextoDemandas> listarContextoDemandas(
+    List<int>? demandaIds,
+  ) => caller.callServerEndpoint<_i18.SprintContextoDemandas>(
+    'sprint',
+    'listarContextoDemandas',
+    {'demandaIds': demandaIds},
+  );
+
+  _i2.Future<_i16.Sprint> criarSprint(_i19.SprintCreateRequest request) =>
       caller.callServerEndpoint<_i16.Sprint>(
         'sprint',
         'criarSprint',
         {'request': request},
       );
 
-  _i2.Future<_i16.Sprint> atualizarSprint(_i19.SprintUpdateRequest request) =>
+  _i2.Future<_i16.Sprint> atualizarSprint(_i20.SprintUpdateRequest request) =>
       caller.callServerEndpoint<_i16.Sprint>(
         'sprint',
         'atualizarSprint',
@@ -392,22 +404,22 @@ class EndpointSprint extends _i1.EndpointRef {
         {'id': id},
       );
 
-  _i2.Future<_i20.SprintConclusaoResponse> concluirSprint(int id) =>
-      caller.callServerEndpoint<_i20.SprintConclusaoResponse>(
+  _i2.Future<_i21.SprintConclusaoResponse> concluirSprint(int id) =>
+      caller.callServerEndpoint<_i21.SprintConclusaoResponse>(
         'sprint',
         'concluirSprint',
         {'id': id},
       );
 
-  _i2.Future<_i20.SprintConclusaoResponse> obterResumoConclusaoSprint(int id) =>
-      caller.callServerEndpoint<_i20.SprintConclusaoResponse>(
+  _i2.Future<_i21.SprintConclusaoResponse> obterResumoConclusaoSprint(int id) =>
+      caller.callServerEndpoint<_i21.SprintConclusaoResponse>(
         'sprint',
         'obterResumoConclusaoSprint',
         {'id': id},
       );
 
-  _i2.Future<_i21.SprintIndicadores> calcularIndicadoresSprint(int id) =>
-      caller.callServerEndpoint<_i21.SprintIndicadores>(
+  _i2.Future<_i22.SprintIndicadores> calcularIndicadoresSprint(int id) =>
+      caller.callServerEndpoint<_i22.SprintIndicadores>(
         'sprint',
         'calcularIndicadoresSprint',
         {'id': id},
@@ -487,7 +499,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i22.Protocol(),
+         _i23.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

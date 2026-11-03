@@ -250,6 +250,18 @@ void main() {
 }
 
 class _FakeSprintRepository implements SprintRepository {
+  @override
+  Future<backend.SprintContextoDemandas> listarContextoDemandas({
+    List<int>? demandaIds,
+  }) async => backend.SprintContextoDemandas(
+    sprints: _sprints.values.toList(),
+    vinculos: [
+      for (final vs in _vinculos.values)
+        for (final v in vs)
+          if (demandaIds == null || demandaIds.contains(v.demandaId)) v,
+    ],
+  );
+
   Object? erro;
   Completer<backend.SprintIndicadores>? indicadoresPendentes;
   Completer<List<backend.Sprint>>? sprintsPendentes;

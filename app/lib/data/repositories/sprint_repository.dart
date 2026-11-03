@@ -8,6 +8,10 @@ class SprintRepository {
 
   final backend.Client _client;
 
+  Future<backend.SprintContextoDemandas> listarContextoDemandas({
+    List<int>? demandaIds,
+  }) => _client.sprint.listarContextoDemandas(demandaIds);
+
   Future<List<backend.Sprint>> listarSprints() =>
       _client.sprint.listarSprints();
 

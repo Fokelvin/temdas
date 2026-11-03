@@ -214,7 +214,10 @@ adiado para o último item deste roadmap.
   impede seu vínculo à Sprint futura planejada enquanto ela participa de
   outra Sprint ativa ou planejada, mesmo com períodos não sobrepostos.
 - **Prioridade:** P2 — melhoria funcional aprovada em 30/10/2026.
-- **Estado:** Escopo e regras aprovados; pendente de implementação.
+- **Estado:** Implementado em branch em 03/11/2026; validações direcionadas e
+  build local registrados em [SPR-P2-01](spr-p2-01-multiplas-sprints.md).
+  Migration preparada, não aplicada. Integração à `main`, ensaio incremental e
+  publicação coordenada aguardam validação/aprovação separadas.
 - **Regra de vínculo:** permitir uma Demanda vinculada à Sprint ativa e
   simultaneamente a Sprints futuras planejadas, inclusive mais de uma, desde
   que os períodos não se sobreponham. Preservar o histórico das Sprints

@@ -7,3 +7,5 @@ indexes:
   sprints_demandas_sprint_demanda_idx:
     fields: sprintId, demandaId
     unique: true
+  sprints_demandas_demanda_idx:
+    fields: demandaId

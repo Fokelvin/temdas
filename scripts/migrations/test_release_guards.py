@@ -38,9 +38,9 @@ class ReleaseGuardArtifactTests(unittest.TestCase):
         with self.assertRaises(release.v.ValidationError):
             release.correction_delta(before, after)
 
-    def test_corrective_migration_is_last_and_requires_package4(self):
+    def test_corrective_migration_follows_package4_and_requires_it(self):
         registry = release.v.load_registry()
-        self.assertEqual(registry[-2:], [release.P4, release.FIX])
+        self.assertEqual(registry.index(release.FIX), registry.index(release.P4) + 1)
         sql = release.sql(release.FIX)
         self.assertIn("version = '" + release.P4 + "'", sql)
         self.assertIn("lock_timeout = '5s'", sql)

@@ -38,24 +38,25 @@ import 'relatorios/relatorio_demanda_request.dart' as _i24;
 import 'relatorios/relatorio_demandas_response.dart' as _i25;
 import 'sprints/sprint.dart' as _i26;
 import 'sprints/sprint_conclusao_response.dart' as _i27;
-import 'sprints/sprint_create_request.dart' as _i28;
-import 'sprints/sprint_demanda.dart' as _i29;
-import 'sprints/sprint_erro_codigo.dart' as _i30;
-import 'sprints/sprint_exception.dart' as _i31;
-import 'sprints/sprint_indicadores.dart' as _i32;
-import 'sprints/sprint_status.dart' as _i33;
-import 'sprints/sprint_update_request.dart' as _i34;
-import 'usuarios/email_whitelist.dart' as _i35;
-import 'usuarios/usuario.dart' as _i36;
+import 'sprints/sprint_contexto_demandas.dart' as _i28;
+import 'sprints/sprint_create_request.dart' as _i29;
+import 'sprints/sprint_demanda.dart' as _i30;
+import 'sprints/sprint_erro_codigo.dart' as _i31;
+import 'sprints/sprint_exception.dart' as _i32;
+import 'sprints/sprint_indicadores.dart' as _i33;
+import 'sprints/sprint_status.dart' as _i34;
+import 'sprints/sprint_update_request.dart' as _i35;
+import 'usuarios/email_whitelist.dart' as _i36;
+import 'usuarios/usuario.dart' as _i37;
 import 'package:temdas_backend_client/src/protocol/anotacoes/anotacao_demanda.dart'
-    as _i37;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
     as _i38;
-import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
     as _i39;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i40;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
+    as _i40;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i41;
 import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
-    as _i41;
+    as _i42;
 export 'admin/convite_exception.dart';
 export 'anotacoes/anotacao_demanda.dart';
 export 'auth/auth_exception.dart';
@@ -82,6 +83,7 @@ export 'relatorios/relatorio_demanda_request.dart';
 export 'relatorios/relatorio_demandas_response.dart';
 export 'sprints/sprint.dart';
 export 'sprints/sprint_conclusao_response.dart';
+export 'sprints/sprint_contexto_demandas.dart';
 export 'sprints/sprint_create_request.dart';
 export 'sprints/sprint_demanda.dart';
 export 'sprints/sprint_erro_codigo.dart';
@@ -205,32 +207,35 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i27.SprintConclusaoResponse) {
       return _i27.SprintConclusaoResponse.fromJson(data) as T;
     }
-    if (t == _i28.SprintCreateRequest) {
-      return _i28.SprintCreateRequest.fromJson(data) as T;
+    if (t == _i28.SprintContextoDemandas) {
+      return _i28.SprintContextoDemandas.fromJson(data) as T;
     }
-    if (t == _i29.SprintDemanda) {
-      return _i29.SprintDemanda.fromJson(data) as T;
+    if (t == _i29.SprintCreateRequest) {
+      return _i29.SprintCreateRequest.fromJson(data) as T;
     }
-    if (t == _i30.SprintErroCodigo) {
-      return _i30.SprintErroCodigo.fromJson(data) as T;
+    if (t == _i30.SprintDemanda) {
+      return _i30.SprintDemanda.fromJson(data) as T;
     }
-    if (t == _i31.SprintException) {
-      return _i31.SprintException.fromJson(data) as T;
+    if (t == _i31.SprintErroCodigo) {
+      return _i31.SprintErroCodigo.fromJson(data) as T;
     }
-    if (t == _i32.SprintIndicadores) {
-      return _i32.SprintIndicadores.fromJson(data) as T;
+    if (t == _i32.SprintException) {
+      return _i32.SprintException.fromJson(data) as T;
     }
-    if (t == _i33.SprintStatus) {
-      return _i33.SprintStatus.fromJson(data) as T;
+    if (t == _i33.SprintIndicadores) {
+      return _i33.SprintIndicadores.fromJson(data) as T;
     }
-    if (t == _i34.SprintUpdateRequest) {
-      return _i34.SprintUpdateRequest.fromJson(data) as T;
+    if (t == _i34.SprintStatus) {
+      return _i34.SprintStatus.fromJson(data) as T;
     }
-    if (t == _i35.EmailWhitelist) {
-      return _i35.EmailWhitelist.fromJson(data) as T;
+    if (t == _i35.SprintUpdateRequest) {
+      return _i35.SprintUpdateRequest.fromJson(data) as T;
     }
-    if (t == _i36.Usuario) {
-      return _i36.Usuario.fromJson(data) as T;
+    if (t == _i36.EmailWhitelist) {
+      return _i36.EmailWhitelist.fromJson(data) as T;
+    }
+    if (t == _i37.Usuario) {
+      return _i37.Usuario.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.ConviteException?>()) {
       return (data != null ? _i2.ConviteException.fromJson(data) : null) as T;
@@ -344,34 +349,38 @@ class Protocol extends _i1.SerializationManager {
       return (data != null ? _i27.SprintConclusaoResponse.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i28.SprintCreateRequest?>()) {
-      return (data != null ? _i28.SprintCreateRequest.fromJson(data) : null)
+    if (t == _i1.getType<_i28.SprintContextoDemandas?>()) {
+      return (data != null ? _i28.SprintContextoDemandas.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i29.SprintDemanda?>()) {
-      return (data != null ? _i29.SprintDemanda.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i30.SprintErroCodigo?>()) {
-      return (data != null ? _i30.SprintErroCodigo.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i31.SprintException?>()) {
-      return (data != null ? _i31.SprintException.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i32.SprintIndicadores?>()) {
-      return (data != null ? _i32.SprintIndicadores.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i33.SprintStatus?>()) {
-      return (data != null ? _i33.SprintStatus.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i34.SprintUpdateRequest?>()) {
-      return (data != null ? _i34.SprintUpdateRequest.fromJson(data) : null)
+    if (t == _i1.getType<_i29.SprintCreateRequest?>()) {
+      return (data != null ? _i29.SprintCreateRequest.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i35.EmailWhitelist?>()) {
-      return (data != null ? _i35.EmailWhitelist.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i30.SprintDemanda?>()) {
+      return (data != null ? _i30.SprintDemanda.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i36.Usuario?>()) {
-      return (data != null ? _i36.Usuario.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i31.SprintErroCodigo?>()) {
+      return (data != null ? _i31.SprintErroCodigo.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i32.SprintException?>()) {
+      return (data != null ? _i32.SprintException.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i33.SprintIndicadores?>()) {
+      return (data != null ? _i33.SprintIndicadores.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i34.SprintStatus?>()) {
+      return (data != null ? _i34.SprintStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i35.SprintUpdateRequest?>()) {
+      return (data != null ? _i35.SprintUpdateRequest.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i36.EmailWhitelist?>()) {
+      return (data != null ? _i36.EmailWhitelist.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i37.Usuario?>()) {
+      return (data != null ? _i37.Usuario.fromJson(data) : null) as T;
     }
     if (t == List<_i21.RegistroTempoObservacao>) {
       return (data as List)
@@ -393,34 +402,50 @@ class Protocol extends _i1.SerializationManager {
               .toList()
           as T;
     }
-    if (t == List<_i37.AnotacaoDemanda>) {
+    if (t == List<_i26.Sprint>) {
+      return (data as List).map((e) => deserialize<_i26.Sprint>(e)).toList()
+          as T;
+    }
+    if (t == List<_i30.SprintDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i37.AnotacaoDemanda>(e))
+              .map((e) => deserialize<_i30.SprintDemanda>(e))
               .toList()
           as T;
     }
-    if (t == List<_i38.Demanda>) {
-      return (data as List).map((e) => deserialize<_i38.Demanda>(e)).toList()
-          as T;
-    }
-    if (t == List<_i39.RegistroTempo>) {
+    if (t == List<_i38.AnotacaoDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i39.RegistroTempo>(e))
+              .map((e) => deserialize<_i38.AnotacaoDemanda>(e))
               .toList()
           as T;
     }
-    if (t == List<_i40.Sprint>) {
-      return (data as List).map((e) => deserialize<_i40.Sprint>(e)).toList()
+    if (t == List<_i39.Demanda>) {
+      return (data as List).map((e) => deserialize<_i39.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i41.SprintDemanda>) {
+    if (t == List<_i40.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i41.SprintDemanda>(e))
+              .map((e) => deserialize<_i40.RegistroTempo>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i41.Sprint>) {
+      return (data as List).map((e) => deserialize<_i41.Sprint>(e)).toList()
+          as T;
+    }
+    if (t == List<_i42.SprintDemanda>) {
+      return (data as List)
+              .map((e) => deserialize<_i42.SprintDemanda>(e))
               .toList()
           as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
+    }
+    if (t == _i1.getType<List<int>?>()) {
+      return (data != null
+              ? (data as List).map((e) => deserialize<int>(e)).toList()
+              : null)
+          as T;
     }
     return super.deserialize<T>(data, t);
   }
@@ -453,15 +478,16 @@ class Protocol extends _i1.SerializationManager {
       _i25.RelatorioDemandasResponse => 'RelatorioDemandasResponse',
       _i26.Sprint => 'Sprint',
       _i27.SprintConclusaoResponse => 'SprintConclusaoResponse',
-      _i28.SprintCreateRequest => 'SprintCreateRequest',
-      _i29.SprintDemanda => 'SprintDemanda',
-      _i30.SprintErroCodigo => 'SprintErroCodigo',
-      _i31.SprintException => 'SprintException',
-      _i32.SprintIndicadores => 'SprintIndicadores',
-      _i33.SprintStatus => 'SprintStatus',
-      _i34.SprintUpdateRequest => 'SprintUpdateRequest',
-      _i35.EmailWhitelist => 'EmailWhitelist',
-      _i36.Usuario => 'Usuario',
+      _i28.SprintContextoDemandas => 'SprintContextoDemandas',
+      _i29.SprintCreateRequest => 'SprintCreateRequest',
+      _i30.SprintDemanda => 'SprintDemanda',
+      _i31.SprintErroCodigo => 'SprintErroCodigo',
+      _i32.SprintException => 'SprintException',
+      _i33.SprintIndicadores => 'SprintIndicadores',
+      _i34.SprintStatus => 'SprintStatus',
+      _i35.SprintUpdateRequest => 'SprintUpdateRequest',
+      _i36.EmailWhitelist => 'EmailWhitelist',
+      _i37.Usuario => 'Usuario',
       _ => null,
     };
   }
@@ -531,23 +557,25 @@ class Protocol extends _i1.SerializationManager {
         return 'Sprint';
       case _i27.SprintConclusaoResponse():
         return 'SprintConclusaoResponse';
-      case _i28.SprintCreateRequest():
+      case _i28.SprintContextoDemandas():
+        return 'SprintContextoDemandas';
+      case _i29.SprintCreateRequest():
         return 'SprintCreateRequest';
-      case _i29.SprintDemanda():
+      case _i30.SprintDemanda():
         return 'SprintDemanda';
-      case _i30.SprintErroCodigo():
+      case _i31.SprintErroCodigo():
         return 'SprintErroCodigo';
-      case _i31.SprintException():
+      case _i32.SprintException():
         return 'SprintException';
-      case _i32.SprintIndicadores():
+      case _i33.SprintIndicadores():
         return 'SprintIndicadores';
-      case _i33.SprintStatus():
+      case _i34.SprintStatus():
         return 'SprintStatus';
-      case _i34.SprintUpdateRequest():
+      case _i35.SprintUpdateRequest():
         return 'SprintUpdateRequest';
-      case _i35.EmailWhitelist():
+      case _i36.EmailWhitelist():
         return 'EmailWhitelist';
-      case _i36.Usuario():
+      case _i37.Usuario():
         return 'Usuario';
     }
     return null;
@@ -637,32 +665,35 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'SprintConclusaoResponse') {
       return deserialize<_i27.SprintConclusaoResponse>(data['data']);
     }
+    if (dataClassName == 'SprintContextoDemandas') {
+      return deserialize<_i28.SprintContextoDemandas>(data['data']);
+    }
     if (dataClassName == 'SprintCreateRequest') {
-      return deserialize<_i28.SprintCreateRequest>(data['data']);
+      return deserialize<_i29.SprintCreateRequest>(data['data']);
     }
     if (dataClassName == 'SprintDemanda') {
-      return deserialize<_i29.SprintDemanda>(data['data']);
+      return deserialize<_i30.SprintDemanda>(data['data']);
     }
     if (dataClassName == 'SprintErroCodigo') {
-      return deserialize<_i30.SprintErroCodigo>(data['data']);
+      return deserialize<_i31.SprintErroCodigo>(data['data']);
     }
     if (dataClassName == 'SprintException') {
-      return deserialize<_i31.SprintException>(data['data']);
+      return deserialize<_i32.SprintException>(data['data']);
     }
     if (dataClassName == 'SprintIndicadores') {
-      return deserialize<_i32.SprintIndicadores>(data['data']);
+      return deserialize<_i33.SprintIndicadores>(data['data']);
     }
     if (dataClassName == 'SprintStatus') {
-      return deserialize<_i33.SprintStatus>(data['data']);
+      return deserialize<_i34.SprintStatus>(data['data']);
     }
     if (dataClassName == 'SprintUpdateRequest') {
-      return deserialize<_i34.SprintUpdateRequest>(data['data']);
+      return deserialize<_i35.SprintUpdateRequest>(data['data']);
     }
     if (dataClassName == 'EmailWhitelist') {
-      return deserialize<_i35.EmailWhitelist>(data['data']);
+      return deserialize<_i36.EmailWhitelist>(data['data']);
     }
     if (dataClassName == 'Usuario') {
-      return deserialize<_i36.Usuario>(data['data']);
+      return deserialize<_i37.Usuario>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

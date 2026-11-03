@@ -151,7 +151,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await filter(tester, 'Prioridade', 'Alta');
-      await filter(tester, 'Sprint', 'Ciclo 1');
+      await filter(tester, 'Sprint', 'Sprint Ciclo 1');
       expect(find.text('Filtros (2)'), findsOneWidget);
       expect(find.byKey(const ValueKey('demanda-card-1')), findsOneWidget);
       expect(find.byKey(const ValueKey('demanda-card-2')), findsOneWidget);
@@ -229,11 +229,8 @@ void main() {
     tester,
   ) async {
     await open(tester, sprints: [sprint(8, b.SprintStatus.planejada)]);
-    await filter(tester, 'Sprint', 'Ciclo 8');
-    expect(
-      find.text('Nenhuma demanda encontrada'),
-      findsOneWidget,
-    );
+    await filter(tester, 'Sprint', 'Sprint Ciclo 8');
+    expect(find.text('Nenhuma demanda encontrada'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

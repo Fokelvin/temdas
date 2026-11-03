@@ -53,6 +53,44 @@ class SprintEndpoint extends Endpoint {
     );
   }
 
+  /// One RPC and three bounded queries, regardless of the number of Sprints.
+  /// Both sides of each persisted link must belong to the authenticated owner.
+  Future<SprintContextoDemandas> listarContextoDemandas(
+    Session session,
+    List<int>? demandaIds,
+  ) async {
+    final usuarioId = await _owner(session);
+    // Fetch IDs only: descriptions/observations can be large and are not needed.
+    final rows = await session.db.unsafeQuery(
+      'SELECT id FROM public.demandas WHERE "usuarioId" = @owner'
+      '${demandaIds == null ? '' : ' AND id = ANY(@ids::bigint[])'}',
+      parameters: QueryParameters.named({
+        'owner': usuarioId,
+        if (demandaIds != null) 'ids': demandaIds.toSet().toList(),
+      }),
+    );
+    final ids = rows.map((row) => row[0] as int).toSet();
+    final encontrados = ids.isEmpty
+        ? <SprintDemanda>[]
+        : await SprintDemanda.db.find(
+            session,
+            where: (t) => t.demandaId.inSet(ids),
+            orderBy: (t) => t.demandaId,
+          );
+    final sprintIds = encontrados.map((v) => v.sprintId).toSet();
+    final sprints = await Sprint.db.find(
+      session,
+      where: (t) => demandaIds == null
+          ? t.usuarioId.equals(usuarioId)
+          : t.usuarioId.equals(usuarioId) & t.id.inSet(sprintIds),
+    );
+    final permitidos = sprints.map((s) => s.id!).toSet();
+    final vinculos = encontrados
+        .where((v) => permitidos.contains(v.sprintId))
+        .toList();
+    return SprintContextoDemandas(sprints: sprints, vinculos: vinculos);
+  }
+
   Future<Sprint> criarSprint(
     Session session,
     SprintCreateRequest request,
@@ -375,14 +413,6 @@ class SprintEndpoint extends Endpoint {
         }
       }
 
-      if (destino == SprintStatus.cancelada) {
-        await _demandaService.removerTodosVinculosDaSprint(
-          session,
-          sprintId: sprint.id!,
-          transaction: transaction,
-        );
-      }
-
       await _validarSemSobreposicao(
         session,
         dataInicio: sprint.dataInicio,
@@ -526,6 +556,6 @@ class SprintEndpoint extends Endpoint {
 
   String _normalizarNome(String valor) => valor
       .trim()
-      .replaceFirst(RegExp(r'^sprint(?:\s+|$)', caseSensitive: false), '')
+      .replaceFirst(RegExp(r'^(?:sprint(?:\s+|$))+', caseSensitive: false), '')
       .trim();
 }
