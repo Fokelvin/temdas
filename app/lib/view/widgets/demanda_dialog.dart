@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../formatters/demanda_identificacao.dart';
+import 'sprint_vinculos_editor.dart';
+import '../../view_model/sprint_view_model.dart';
 import '../../view_model/demandas_view_model.dart';
 
 /// Cadastro completo compartilhado por Demandas e pelo lançamento de tempo.
 class CriarDemandaDialog extends StatefulWidget {
-  const CriarDemandaDialog({super.key, required this.viewModel});
+  const CriarDemandaDialog({
+    super.key,
+    required this.viewModel,
+    this.sprintViewModel,
+  });
+  final SprintViewModel? sprintViewModel;
   final DemandasViewModel viewModel;
   @override
   State<CriarDemandaDialog> createState() => _CriarDemandaDialogState();
@@ -14,6 +21,8 @@ class CriarDemandaDialog extends StatefulWidget {
 
 class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
   final _form = GlobalKey<FormState>();
+  final _sprints = GlobalKey<SprintVinculosEditorState>();
+  bool _salvando = false;
   final _titulo = TextEditingController();
   final _descricao = TextEditingController();
   final _horas = TextEditingController(text: '1');
@@ -29,8 +38,15 @@ class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
   }
 
   Future<void> _salvar() async {
-    if (widget.viewModel.enviando || !_form.currentState!.validate()) return;
-    setState(() => _erro = null);
+    if (_salvando ||
+        widget.viewModel.enviando ||
+        !_form.currentState!.validate()) {
+      return;
+    }
+    setState(() {
+      _erro = null;
+      _salvando = true;
+    });
     final descricao = _descricao.text.trim();
     final criada = await widget.viewModel.criarDemanda(
       titulo: _titulo.text.trim(),
@@ -41,12 +57,21 @@ class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
     if (!mounted) return;
     final demanda = widget.viewModel.demandaCriada;
     if (criada && demanda?.id != null) {
-      Navigator.pop(context, demanda);
+      final falhas = await _sprints.currentState!.aplicar(demanda!.id!);
+      if (!mounted) return;
+      if (falhas.isNotEmpty) {
+        await mostrarFalhasDeVinculos(
+          context,
+          'Demanda criada com pendências nas Sprints',
+          falhas,
+        );
+      }
+      if (mounted) Navigator.pop(context, demanda);
     } else {
-      setState(
-        () => _erro =
-            widget.viewModel.erro ?? 'Não foi possível criar a Demanda.',
-      );
+      setState(() {
+        _salvando = false;
+        _erro = widget.viewModel.erro ?? 'Não foi possível criar a Demanda.';
+      });
     }
   }
 
@@ -54,7 +79,7 @@ class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.viewModel,
     builder: (context, _) {
-      final ocupado = widget.viewModel.enviando;
+      final ocupado = _salvando || widget.viewModel.enviando;
       return PopScope(
         canPop: !ocupado,
         child: AlertDialog(
@@ -125,6 +150,12 @@ class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
                       labelText: 'Tempo estimado (horas)',
                     ),
                     validator: _validarHorasEstimadas,
+                  ),
+                  const SizedBox(height: 16),
+                  SprintVinculosEditor(
+                    key: _sprints,
+                    viewModel: widget.sprintViewModel,
+                    ocupado: ocupado,
                   ),
                   if (_erro != null) ...[
                     const SizedBox(height: 16),
@@ -348,9 +379,13 @@ class EditarDemandaDialog extends StatefulWidget {
     super.key,
     required this.demanda,
     required this.onSalvar,
+    this.sprintViewModel,
+    this.gerenciarSprints = true,
   });
 
   final backend.Demanda demanda;
+  final SprintViewModel? sprintViewModel;
+  final bool gerenciarSprints;
   final Future<bool> Function(DemandaEdicaoFormData) onSalvar;
 
   @override
@@ -359,6 +394,7 @@ class EditarDemandaDialog extends StatefulWidget {
 
 class _EditarDemandaDialogState extends State<EditarDemandaDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _sprints = GlobalKey<SprintVinculosEditorState>();
   late final TextEditingController _tituloController;
   late final TextEditingController _descricaoController;
   late final TextEditingController _tempoController;
@@ -467,6 +503,14 @@ class _EditarDemandaDialogState extends State<EditarDemandaDialog> {
                     ),
                     validator: _validarHorasEstimadas,
                   ),
+                  const SizedBox(height: 16),
+                  if (widget.gerenciarSprints && widget.demanda.id != null)
+                    SprintVinculosEditor(
+                      key: _sprints,
+                      demandaId: widget.demanda.id,
+                      viewModel: widget.sprintViewModel,
+                      ocupado: _enviando,
+                    ),
                 ],
               ),
             ),
@@ -508,6 +552,19 @@ class _EditarDemandaDialogState extends State<EditarDemandaDialog> {
           prioridade: _prioridade,
         ),
       );
+      if (!mounted) return;
+      final editor = _sprints.currentState;
+      if (atualizada && editor != null) {
+        final falhas = await editor.aplicar(widget.demanda.id!);
+        if (!mounted) return;
+        if (falhas.isNotEmpty) {
+          await mostrarFalhasDeVinculos(
+            context,
+            'Campos salvos com pendências nas Sprints',
+            falhas,
+          );
+        }
+      }
       if (mounted) Navigator.pop(context, atualizada);
     } finally {
       if (mounted) setState(() => _enviando = false);

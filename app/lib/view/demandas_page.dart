@@ -1,3 +1,4 @@
+import 'widgets/sprint_vinculos_editor.dart';
 import 'widgets/sprints_da_demanda.dart';
 import 'formatters/sprint_apresentacao.dart';
 import '../ui/components/app_shell.dart';
@@ -43,6 +44,9 @@ class _DemandasPageState extends State<DemandasPage> {
   bool _carregandoSprints = true;
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
+  bool _selecionando = false;
+  bool _vinculandoLote = false;
+  final _selecionadas = <int>{};
 
   backend.Prioridade? _filtroPrioridade;
   DensidadeDemanda _densidade = DensidadeDemanda.compacta;
@@ -113,6 +117,23 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   Widget _vinculoSprint(backend.Demanda demanda) {
+    final id = demanda.id;
+    if (_selecionando && id != null) {
+      return Checkbox(
+        key: ValueKey('selecionar-demanda-sprint-$id'),
+        semanticLabel: 'Selecionar ${formatarIdentificacaoDemanda(demanda)}',
+        value: _selecionadas.contains(id),
+        onChanged: _vinculandoLote
+            ? null
+            : (marcada) => setState(() {
+                if (marcada == true) {
+                  _selecionadas.add(id);
+                } else {
+                  _selecionadas.remove(id);
+                }
+              }),
+      );
+    }
     if (_carregandoSprints || _erroSprints != null) {
       return Text(
         _carregandoSprints ? 'Consultando Sprint…' : 'Sprint indisponível',
@@ -245,10 +266,14 @@ class _DemandasPageState extends State<DemandasPage> {
     final criada = await showDialog<backend.Demanda>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => CriarDemandaDialog(viewModel: _viewModel),
+      builder: (_) => CriarDemandaDialog(
+        viewModel: _viewModel,
+        sprintViewModel: _sprintViewModel,
+      ),
     );
     if (criada != null && mounted) {
-      _mostrarFeedback('Demanda criada com sucesso.', erro: false);
+      await _carregarSprints();
+      if (mounted) _mostrarFeedback('Demanda criada com sucesso.', erro: false);
     }
   }
 
@@ -292,6 +317,7 @@ class _DemandasPageState extends State<DemandasPage> {
       context: context,
       builder: (_) => EditarDemandaDialog(
         demanda: demanda,
+        sprintViewModel: _sprintViewModel,
         onSalvar: (dados) => _viewModel.atualizarDemanda(
           demanda: demanda,
           titulo: dados.titulo,
@@ -304,6 +330,8 @@ class _DemandasPageState extends State<DemandasPage> {
     );
 
     if (atualizada == null || !mounted) return;
+    if (atualizada) await _carregarSprints();
+    if (!mounted) return;
     _mostrarFeedback(
       atualizada
           ? 'Demanda atualizada com sucesso.'
@@ -556,7 +584,11 @@ class _DemandasPageState extends State<DemandasPage> {
       _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
       return;
     }
-    await mostrarDetalhesDemandaDialog(context, id);
+    await mostrarDetalhesDemandaDialog(
+      context,
+      id,
+      onVinculosAlterados: _carregarSprints,
+    );
     if (!mounted) return;
     await _viewModel.carregarDemandas();
     if (mounted) await _carregarSprints();
@@ -614,12 +646,54 @@ class _DemandasPageState extends State<DemandasPage> {
     );
   }
 
+  Future<void> _vincularLote(List<int> ids) async {
+    if (_vinculandoLote || ids.isEmpty) return;
+    setState(() => _vinculandoLote = true);
+    try {
+      final sprint = await selecionarSprintParaVincular(
+        context,
+        viewModel: _sprintViewModel,
+        descricao:
+            'Vincular ${ids.length} Demandas selecionadas. O vínculo pode incluir suas filhas.',
+      );
+      if (!mounted || sprint == null) return;
+      final sucesso = await _sprintViewModel.vincularDemandas(
+        sprintId: sprint.id!,
+        demandaIds: ids,
+      );
+      if (!mounted) return;
+      final erro = _sprintViewModel.erro;
+      if (sucesso) {
+        setState(() {
+          _selecionadas.clear();
+          _selecionando = false;
+        });
+      }
+      await _carregarSprints();
+      if (mounted) {
+        _mostrarFeedback(
+          sucesso
+              ? 'Demandas vinculadas à ${nomeSprint(sprint.nome)}.'
+              : erro ?? 'Não foi possível confirmar os vínculos.',
+          erro: !sucesso,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _vinculandoLote = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([_viewModel, _visualizacao]),
       builder: (context, _) {
         final resultadoBusca = _resultadoBusca();
+        final selecionadasVisiveis = resultadoBusca.demandas
+            .map((d) => d.id)
+            .whereType<int>()
+            .where(_selecionadas.contains)
+            .toList();
         final lista = _visualizacao.value == VisualizacaoDemandas.lista;
         final mobile = MediaQuery.sizeOf(context).width < 600;
         final tree = DemandaTree(
@@ -636,7 +710,7 @@ class _DemandasPageState extends State<DemandasPage> {
           autoExpandIds: resultadoBusca.autoExpandIds,
           focoDemandaId: resultadoBusca.focoDemandaId,
           focoVersao: _filtroVersao,
-          dragHabilitado: !_filtrosAtivos,
+          dragHabilitado: !_filtrosAtivos && !_selecionando,
           acoesHabilitadas:
               !_viewModel.envioGlobalEmAndamento && !_viewModel.carregando,
           demandasEmProcessamento: {
@@ -698,6 +772,38 @@ class _DemandasPageState extends State<DemandasPage> {
                       icon: const Icon(Symbols.refresh_rounded),
                     ),
                   ),
+                Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _vinculandoLote
+                          ? null
+                          : () => setState(() {
+                              _selecionando = !_selecionando;
+                              _selecionadas.clear();
+                            }),
+                      icon: Icon(_selecionando ? Icons.close : Icons.checklist),
+                      label: Text(
+                        _selecionando
+                            ? 'Cancelar seleção'
+                            : 'Selecionar Demandas',
+                      ),
+                    ),
+                    if (_selecionando)
+                      FilledButton(
+                        onPressed:
+                            _vinculandoLote ||
+                                _carregandoSprints ||
+                                selecionadasVisiveis.isEmpty
+                            ? null
+                            : () => _vincularLote(selecionadasVisiveis),
+                        child: Text(
+                          'Vincular à Sprint (${selecionadasVisiveis.length})',
+                        ),
+                      ),
+                  ],
+                ),
                 if (lista && resultadoBusca.demandas.isNotEmpty)
                   const DemandTableHeader(),
                 Expanded(

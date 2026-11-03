@@ -100,8 +100,7 @@ class SprintViewModel extends ChangeNotifier {
     return true;
   }
 
-  /// Retorna, quando disponível, a Sprint aberta que já contém cada Demanda.
-  /// Sem sprintIdAtual, inclui os vínculos de todas as Sprints abertas.
+  /// Consulta os vínculos, incluindo histórico, das Demandas solicitadas.
   /// A resposta serve apenas para orientar a seleção; o backend valida o vínculo.
   Future<Map<int, List<backend.Sprint>>?> carregarSprintsDasDemandas({
     List<int>? demandaIds,
@@ -114,9 +113,20 @@ class SprintViewModel extends ChangeNotifier {
         final contexto = await _repository.listarContextoDemandas(
           demandaIds: demandaIds,
         );
-        _sprints
-          ..clear()
-          ..addAll(contexto.sprints);
+        if (demandaIds == null) {
+          _sprints
+            ..clear()
+            ..addAll(contexto.sprints);
+        }
+        final pendente = _vinculacaoPendente;
+        if (pendente != null &&
+            _vinculosConfirmam(
+              contexto.vinculos,
+              pendente.sprintId,
+              pendente.demandaIds,
+            )) {
+          _vinculacaoPendente = null;
+        }
         final porId = {for (final s in contexto.sprints) s.id: s};
         final resultado = <int, List<backend.Sprint>>{};
         for (final vinculo in contexto.vinculos) {

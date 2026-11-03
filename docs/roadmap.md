@@ -137,6 +137,39 @@ de escopo.
   aplicáveis à Demanda sem exigir que o usuário volte ao card para executá-las; as
   ações produzem os mesmos resultados e validações já definidos no fluxo atual.
 
+### Gerenciamento de vínculos de Sprint em Demandas
+
+- **Estado:** Implementado na branch `feat/sprints-na-tela-demandas`.
+  Homologação manual e publicação pendentes.
+- O cadastro compartilhado de Demandas, inclusive no Log Time, permite
+  selecionar Sprints abertas opcionalmente. A edição exibe o histórico e aplica
+  somente as alterações de vínculo solicitadas ao salvar. O painel permite
+  vincular e desvincular com confirmação e atualiza a seção de Sprints e o
+  contexto da listagem após a operação.
+- O modo explícito de seleção usa a RPC `vincularDemandas` e atualiza o filtro
+  **Sem Sprint** a partir da leitura dos vínculos. O arraste fica desativado
+  enquanto a seleção em lote está ativa.
+- Os endpoints existentes mantêm `SprintDemanda` e validam autorização, estado,
+  períodos e hierarquia. Cadastro/edição e cada mutação de vínculo são operações
+  distintas. Em sucesso parcial, a Demanda e os vínculos já gravados são
+  preservados, e as falhas são exibidas por Sprint.
+- **Validação local:** `flutter analyze --no-pub` sem apontamentos e 107 testes
+  direcionados aprovados, incluindo cadastro com e sem Sprint, conflito após
+  gravação parcial, histórico, painel, lote com filtro, Log Time, hierarquia
+  e arraste. A cobertura inclui temas claro e escuro, telas estreitas e
+  regressões de densidade compacta. Um único build Web release foi concluído
+  em 40,9 s, com aviso de fonte Cupertino. SHA-256 de `main.dart.js`:
+  `a3aca934c8a4725dcccd1b9e6fb583817e6b045e5ed972816f02715b329e8e9f`.
+- **Homologação manual:** verificar conflitos de período e vínculos herdados com
+  dados representativos, seleção em Lista e Kanban com teclado e toque e
+  retorno ao lançamento de tempo após criar uma Demanda vinculada.
+
+### Enviar para Backlog
+
+- **Estado:** Funcionalidade futura, pendente de definição.
+- Definir em que situações a ação estará disponível e quais efeitos terá sobre
+  vínculos abertos, histórico e hierarquia de Demandas.
+
 ### UX-P1-04 — Painel lateral de Sprint e ações contextuais
 
 - **Descrição:** ao clicar no corpo do card/item de uma Sprint, abrir **painel

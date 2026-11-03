@@ -23,6 +23,7 @@ class DemandaDetalheViewModel extends ChangeNotifier {
   final SprintViewModel _sprintViewModel;
   List<backend.AnotacaoDemanda> _anotacoes = [];
   List<backend.AnotacaoDemanda> get anotacoes => List.unmodifiable(_anotacoes);
+  SprintViewModel get sprintViewModel => _sprintViewModel;
   List<backend.Sprint> sprints = const [];
   String? erroSprint;
   bool carregandoSprint = false;
@@ -57,7 +58,10 @@ class DemandaDetalheViewModel extends ChangeNotifier {
 
   Future<void> carregar(int demandaId) async {
     final versao = ++_versaoCarregamento;
-    if (_idAtual != demandaId) _anotacoes = [];
+    if (_idAtual != demandaId) {
+      _anotacoes = [];
+      sprints = const [];
+    }
     _idAtual = demandaId;
 
     _carregando = true;
@@ -122,7 +126,7 @@ class DemandaDetalheViewModel extends ChangeNotifier {
       demandaIds: [demandaId],
     );
     if (_descartado || versao != _versaoSprint) return;
-    sprints = vinculos?[demandaId] ?? const [];
+    if (vinculos != null) sprints = vinculos[demandaId] ?? const [];
     erroSprint = vinculos == null
         ? 'Não foi possível consultar a Sprint.'
         : null;

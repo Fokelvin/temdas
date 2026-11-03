@@ -1,3 +1,5 @@
+import 'formatters/sprint_apresentacao.dart';
+import 'widgets/sprint_vinculos_editor.dart';
 import 'widgets/app_selection.dart';
 import 'widgets/sprints_da_demanda.dart';
 import 'package:flutter/foundation.dart';
@@ -53,6 +55,7 @@ Future<void> mostrarDetalhesDemandaDialog(
   int demandaId, {
   DemandaDetalheViewModel? viewModel,
   bool permitirExclusao = true,
+  Future<void> Function()? onVinculosAlterados,
 }) => showGeneralDialog<void>(
   context: context,
   barrierDismissible: true,
@@ -74,6 +77,7 @@ Future<void> mostrarDetalhesDemandaDialog(
       demandaId: demandaId,
       viewModel: viewModel,
       painel: true,
+      onVinculosAlterados: onVinculosAlterados,
       permitirExclusao: permitirExclusao,
       onVoltar: () => Navigator.pop(dialogContext),
       onAbrirDemanda: (id) {
@@ -82,6 +86,7 @@ Future<void> mostrarDetalhesDemandaDialog(
             dialogContext,
             id,
             permitirExclusao: permitirExclusao,
+            onVinculosAlterados: onVinculosAlterados,
           );
         }
       },
@@ -97,10 +102,12 @@ class _DemandaDetalheConteudo extends StatefulWidget {
     required this.onAbrirDemanda,
     this.viewModel,
     this.painel = false,
+    this.onVinculosAlterados,
     this.permitirExclusao = true,
   });
 
   final bool painel;
+  final Future<void> Function()? onVinculosAlterados;
   final bool permitirExclusao;
   final int demandaId;
   final VoidCallback onVoltar;
@@ -116,6 +123,8 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
   late final DemandaDetalheViewModel _viewModel;
   late final bool _possuiViewModel;
   int _aba = 0;
+  bool _alterandoVinculos = false;
+  String? _erroVinculos;
   bool _anotacoesIniciadas = false;
 
   @override
@@ -232,7 +241,11 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
                   permitirExclusao: widget.permitirExclusao,
                   demanda: demanda,
                   viewModel: _viewModel.acoesViewModel!,
-                  onAtualizar: () => _viewModel.carregar(widget.demandaId),
+                  sprintViewModel: _viewModel.sprintViewModel,
+                  onAtualizar: () async {
+                    await _viewModel.carregar(widget.demandaId);
+                    await widget.onVinculosAlterados?.call();
+                  },
                 )
               : null,
         ),
@@ -244,20 +257,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
           ),
         ),
         const SizedBox(height: 6),
-        _Secao(
-          titulo: 'Sprint',
-          child: _viewModel.carregandoSprint
-              ? const LinearProgressIndicator()
-              : _viewModel.erroSprint != null
-              ? TextButton(
-                  onPressed: () => _viewModel.carregarSprint(widget.demandaId),
-                  child: const Text('Tentar consultar Sprint novamente'),
-                )
-              : SprintsDaDemanda(
-                  sprints: _viewModel.sprints,
-                  demandaId: widget.demandaId,
-                ),
-        ),
+        _Secao(titulo: 'Sprint', child: _secaoSprints()),
         const SizedBox(height: 6),
         _Secao(
           titulo: 'Informações',
@@ -283,6 +283,96 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
       ],
     ),
   );
+
+  Widget _secaoSprints() {
+    final sprints = _viewModel.sprints;
+    final ocupado = _alterandoVinculos || _viewModel.carregandoSprint;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (ocupado) const LinearProgressIndicator(),
+        if (_erroVinculos case final erro?) Text(erro),
+        if (_viewModel.erroSprint case final erro?) ...[
+          Text(erro),
+          TextButton(
+            onPressed: ocupado
+                ? null
+                : () => _viewModel.carregarSprint(widget.demandaId),
+            child: const Text('Tentar consultar Sprint novamente'),
+          ),
+        ] else ...[
+          SprintsDaDemanda(sprints: sprints, demandaId: widget.demandaId),
+          if (widget.permitirExclusao)
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: ocupado ? null : () => _alterarSprint(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Vincular'),
+                ),
+                for (final sprint in sprints.where(sprintAberta))
+                  TextButton.icon(
+                    onPressed: ocupado
+                        ? null
+                        : () => _alterarSprint(remover: sprint),
+                    icon: const Icon(Icons.link_off),
+                    label: Text('Desvincular ${nomeSprint(sprint.nome)}'),
+                  ),
+              ],
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _alterarSprint({backend.Sprint? remover}) async {
+    if (_alterandoVinculos) return;
+    setState(() {
+      _alterandoVinculos = true;
+      _erroVinculos = null;
+    });
+    final vm = _viewModel.sprintViewModel;
+    final demandaId = widget.demandaId;
+    final atualizarLista = widget.onVinculosAlterados;
+    try {
+      final backend.Sprint? sprint;
+      if (remover != null) {
+        sprint = await confirmarDesvinculacaoSprint(context, remover)
+            ? remover
+            : null;
+      } else {
+        sprint = await selecionarSprintParaVincular(
+          context,
+          viewModel: vm,
+          descricao: 'Vincular esta Demanda e, quando aplicável, suas filhas.',
+          excluir: _viewModel.sprints.map((s) => s.id).whereType<int>().toSet(),
+        );
+      }
+      if (!mounted || sprint?.id == null) return;
+      final sucesso = remover == null
+          ? await vm.vincularDemanda(
+              sprintId: sprint!.id!,
+              demandaId: demandaId,
+            )
+          : await vm.desvincularDemanda(
+              sprintId: sprint!.id!,
+              demandaId: demandaId,
+            );
+      if (mounted) {
+        final erro = vm.erro;
+        setState(
+          () => _erroVinculos = sucesso
+              ? null
+              : erro ?? 'Não foi possível confirmar a alteração do vínculo.',
+        );
+        await _viewModel.carregarSprint(demandaId);
+      }
+      await atualizarLista?.call();
+    } finally {
+      if (mounted) setState(() => _alterandoVinculos = false);
+    }
+  }
 
   Widget _anotacoes(backend.Demanda demanda) => ListView(
     key: PageStorageKey('demanda-${widget.demandaId}-anotacoes'),

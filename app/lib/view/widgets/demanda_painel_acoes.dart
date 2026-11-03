@@ -4,6 +4,7 @@ import '../../view_model/demandas_view_model.dart';
 import '../formatters/demanda_identificacao.dart';
 import 'demanda_card.dart';
 import 'demanda_dialog.dart';
+import '../../view_model/sprint_view_model.dart';
 import 'demanda_status_dialog.dart';
 import 'densidade_demanda.dart';
 import 'log_time_dialog.dart';
@@ -16,8 +17,10 @@ class DemandaPainelAcoes extends StatefulWidget {
     required this.viewModel,
     required this.onAtualizar,
     this.permitirExclusao = true,
+    this.sprintViewModel,
   });
   final bool permitirExclusao;
+  final SprintViewModel? sprintViewModel;
   final backend.Demanda demanda;
   final DemandasViewModel viewModel;
   final Future<void> Function() onAtualizar;
@@ -116,6 +119,8 @@ class _DemandaPainelAcoesState extends State<DemandaPainelAcoes> {
           context: context,
           builder: (_) => EditarDemandaDialog(
             demanda: demanda,
+            sprintViewModel: widget.sprintViewModel,
+            gerenciarSprints: widget.permitirExclusao,
             onSalvar: (dados) => vm.atualizarDemanda(
               demanda: demanda,
               titulo: dados.titulo,
