@@ -233,6 +233,19 @@ adiado para o último item deste roadmap.
   de início, seguidas de finalizadas e canceladas em ordem decrescente.
   Cada item permite abrir os detalhes da respectiva Sprint. Sem vínculos,
   continuar exibindo **Sem Sprint**.
+- **Histórico retroativo e desempenho:** a consulta da Demanda deve retornar
+  **todos os vínculos persistidos**, inclusive de Sprints finalizadas
+  anteriormente (ex.: Sprint 72), mesmo quando não há Sprint aberta.
+  Consultar vínculos e estados em lote no backend, evitando uma RPC por
+  Sprint e sem limitar o resultado a um único vínculo por Demanda.
+  Validar exibição consistente na listagem e no painel de detalhes.
+- **Campo Nome da Sprint:** nos formulários de criação e edição, mostrar
+  `Sprint` como prefixo visual fixo, imediatamente antes da parte editável
+  (ex.: `Sprint` + `73`), sem permitir alterar o prefixo. Persistir apenas
+  a parte editável e exibir `Sprint` uma única vez nas telas. Ao editar
+  nomes legados que já contenham `Sprint` no início, normalizar o campo
+  exibido para evitar `Sprint Sprint 73`, sem migração de dados obrigatória.
+  Rejeitar ou normalizar a digitação/colagem do prefixo duplicado.
 - **Interface de planejamento:** na Sprint planejada, permitir selecionar
   Demandas já vinculadas à Sprint ativa ou a outra planejada de período
   diferente. Indicar vínculos existentes e seus estados, sem bloquear
@@ -250,8 +263,11 @@ adiado para o último item deste roadmap.
 - **Critérios de aceite:** planejar a próxima Sprint antes de encerrar a
   atual; manter ambos os vínculos visíveis; concluir Sprint antiga sem
   excluir vínculo futuro; preservar vínculos após cancelamento; exibir
-  corretamente status e ordem na Demanda; impedir períodos conflitantes
-  e transições inválidas; conservar integridade mãe/filhas, horas e MFA.
+  retroativamente a Sprint 72 finalizada na Demanda correspondente, inclusive
+  na listagem e no detalhe, em consulta por lote; criar/editar nome com
+  prefixo fixo `Sprint` sem exibição duplicada; exibir corretamente status e
+  ordem na Demanda; impedir períodos conflitantes e transições inválidas;
+  conservar integridade mãe/filhas, horas e MFA.
 
 ## P3 — Evolução funcional
 
