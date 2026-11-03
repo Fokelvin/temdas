@@ -169,13 +169,13 @@ evidências. Não foram repetidos testes aprovados nem builds locais.
   de negócio, zero vínculos órfãos ou entre proprietários e vínculos históricos
   da Sprint 72 concluída presentes no banco. Isto confirma preservação no banco;
   **não homologa a leitura autenticada pela RPC nem pela interface**.
-- **Janela pendente de liberação:** API pública permanece na porta sem serviço
-  8089, bloqueando leituras e escritas pelo domínio. Backend novo está saudável
+- **Estado ao fim da janela inicial:** API pública mantida na porta sem serviço
+  8089, bloqueando leituras e escritas pelo domínio. Backend novo saudável
   internamente; configuração de réplicas original `iad: 1` preservada.
   O responsável informou estar remoto pelo celular, sem sessão/token AAL2 no
   computador, e determinou continuar somente checks sem credenciais. Não foram
   extraídos tokens, contornado MFA ou criadas credenciais de teste. A verificação
-  positiva de AAL2/RPCs e a liberação do acesso público continuam pendentes.
+  positiva de AAL2/RPCs e a liberação do acesso público ficaram pendentes nessa etapa.
   O registro SSH temporário criado para a verificação interna foi removido;
   a chave local existente foi preservada.
 
@@ -183,38 +183,35 @@ Após múltiplos vínculos, conservar backend compatível; em falha manter o
 bloqueio público e corrigir adiante. Nenhum rollback destrutivo ou restore
 automático está autorizado. Offsite/chave externa do backup continuam pendentes.
 
-### Concluir a homologação manual e liberar a janela
+### Liberação pública autorizada para homologação no celular — 03/11/2026
 
-Manter o domínio na porta 8089 até esta sequência estar concluída. Não publicar
-novamente, não reaplicar migration e não voltar ao backend antigo.
+Por autorização explícita posterior do responsável, a API foi liberada para
+homologação manual diretamente em `https://temdas.com.br`, com login/MFA normal
+no celular. A homologação AAL2 permanece pendente e não é declarada aprovada.
 
-1. Quando o responsável tiver acesso ao computador, obter uma sessão legítima
-   AAL2 pelo login/MFA normal da conta proprietária da Sprint 72. Se necessário,
-   validar o login em um ambiente local controlado que consuma somente a API
-   interna via túnel. Não extrair tokens de perfis/arquivos do navegador, não
-   usar tokens de terceiros, não criar usuário de teste e não enviar token ao chat.
-   Um arquivo temporário fornecido pelo próprio responsável deve ficar fora do
-   Git, com permissão 0600; jamais incluir o token em argumentos ou logs.
-2. Restabelecer acesso SSH operacional autorizado e consultar
-   `railway ssh config --dry-run` para o projeto/ambiente/serviço desta release.
-   Com o `User` retornado, abrir somente um túnel local:
-   `ssh -N -L 127.0.0.1:18080:127.0.0.1:8080 <User>@ssh.railway.com`.
-   Confirmar o deployment `d21f891d-50e8-44a7-b5e8-30ed513b1496` e `/readyz` 200
-   por esse túnel. Não adicionar domínio público ou expor a porta local em 0.0.0.0.
-3. Com o token AAL2 fornecido pelo responsável, fazer apenas POST de leitura em
-   `http://127.0.0.1:18080/sprint`: corpos
-   `{"method":"listarSprints"}` e
-   `{"method":"listarContextoDemandas","demandaIds":null}`. Enviar o token no
-   header Authorization a partir do arquivo privado, sem imprimi-lo. Exigir 200,
-   estrutura `sprints`/`vinculos`, escopo do proprietário e histórico concluído
-   da Sprint 72 com vínculos. Conferir respostas somente localmente; registrar
-   apenas booleans/contagens, nunca conteúdo de Demandas ou identificadores pessoais.
-   Não chamar endpoints de criação, cancelamento, reabertura ou alteração.
-4. Após checks positivos e conferência de que frontend/backend continuam nesses
-   deployments compatíveis, restaurar **somente** a porta do domínio Railway
-   `temdas-backend-production.up.railway.app` de 8089 para **8080**. Isso libera
-   o acesso público e as escritas. Conferir HTTPS/saúde, recarregar abas antigas
-   e homologar visualmente a consulta retroativa sem alterar dados de negócio.
-5. Encerrar túnel/acesso temporário, descartar o arquivo de token pelo próprio
-   responsável e atualizar este registro/roadmap/evidências com a hora da liberação.
-   Falha em qualquer check mantém o bloqueio; não executar rollback automático.
+Antes da liberação, Railway confirmou o mesmo deployment
+`d21f891d-50e8-44a7-b5e8-30ed513b1496` em `SUCCESS`, uma réplica saudável,
+zero issues e nenhum trabalho pendente. Healthcheck interno configurado em
+`/readyz`, sem erros críticos nos logs consultados. O asset atual do frontend
+continua com o SHA-256 aprovado e o contrato da RPC nova/backend PROD.
+
+Alterada exclusivamente a porta pública do domínio
+`temdas-backend-production.up.railway.app`: **8089 → 8080**. Read-back confirmou
+a porta, o deployment e a configuração de réplicas originais. Nenhum novo SSH,
+credencial, migration, build, teste de suíte, deploy ou mutação de negócio.
+
+Checks públicos em `2026-11-03T16:40:23Z`:
+
+- HTTPS `/readyz`: 200; `https://temdas.com.br/`: 200.
+- POST de leitura `listarSprints` e `listarContextoDemandas` sem token:
+  HTTP 400 com `AuthException/tokenMissing`, conforme o contrato de autenticação.
+- CORS das RPCs permite a origem do frontend; OPTIONS `/sprint`: 200,
+  POST e headers `Content-Type`/`Authorization` permitidos.
+
+**API pública e escritas liberadas para a homologação manual autorizada.**
+O responsável deve recarregar `temdas.com.br` no celular, entrar com login/MFA,
+consultar Sprints e conferir o histórico da Sprint 72 nas Demandas existentes,
+sem criar ou alterar dados para testar. Não é necessário fornecer ou extrair token.
+Registrar depois o resultado da leitura autenticada e da navegação no celular.
+Em falha crítica de operação, restaurar somente o domínio para 8089 e reportar;
+não executar rollback de backend/schema ou restauração automática.

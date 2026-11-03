@@ -186,7 +186,7 @@
       "sprints_demandas": 13
     },
     "sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
-    "status": "migration_backend_frontend_published_pending_authenticated_homologation",
+    "status": "published_public_api_released_for_manual_mobile_homologation",
     "verification": [
       "history",
       "managed_schema",
@@ -195,7 +195,7 @@
       "custom_constraints_and_btree_gist",
       "all_business_rows_preserved"
     ],
-    "writes_paused": true,
+    "writes_paused": false,
     "integration_commit": "8391659314c69412554a2de55bac83e81e18279d",
     "preserved_main_documentation_commit": "c32d0dd",
     "railway": {
@@ -221,15 +221,14 @@
       "production_backend_contract": true,
       "direct_preview_asset_request": 403
     },
-    "public_port": 8089,
+    "public_port": 8080,
     "original_public_port": 8080,
     "original_regions_restored": {
       "iad": 1
     },
     "pending": [
-      "manual_positive_aal2_read_rpc_and_retrospective_links",
-      "restore_public_domain_port_8080_after_checks",
-      "manual_visual_authenticated_homologation"
+      "manual_login_mfa_and_authenticated_read_rpc_homologation_on_mobile",
+      "manual_visual_retrospective_sprint72_homologation"
     ],
     "final_read_only_database": {
       "utc": "2026-11-03T16:33:04.473702+00:00",
@@ -243,10 +242,51 @@
       "orphan_or_foreign_links": 0
     },
     "authenticated_read_rpcs_homologated": false,
-    "aal2_positive_check": "pending: owner remote on phone, no existing local session/token; no token extraction, MFA bypass, or test credentials",
+    "aal2_positive_check": "pending manual login/MFA and authenticated read verification on mobile at https://temdas.com.br; public release explicitly authorized separately",
     "temporary_registered_ssh_key_removed": true,
     "recovery": "keep compatible backend and block public access on failure; no automatic rollback or restore",
     "browser_screenshot_sha256": "1aa76ad25944fcc9c6353380224167d9ddd3eee08b26914472625fbd97141241",
-    "manual_completion_runbook": "docs/spr-p2-01-multiplas-sprints.md#concluir-a-homologação-manual-e-liberar-a-janela"
+    "manual_completion_runbook": "docs/spr-p2-01-multiplas-sprints.md#liberação-pública-autorizada-para-homologação-no-celular--03112026",
+    "public_api_release": {
+      "authorized": true,
+      "authorization": "explicit public release for manual mobile homologation; restore only port 8089 to 8080",
+      "verification": {
+        "utc": "2026-11-03T16:40:23.066214+00:00",
+        "checks": {
+          "readyz": 200,
+          "frontend_https": 200,
+          "listarSprints": {
+            "status": 400,
+            "auth_code": "tokenMissing",
+            "cors_origin": "*"
+          },
+          "listarContextoDemandas": {
+            "status": 400,
+            "auth_code": "tokenMissing",
+            "cors_origin": "*"
+          },
+          "cors_preflight": {
+            "status": 200,
+            "origin": "*",
+            "headers": "Content-Type, Authorization, Accept, User-Agent, X-Requested-With",
+            "methods": "POST"
+          }
+        },
+        "passed": true
+      },
+      "railway_deployment_unchanged": true,
+      "railway_deployment": "d21f891d-50e8-44a7-b5e8-30ed513b1496",
+      "railway_status": "SUCCESS",
+      "healthy_replicas": 1,
+      "critical_log_count": 0,
+      "frontend_approved_asset_unchanged": true,
+      "configuration_changed": [
+        "service_domain.targetPort:8089->8080"
+      ],
+      "new_migration_build_deploy": false,
+      "business_mutations_executed": false,
+      "credentials_extracted_or_changed": false,
+      "on_critical_failure": "restore public domain port 8089; no automatic rollback or restore"
+    }
   }
 }
