@@ -15,7 +15,9 @@ class DemandaPainelAcoes extends StatefulWidget {
     required this.demanda,
     required this.viewModel,
     required this.onAtualizar,
+    this.permitirExclusao = true,
   });
+  final bool permitirExclusao;
   final backend.Demanda demanda;
   final DemandasViewModel viewModel;
   final Future<void> Function() onAtualizar;
@@ -125,7 +127,7 @@ class _DemandaPainelAcoesState extends State<DemandaPainelAcoes> {
           ),
         );
       }),
-      onExcluir: () => executar(excluir),
+      onExcluir: widget.permitirExclusao ? () => executar(excluir) : null,
       onAlterarStatus: (destino) => executar(() => status(destino)),
       onConcluir: () => executar(() => status(backend.DemandaStatus.concluida)),
       onReabrir: () => executar(() async {

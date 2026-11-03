@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import 'registro_tempo_observacoes.dart';
+import '../formatters/demanda_identificacao.dart';
+import '../formatters/texto_busca.dart';
 
 import '../../view_model/log_time_form_data.dart';
 import '../demanda_detalhe_page.dart';
@@ -11,13 +13,15 @@ export '../../view_model/log_time_form_data.dart';
 class LogTimeDialog extends StatefulWidget {
   const LogTimeDialog({
     super.key,
-    required this.demandaTitulo,
+    this.demandaTitulo = '',
     required this.dataInicial,
     this.demandaId,
     this.observacaoInicial,
     this.observacoesOriginais,
     this.onSalvar,
     this.horaInicial,
+    this.demandas,
+    this.onCriarDemanda,
   }) : duracaoInicialMinutos = LogTimeFormData.duracaoPadraoMinutos,
        edicao = false;
 
@@ -31,9 +35,13 @@ class LogTimeDialog extends StatefulWidget {
     this.demandaId,
     this.observacaoInicial,
     this.observacoesOriginais,
-  }) : edicao = true;
+  }) : edicao = true,
+       demandas = null,
+       onCriarDemanda = null;
 
   final String demandaTitulo;
+  final List<backend.Demanda>? demandas;
+  final Future<backend.Demanda?> Function()? onCriarDemanda;
   final int? demandaId;
   final DateTime dataInicial;
   final TimeOfDay? horaInicial;
@@ -60,11 +68,34 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
   bool _intervaloOriginalMultidia = false;
   bool _enviando = false;
   String? _erro;
+  final _pesquisaDemanda = TextEditingController();
+  final _focoDemanda = FocusNode();
+  late final List<backend.Demanda> _opcoes;
+  backend.Demanda? _demandaSelecionada;
+  bool _criandoDemanda = false;
+  bool get _selecaoLivre => !widget.edicao && widget.demandas != null;
 
   @override
   void initState() {
     super.initState();
-    _observacao = TextEditingController(text: widget.observacaoInicial);
+    _observacao = TextEditingController(
+      text: textoObservacaoEditavel(
+        texto: widget.observacaoInicial,
+        originais: widget.observacoesOriginais,
+      ),
+    );
+    _opcoes = [
+      for (final d in widget.demandas ?? <backend.Demanda>[])
+        if (d.id != null) d,
+    ];
+    for (final d in _opcoes) {
+      if (d.id == widget.demandaId) _demandaSelecionada = d;
+    }
+    if (_demandaSelecionada != null) {
+      _pesquisaDemanda.text = formatarIdentificacaoDemanda(
+        _demandaSelecionada!,
+      );
+    }
     _data = DateTime(
       widget.dataInicial.year,
       widget.dataInicial.month,
@@ -93,12 +124,14 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
     _minutoInicio.dispose();
     _horaFim.dispose();
     _minutoFim.dispose();
+    _pesquisaDemanda.dispose();
+    _focoDemanda.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !_enviando,
+    canPop: !_enviando && !_criandoDemanda,
     child: AlertDialog(
       scrollable: true,
       title: Text(widget.edicao ? 'Editar lançamento' : 'Lançar tempo'),
@@ -110,19 +143,23 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Demanda'),
-              TextButton.icon(
-                key: const ValueKey('detalhes-demanda-log-time'),
-                onPressed: _enviando || widget.demandaId == null
-                    ? null
-                    : () => mostrarDetalhesDemandaDialog(
-                        context,
-                        widget.demandaId!,
-                      ),
-                style: TextButton.styleFrom(alignment: Alignment.centerLeft),
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: Text(widget.demandaTitulo),
-              ),
+              if (_selecaoLivre)
+                _campoDemanda()
+              else ...[
+                const Text('Demanda'),
+                TextButton.icon(
+                  key: const ValueKey('detalhes-demanda-log-time'),
+                  onPressed: _enviando || widget.demandaId == null
+                      ? null
+                      : () => mostrarDetalhesDemandaDialog(
+                          context,
+                          widget.demandaId!,
+                        ),
+                  style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(widget.demandaTitulo),
+                ),
+              ],
               const SizedBox(height: 16),
               const Text('Data'),
               const SizedBox(height: 6),
@@ -143,7 +180,7 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                 hora: _horaInicio,
                 minuto: _minutoInicio,
                 enabled: !_enviando,
-                autofocus: true,
+                autofocus: !_selecaoLivre,
                 onChanged: _horarioAlterado,
               ),
               const SizedBox(height: 16),
@@ -197,12 +234,14 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _enviando ? null : () => Navigator.pop(context),
+          onPressed: _enviando || _criandoDemanda
+              ? null
+              : () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
         FilledButton.icon(
           key: const ValueKey('salvar-log-time'),
-          onPressed: _enviando ? null : _submit,
+          onPressed: _enviando || _criandoDemanda ? null : _submit,
           icon: _enviando
               ? const SizedBox.square(
                   dimension: 16,
@@ -221,6 +260,132 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
     ),
   );
 
+  List<backend.Demanda> _filtrarDemandas(String texto) {
+    final busca = normalizarTextoBusca(texto.trim());
+    return _opcoes
+        .where(
+          (d) => normalizarTextoBusca(
+            formatarIdentificacaoDemanda(d),
+          ).contains(busca),
+        )
+        .toList();
+  }
+
+  Widget _campoDemanda() {
+    final largura = (MediaQuery.sizeOf(context).width - 180).clamp(80.0, 408.0);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: RawAutocomplete<backend.Demanda>(
+            textEditingController: _pesquisaDemanda,
+            focusNode: _focoDemanda,
+            displayStringForOption: formatarIdentificacaoDemanda,
+            optionsBuilder: (v) => _filtrarDemandas(v.text),
+            onSelected: (d) => setState(() => _demandaSelecionada = d),
+            fieldViewBuilder: (context, controller, focus, submit) =>
+                TextFormField(
+                  key: const ValueKey('selecionar-demanda-log-time'),
+                  controller: controller,
+                  focusNode: focus,
+                  autofocus: true,
+                  enabled: !_enviando && !_criandoDemanda,
+                  decoration: InputDecoration(
+                    labelText: 'Demanda',
+                    hintText: 'Pesquisar por ID ou título',
+                    helperText: _opcoes.isEmpty
+                        ? 'Nenhuma Demanda cadastrada. Use + para criar.'
+                        : _filtrarDemandas(controller.text).isEmpty
+                        ? 'Nenhuma Demanda encontrada.'
+                        : null,
+                    helperMaxLines: 3,
+                  ),
+                  validator: (_) => _demandaSelecionada?.id == null
+                      ? 'Selecione uma demanda válida.'
+                      : null,
+                  onChanged: (_) => setState(() => _demandaSelecionada = null),
+                  onFieldSubmitted: (_) => submit(),
+                ),
+            optionsViewBuilder: (context, select, options) => Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                clipBehavior: Clip.antiAlias,
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: largura,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * .3,
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final d = options.elementAt(index);
+                        return ListTile(
+                          key: ValueKey('opcao-demanda-log-time-${d.id}'),
+                          dense: true,
+                          selected:
+                              AutocompleteHighlightedOption.of(context) ==
+                              index,
+                          title: Text(
+                            formatarIdentificacaoDemanda(d),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => select(d),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          key: const ValueKey('criar-demanda-no-log-time'),
+          tooltip: 'Criar demanda',
+          onPressed:
+              _enviando || _criandoDemanda || widget.onCriarDemanda == null
+              ? null
+              : _criarDemanda,
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _criarDemanda() async {
+    _focoDemanda.unfocus();
+    setState(() {
+      _criandoDemanda = true;
+      _erro = null;
+    });
+    try {
+      final criada = await widget.onCriarDemanda!();
+      if (!mounted || criada?.id == null) return;
+      setState(() {
+        _opcoes.removeWhere((d) => d.id == criada!.id);
+        _opcoes.add(criada!);
+        _demandaSelecionada = criada;
+        _pesquisaDemanda.text = formatarIdentificacaoDemanda(criada);
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _erro =
+              'Não foi possível criar a Demanda. Seus dados de lançamento foram mantidos.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _criandoDemanda = false);
+    }
+  }
+
   void _horarioAlterado(String _) {
     if (_intervaloOriginalMultidia) {
       setState(() => _intervaloOriginalMultidia = false);
@@ -238,13 +403,14 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
   }
 
   Future<void> _submit() async {
-    if (_enviando) return;
+    if (_enviando || _criandoDemanda) return;
     setState(() => _erro = null);
     if (!_formKey.currentState!.validate()) return;
 
     final dados = LogTimeFormData.doMesmoDia(
       data: _data,
       observacao: _observacao.text,
+      demandaId: _selecaoLivre ? _demandaSelecionada?.id : widget.demandaId,
       inicio: TimeOfDay(
         hour: int.parse(_horaInicio.text),
         minute: int.parse(_minutoInicio.text),

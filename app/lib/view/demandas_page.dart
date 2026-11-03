@@ -34,10 +34,6 @@ class DemandasPage extends StatefulWidget {
 }
 
 class _DemandasPageState extends State<DemandasPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _tituloController = TextEditingController();
-  final _descricaoController = TextEditingController();
-  final _tempoController = TextEditingController(text: '1');
   final _buscaController = TextEditingController();
   final _quadroHorizontalController = ScrollController();
   late final DemandasViewModel _viewModel;
@@ -48,7 +44,6 @@ class _DemandasPageState extends State<DemandasPage> {
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
 
-  backend.Prioridade _prioridade = backend.Prioridade.media;
   backend.Prioridade? _filtroPrioridade;
   DensidadeDemanda _densidade = DensidadeDemanda.compacta;
   int?
@@ -74,9 +69,6 @@ class _DemandasPageState extends State<DemandasPage> {
     _sprintViewModel.removeListener(_consultarSprintsQuandoLivre);
     if (widget.sprintViewModel == null) _sprintViewModel.dispose();
     _visualizacao.dispose();
-    _tituloController.dispose();
-    _descricaoController.dispose();
-    _tempoController.dispose();
     _buscaController.dispose();
     _quadroHorizontalController.dispose();
     if (_possuiViewModel) {
@@ -250,84 +242,14 @@ class _DemandasPageState extends State<DemandasPage> {
   }
 
   Future<void> _abrirFormulario() async {
-    await showDialog<void>(
+    final criada = await showDialog<backend.Demanda>(
       context: context,
-      builder: (dialogContext) => ListenableBuilder(
-        listenable: _viewModel,
-        builder: (context, _) => PopScope(
-          canPop: !_viewModel.enviando,
-          child: AlertDialog(
-            title: Row(
-              children: [
-                const Expanded(child: Text('Criar demanda')),
-                IconButton(
-                  tooltip: 'Fechar',
-                  onPressed: _viewModel.enviando
-                      ? null
-                      : () => Navigator.pop(dialogContext),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: 480,
-              child: SingleChildScrollView(child: _buildFormulario(context)),
-            ),
-            actions: [
-              TextButton(
-                onPressed: _viewModel.enviando
-                    ? null
-                    : () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton.icon(
-                key: const ValueKey('criar-demanda'),
-                onPressed: _viewModel.carregando || _viewModel.enviando
-                    ? null
-                    : () => _criarDemanda(dialogContext),
-                icon: _viewModel.enviando
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-                label: Text(
-                  _viewModel.enviando ? 'Criando...' : 'Criar demanda',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      barrierDismissible: false,
+      builder: (_) => CriarDemandaDialog(viewModel: _viewModel),
     );
-  }
-
-  Future<void> _criarDemanda(BuildContext dialogContext) async {
-    if (_viewModel.enviando || !(_formKey.currentState?.validate() ?? false)) {
-      return;
+    if (criada != null && mounted) {
+      _mostrarFeedback('Demanda criada com sucesso.', erro: false);
     }
-
-    final descricao = _descricaoController.text.trim();
-    final criada = await _viewModel.criarDemanda(
-      titulo: _tituloController.text.trim(),
-      tempoEstimadoHoras: _parseHoras(_tempoController.text)!,
-      descricao: descricao.isEmpty ? null : descricao,
-      prioridade: _prioridade,
-    );
-
-    if (!mounted) return;
-    if (criada) {
-      _tituloController.clear();
-      _descricaoController.clear();
-      _tempoController.text = '1';
-      if (dialogContext.mounted) Navigator.pop(dialogContext);
-    }
-    _mostrarFeedback(
-      criada
-          ? 'Demanda criada com sucesso.'
-          : _viewModel.erro ?? 'Não foi possível criar a demanda.',
-      erro: !criada,
-    );
   }
 
   Future<void> _criarDemandaFilha(backend.Demanda demandaMae) async {
@@ -1067,79 +989,6 @@ class _DemandasPageState extends State<DemandasPage> {
       );
     return sprints;
   }
-
-  Widget _buildFormulario(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            controller: _tituloController,
-            autofocus: true,
-            decoration: const InputDecoration(labelText: 'Título'),
-            validator: (value) => value == null || value.trim().isEmpty
-                ? 'Informe o título.'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _descricaoController,
-            maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Descrição'),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<backend.Prioridade>(
-            initialValue: _prioridade,
-            decoration: const InputDecoration(labelText: 'Prioridade'),
-            items: backend.Prioridade.values
-                .map(
-                  (prioridade) => DropdownMenuItem(
-                    value: prioridade,
-                    child: Text(_prioridadeLabel(prioridade)),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value != null) setState(() => _prioridade = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _tempoController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Tempo estimado (horas)',
-            ),
-            validator: _validarHorasEstimadas,
-          ),
-          if (_viewModel.erro != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              _viewModel.erro!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-double? _parseHoras(String? value) {
-  return double.tryParse((value ?? '').trim().replaceAll(',', '.'));
-}
-
-String? _validarHorasEstimadas(String? value) {
-  final horas = _parseHoras(value);
-  if (horas == null || horas <= 0) return 'Informe um tempo válido.';
-  if ((horas * 2).roundToDouble() != horas * 2) {
-    return 'Use intervalos de 0,5 hora.';
-  }
-  return null;
 }
 
 String _prioridadeLabel(backend.Prioridade prioridade) {

@@ -99,7 +99,7 @@ void main() {
       );
       await tester.tapAt(_ponto(tester, DateTime(2026, 9, 9), 9 * 60));
       await tester.pumpAndSettle();
-      expect(find.text('Selecionar demanda'), findsOneWidget);
+      expect(find.byType(LogTimeDialog), findsOneWidget);
     },
   );
 
@@ -112,7 +112,10 @@ void main() {
     await tester.dragFrom(_ponto(tester, day, 9 * 60), const Offset(-120, 0));
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_dia(day)).dx, lessThan(left));
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+      findsNothing,
+    );
   });
 
   for (final mode in AgendaMode.values) {
@@ -127,7 +130,7 @@ void main() {
           final gesture = await tester.startGesture(point, kind: kind);
           await gesture.up();
           await tester.pumpAndSettle();
-          expect(find.text('Selecionar demanda'), findsOneWidget);
+          expect(find.byType(LogTimeDialog), findsOneWidget);
           await _continuar(tester);
           expect(_campo(tester, 'inicio-hora'), '09');
           expect(_campo(tester, 'inicio-minuto'), '15');
@@ -177,7 +180,10 @@ void main() {
           find.byKey(const ValueKey('adicionar-horario-2026-09-09-555')),
           findsOneWidget,
         );
-        expect(find.text('Selecionar demanda'), findsNothing);
+        expect(
+          find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+          findsNothing,
+        );
         await mouse.moveTo(_ponto(tester, DateTime(2026, 9, 9), 9 * 60 + 25));
         await tester.pump();
         expect(
@@ -213,7 +219,10 @@ void main() {
       expect(_indicacoes, findsNothing);
       await tester.tapAt(_ponto(tester, day, 9 * 60));
       await tester.pumpAndSettle();
-      expect(find.text('Selecionar demanda'), findsNothing);
+      expect(
+        find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+        findsNothing,
+      );
       await mouse.moveTo(_ponto(tester, day, 8 * 60 + 45));
       await tester.pump();
       expect(_indicacoes, findsOneWidget);
@@ -246,7 +255,10 @@ void main() {
       tester.widget<LogTimeDialog>(find.byType(LogTimeDialog)).edicao,
       isTrue,
     );
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+      findsNothing,
+    );
     await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Excluir'));
@@ -257,7 +269,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.idsExcluidos, [1]);
     expect(repository.registrosCriados, isEmpty);
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -286,7 +301,10 @@ void main() {
         expect(_indicacoes, findsNothing);
         await tester.tapAt(_ponto(tester, day, minute));
         await tester.pump();
-        expect(find.text('Selecionar demanda'), findsNothing);
+        expect(
+          find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+          findsNothing,
+        );
       }
       await mouse.removePointer();
       await tester.tapAt(_ponto(tester, day, 23 * 60 + 15));
@@ -306,7 +324,7 @@ void main() {
     },
   );
 
-  testWidgets('sem Demandas desabilita hover, toque e botão global', (
+  testWidgets('sem Demandas permite lançamento direto e cadastro da primeira', (
     tester,
   ) async {
     await _abrir(tester, demandas: []);
@@ -316,18 +334,15 @@ void main() {
             find.byKey(const ValueKey('abrir-lancamento-global')),
           )
           .onPressed,
-      isNull,
+      isNotNull,
     );
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(
-      location: _ponto(tester, DateTime(2026, 9, 9), 9 * 60),
-    );
-    await tester.pump();
-    expect(_indicacoes, findsNothing);
-    await mouse.removePointer();
     await tester.tapAt(_ponto(tester, DateTime(2026, 9, 9), 9 * 60));
     await tester.pumpAndSettle();
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(find.byType(LogTimeDialog), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('criar-demanda-no-log-time')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('enquanto salva edição não permite criação na grade ou global', (
@@ -365,13 +380,16 @@ void main() {
     await mouse.removePointer();
     await tester.tapAt(_ponto(tester, DateTime(2026, 9, 9), 10 * 60));
     await tester.pump();
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+      findsNothing,
+    );
     pending.complete(registro);
     await operation;
     await tester.pumpAndSettle();
     await tester.tapAt(_ponto(tester, DateTime(2026, 9, 9), 10 * 60));
     await tester.pumpAndSettle();
-    expect(find.text('Selecionar demanda'), findsOneWidget);
+    expect(find.byType(LogTimeDialog), findsOneWidget);
   });
 
   testWidgets('rolagem por toque em horário vazio não abre o seletor', (
@@ -383,7 +401,10 @@ void main() {
     await tester.dragFrom(point, const Offset(0, -150));
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_dia(DateTime(2026, 9, 9))).dy, lessThan(top));
-    expect(find.text('Selecionar demanda'), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is LogTimeDialog && !w.edicao),
+      findsNothing,
+    );
   });
 
   testWidgets('cancelar seletor libera nova criação e preserva botão global', (
@@ -481,7 +502,16 @@ String _campo(WidgetTester tester, String name) => tester
     .controller!
     .text;
 Future<void> _continuar(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('confirmar-demanda-log-time')));
+  final d = tester
+      .widget<LogTimeDialog>(find.byType(LogTimeDialog))
+      .demandas!
+      .first;
+  await tester.enterText(
+    find.byKey(const ValueKey('selecionar-demanda-log-time')),
+    d.id.toString(),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('opcao-demanda-log-time-${d.id}')));
   await tester.pumpAndSettle();
 }
 

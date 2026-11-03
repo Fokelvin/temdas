@@ -1,3 +1,4 @@
+import '../../view/widgets/app_selection.dart';
 import 'mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -74,152 +75,154 @@ class AppShell extends StatelessWidget {
       bottomNavigationBar: mobile
           ? MobileBottomNavigation(currentRoute: route)
           : null,
-      body: SafeArea(
-        bottom: !mobile,
-        child: Row(
-          children: [
-            if (!mobile)
-              Container(
-                width: desktop ? 212 : 60,
-                decoration: BoxDecoration(
-                  color: t.surface,
-                  border: Border(right: BorderSide(color: t.border)),
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: desktop ? 12 : 4,
-                  vertical: 16,
-                ),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 32,
-                      child: Row(
-                        mainAxisAlignment: desktop
-                            ? MainAxisAlignment.start
-                            : MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppTokens.accent,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'T',
-                              style: TextStyle(
-                                color: Color(0xFF0B1220),
-                                fontWeight: FontWeight.w700,
+      body: AppSelection(
+        child: SafeArea(
+          bottom: !mobile,
+          child: Row(
+            children: [
+              if (!mobile)
+                Container(
+                  width: desktop ? 212 : 60,
+                  decoration: BoxDecoration(
+                    color: t.surface,
+                    border: Border(right: BorderSide(color: t.border)),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: desktop ? 12 : 4,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 32,
+                        child: Row(
+                          mainAxisAlignment: desktop
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppTokens.accent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'T',
+                                style: TextStyle(
+                                  color: Color(0xFF0B1220),
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                          ),
-                          if (desktop) ...[
-                            const SizedBox(width: 8),
-                            const Text(
-                              'TEMDAS',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
+                            if (desktop) ...[
+                              const SizedBox(width: 8),
+                              const Text(
+                                'TEMDAS',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    for (var i = 0; i < 4; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Tooltip(
-                          message: labels[i],
-                          child: Material(
-                            color: route == routes[i]
-                                ? t.accentSoft
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            child: InkWell(
+                      const SizedBox(height: 24),
+                      for (var i = 0; i < 4; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Tooltip(
+                            message: labels[i],
+                            child: Material(
+                              color: route == routes[i]
+                                  ? t.accentSoft
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
-                              onTap: () => _go(context, i),
-                              child: SizedBox(
-                                height: desktop ? 32 : 44,
-                                child: Row(
-                                  mainAxisAlignment: desktop
-                                      ? MainAxisAlignment.start
-                                      : MainAxisAlignment.center,
-                                  children: [
-                                    if (desktop) const SizedBox(width: 8),
-                                    Icon(
-                                      icons[i],
-                                      size: 16,
-                                      color: route == routes[i]
-                                          ? AppTokens.accent
-                                          : t.text2,
-                                    ),
-                                    if (desktop) ...[
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        labels[i],
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: route == routes[i]
-                                              ? t.text
-                                              : t.text2,
-                                        ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () => _go(context, i),
+                                child: SizedBox(
+                                  height: desktop ? 32 : 44,
+                                  child: Row(
+                                    mainAxisAlignment: desktop
+                                        ? MainAxisAlignment.start
+                                        : MainAxisAlignment.center,
+                                    children: [
+                                      if (desktop) const SizedBox(width: 8),
+                                      Icon(
+                                        icons[i],
+                                        size: 16,
+                                        color: route == routes[i]
+                                            ? AppTokens.accent
+                                            : t.text2,
                                       ),
+                                      if (desktop) ...[
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          labels[i],
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: route == routes[i]
+                                                ? t.text
+                                                : t.text2,
+                                          ),
+                                        ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    const Spacer(),
-                    Divider(color: t.border),
-                    Tooltip(
-                      message: 'Meu Perfil',
-                      child: InkWell(
-                        onTap: () => _go(context, 4),
-                        child: SizedBox(
-                          height: 44,
-                          child: Row(
-                            mainAxisAlignment: desktop
-                                ? MainAxisAlignment.start
-                                : MainAxisAlignment.center,
-                            children: [
-                              _avatar(context),
-                              if (desktop) ...[
-                                const SizedBox(width: 8),
-                                const Text('Meu Perfil'),
+                      const Spacer(),
+                      Divider(color: t.border),
+                      Tooltip(
+                        message: 'Meu Perfil',
+                        child: InkWell(
+                          onTap: () => _go(context, 4),
+                          child: SizedBox(
+                            height: 44,
+                            child: Row(
+                              mainAxisAlignment: desktop
+                                  ? MainAxisAlignment.start
+                                  : MainAxisAlignment.center,
+                              children: [
+                                _avatar(context),
+                                if (desktop) ...[
+                                  const SizedBox(width: 8),
+                                  const Text('Meu Perfil'),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (desktop)
-                      Row(
-                        children: [
-                          const ThemeToggleButton(),
-                          const Spacer(),
-                          _profileMenu(context),
-                        ],
-                      )
-                    else ...[
-                      const ThemeToggleButton(),
-                      _profileMenu(context),
+                      if (desktop)
+                        Row(
+                          children: [
+                            const ThemeToggleButton(),
+                            const Spacer(),
+                            _profileMenu(context),
+                          ],
+                        )
+                      else ...[
+                        const ThemeToggleButton(),
+                        _profileMenu(context),
+                      ],
                     ],
+                  ),
+                ),
+              Expanded(
+                child: Column(
+                  children: [
+                    header,
+                    Divider(height: 1, color: t.border),
+                    Expanded(child: body),
                   ],
                 ),
               ),
-            Expanded(
-              child: Column(
-                children: [
-                  header,
-                  Divider(height: 1, color: t.border),
-                  Expanded(child: body),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

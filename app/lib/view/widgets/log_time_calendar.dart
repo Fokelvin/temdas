@@ -120,10 +120,7 @@ class _LogTimeCalendarState extends State<LogTimeCalendar> {
                                     !widget.viewModel.carregando &&
                                         !widget.viewModel.enviando &&
                                         widget.viewModel.erro == null &&
-                                        _registroArrastado == null &&
-                                        widget.viewModel.demandas.any(
-                                          (demanda) => demanda.id != null,
-                                        )
+                                        _registroArrastado == null
                                     ? widget.onCriar
                                     : null,
                                 registrosDoPeriodo: widget.viewModel.registros,

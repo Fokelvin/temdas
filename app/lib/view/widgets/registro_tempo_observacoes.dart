@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
+import 'app_selection.dart';
+
+/// Respeita texto vazio explícito; respostas legadas podem trazer só originais.
+String textoObservacaoEditavel({
+  String? texto,
+  List<backend.RegistroTempoObservacao>? originais,
+}) => texto ?? originais?.map((o) => o.texto).join('\n\n') ?? '';
 
 /// Converte somente datas tipadas. O conteúdo livre permanece byte a byte.
 String formatarHorarioOriginal(DateTime valor) {
@@ -23,11 +30,13 @@ class RegistroTempoObservacoes extends StatelessWidget {
   final bool mostrarTextos;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AppSelection(child: _conteudo(context));
+
+  Widget _conteudo(BuildContext context) {
     final trechos = originais;
     if (trechos == null || trechos.isEmpty) {
       return mostrarTextos && (texto?.isNotEmpty ?? false)
-          ? SelectableText(texto!)
+          ? Text(texto!)
           : const SizedBox.shrink();
     }
     return Column(
@@ -43,7 +52,7 @@ class RegistroTempoObservacoes extends StatelessWidget {
                   'Horário original ${i + 1}: ${formatarHorarioOriginal(trechos[i].inicioEm)} — ${formatarHorarioOriginal(trechos[i].fimEm)}',
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
-                if (mostrarTextos) SelectableText(trechos[i].texto),
+                if (mostrarTextos) Text(trechos[i].texto),
               ],
             ),
           ),

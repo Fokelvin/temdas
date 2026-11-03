@@ -1,3 +1,6 @@
+import '../view_model/demandas_view_model.dart';
+import 'widgets/demanda_dialog.dart';
+import 'widgets/registro_tempo_observacoes.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,9 +16,10 @@ import 'widgets/log_time_calendar.dart';
 import 'widgets/resumo_card.dart';
 
 class LogTimePage extends StatefulWidget {
-  const LogTimePage({super.key, this.viewModel});
+  const LogTimePage({super.key, this.viewModel, this.demandasViewModel});
 
   final AgendaViewModel? viewModel;
+  final DemandasViewModel? demandasViewModel;
 
   @override
   State<LogTimePage> createState() => _LogTimePageState();
@@ -25,18 +29,21 @@ class _LogTimePageState extends State<LogTimePage> {
   late final AgendaViewModel _viewModel;
   late final bool _possuiViewModel;
   bool _abrindoLancamento = false;
+  late final DemandasViewModel _criacaoDemandas;
 
   @override
   void initState() {
     super.initState();
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? AgendaViewModel();
+    _criacaoDemandas = widget.demandasViewModel ?? DemandasViewModel();
     unawaited(_viewModel.carregarAgenda());
   }
 
   @override
   void dispose() {
     if (_possuiViewModel) _viewModel.dispose();
+    if (widget.demandasViewModel == null) _criacaoDemandas.dispose();
     super.dispose();
   }
 
@@ -74,8 +81,7 @@ class _LogTimePageState extends State<LogTimePage> {
       !_abrindoLancamento &&
       !_viewModel.carregando &&
       !_viewModel.enviando &&
-      _viewModel.erro == null &&
-      _viewModel.demandas.any((demanda) => demanda.id != null);
+      _viewModel.erro == null;
 
   List<backend.Demanda> get _demandasSelecionaveis {
     final demandas = _viewModel.demandas
@@ -143,32 +149,27 @@ class _LogTimePageState extends State<LogTimePage> {
     final demandas = _demandasSelecionaveis;
     setState(() => _abrindoLancamento = true);
     try {
-      final demandaId = await showDialog<int>(
-        context: context,
-        builder: (_) => _SelecionarDemandaDialog(demandas: demandas),
-      );
-      if (demandaId == null || !mounted) return;
-
-      final demanda = _viewModel.demandaPorId(demandaId);
-      if (demanda == null) {
-        _mostrarFeedback(
-          'A demanda selecionada não está mais disponível.',
-          erro: true,
-        );
-        return;
-      }
-
       final dados = await showDialog<LogTimeFormData>(
         context: context,
         barrierDismissible: false,
         builder: (_) => LogTimeDialog(
-          demandaId: demandaId,
-          demandaTitulo: formatarIdentificacaoDemanda(demanda),
+          demandas: demandas,
+          onCriarDemanda: () async {
+            final criada = await showDialog<backend.Demanda>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => CriarDemandaDialog(viewModel: _criacaoDemandas),
+            );
+            if (criada != null && mounted) {
+              _viewModel.adicionarDemandaCriada(criada);
+            }
+            return criada;
+          },
           dataInicial: dataInicial ?? _viewModel.dataSelecionada,
           horaInicial: horaInicial,
           onSalvar: (dados) async {
             final salvo = await _viewModel.registrarTempo(
-              demandaId: demandaId,
+              demandaId: dados.demandaId!,
               data: dados.data,
               hora: dados.hora,
               duracaoHoras: dados.duracaoHoras,
@@ -212,7 +213,10 @@ class _LogTimePageState extends State<LogTimePage> {
         dataInicial: inicioLocal,
         horaInicial: TimeOfDay.fromDateTime(inicioLocal),
         duracaoInicialMinutos: registro.duracaoMinutos,
-        observacaoInicial: registro.observacao,
+        observacaoInicial: textoObservacaoEditavel(
+          texto: registro.observacao,
+          originais: registro.observacoesOriginais,
+        ),
         observacoesOriginais: registro.observacoesOriginais,
         onSalvar: (dados) async {
           final salvo = await _viewModel.editarRegistroTempo(
@@ -220,7 +224,12 @@ class _LogTimePageState extends State<LogTimePage> {
             data: dados.data,
             hora: dados.hora,
             duracaoHoras: dados.duracaoHoras,
-            observacao: (dados.observacao ?? '') == (registro.observacao ?? '')
+            observacao:
+                (dados.observacao ?? '') ==
+                    textoObservacaoEditavel(
+                      texto: registro.observacao,
+                      originais: registro.observacoesOriginais,
+                    )
                 ? null
                 : dados.observacao,
           );
@@ -782,60 +791,6 @@ class _ErrorAgenda extends StatelessWidget {
         ),
       ),
     ),
-  );
-}
-
-class _SelecionarDemandaDialog extends StatefulWidget {
-  const _SelecionarDemandaDialog({required this.demandas});
-
-  final List<backend.Demanda> demandas;
-
-  @override
-  State<_SelecionarDemandaDialog> createState() =>
-      _SelecionarDemandaDialogState();
-}
-
-class _SelecionarDemandaDialogState extends State<_SelecionarDemandaDialog> {
-  late int _demandaId = widget.demandas.first.id!;
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Selecionar demanda'),
-    content: SizedBox(
-      width: 460,
-      child: DropdownButtonFormField<int>(
-        key: const ValueKey('selecionar-demanda-log-time'),
-        initialValue: _demandaId,
-        isExpanded: true,
-        decoration: const InputDecoration(labelText: 'Demanda'),
-        items: widget.demandas
-            .map(
-              (demanda) => DropdownMenuItem(
-                value: demanda.id!,
-                child: Text(
-                  formatarIdentificacaoDemanda(demanda),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            )
-            .toList(),
-        onChanged: (value) {
-          if (value != null) setState(() => _demandaId = value);
-        },
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        key: const ValueKey('confirmar-demanda-log-time'),
-        onPressed: () => Navigator.pop(context, _demandaId),
-        child: const Text('Continuar'),
-      ),
-    ],
   );
 }
 

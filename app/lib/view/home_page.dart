@@ -1,3 +1,4 @@
+import 'widgets/app_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -243,7 +244,7 @@ class _HomePageState extends State<HomePage> {
                       constraints: const BoxConstraints(maxWidth: 1240),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: SelectionArea(
+                        child: AppSelection(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [

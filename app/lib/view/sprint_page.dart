@@ -2,8 +2,6 @@ import 'formatters/sprint_apresentacao.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import '../app/nova_aba.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
@@ -96,6 +94,7 @@ class _SprintPageState extends State<SprintPage>
       context,
       demandaId,
       viewModel: widget.demandaDetalheViewModel,
+      permitirExclusao: false,
     );
     if (!mounted) return;
     await _demandasViewModel.carregarDemandas();
@@ -171,31 +170,6 @@ class _SprintPageState extends State<SprintPage>
         );
         return;
       }
-    } else if (acao == _AcaoDemandaSprint.excluir && demanda != null) {
-      final excluirArvore = _demandasViewModel.possuiDescendentes(demanda);
-      final confirmado = await _confirmarRemocaoResumo(
-        titulo: excluirArvore
-            ? 'Excluir árvore de Demandas?'
-            : 'Excluir Demanda?',
-        mensagem: excluirArvore
-            ? 'A Demanda e todas as suas filhas serão excluídas permanentemente.'
-            : 'A Demanda será excluída permanentemente.',
-        rotulo: 'Excluir permanentemente',
-        destrutiva: true,
-      );
-      if (!confirmado || !mounted) return;
-      final excluida = excluirArvore
-          ? await _demandasViewModel.excluirArvoreDemanda(demanda)
-          : await _demandasViewModel.excluirDemanda(demanda);
-      if (!mounted) return;
-      if (!excluida) {
-        _mostrarFeedbackResumo(
-          _demandasViewModel.erro ?? 'Não foi possível excluir a Demanda.',
-        );
-        return;
-      }
-    } else {
-      return;
     }
 
     await _viewModel.carregarVinculos(sprintId);
@@ -885,17 +859,10 @@ Future<void> mostrarResumoSprint(
       panelKey: const ValueKey('resumo-sprint-dialog'),
       onClose: () => Navigator.pop(dialogContext),
       actions: [
-        if (kIsWeb)
-          IconButton(
-            tooltip: 'Abrir Sprint em nova aba',
-            icon: const Icon(Icons.launch),
-            onPressed: () =>
-                abrirRotaEmNovaAba(AppRoutes.detalheDaSprint(sprint.id!)),
-          ),
         IconButton(
           key: const ValueKey('abrir-sprint-completa'),
           tooltip: 'Abrir Sprint',
-          icon: const Icon(Icons.open_in_new),
+          icon: const Icon(Icons.open_in_full),
           onPressed: () => Navigator.pop(dialogContext, sprint.id),
         ),
       ],
@@ -1245,6 +1212,7 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
       context,
       demandaId,
       viewModel: widget.demandaDetalheViewModel,
+      permitirExclusao: false,
     );
     if (mounted) await _carregar();
   }
@@ -1322,44 +1290,10 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
       }
       return;
     }
-
-    if (acao != _AcaoDemandaSprint.excluir || demanda == null) return;
-    final excluirArvore = _demandasViewModel.possuiDescendentes(demanda);
-    final confirmado = await _confirmarOperacao(
-      chave: 'confirmar-excluir-demanda-sprint-$demandaId',
-      titulo: excluirArvore
-          ? 'Excluir árvore de Demandas?'
-          : 'Excluir Demanda?',
-      mensagem: excluirArvore
-          ? 'A Demanda e todas as suas filhas serão excluídas permanentemente.'
-          : 'A Demanda será excluída permanentemente.',
-      acao: 'Excluir permanentemente',
-      destrutiva: true,
-    );
-    if (!confirmado || !mounted) return;
-    setState(() => _mutacaoDemandaEmAndamento = true);
-    try {
-      final excluida = excluirArvore
-          ? await _demandasViewModel.excluirArvoreDemanda(demanda)
-          : await _demandasViewModel.excluirDemanda(demanda);
-      if (!mounted) return;
-      if (!excluida) {
-        _mostrarFeedback(
-          _demandasViewModel.erro ?? 'Não foi possível excluir a Demanda.',
-          erro: true,
-        );
-        return;
-      }
-      await _carregar();
-      if (mounted) _mostrarFeedback('Demanda excluída permanentemente.');
-    } finally {
-      if (mounted) setState(() => _mutacaoDemandaEmAndamento = false);
-    }
   }
 
   Widget _arvoreDemandasVinculadas(backend.Sprint sprint, {int? limite}) =>
       _DemandasVinculadasSprint(
-        mostrarEstimativa: !widget.painel,
         vinculos: _viewModel.vinculos,
         demandas: _demandasViewModel.demandas,
         limite: limite,
@@ -2134,14 +2068,13 @@ class _SelecionarDemandaSprintDialogState
   }
 }
 
-enum _AcaoDemandaSprint { excluir, backlog, desvincular }
+enum _AcaoDemandaSprint { desvincular }
 
 class _DemandasVinculadasSprint extends StatelessWidget {
   const _DemandasVinculadasSprint({
     required this.vinculos,
     required this.demandas,
     required this.permiteAcoes,
-    this.mostrarEstimativa = true,
     required this.aoAbrir,
     required this.aoAcionar,
     required this.mensagemVazia,
@@ -2154,7 +2087,6 @@ class _DemandasVinculadasSprint extends StatelessWidget {
   final List<backend.Demanda> demandas;
   final int? limite;
   final bool permiteAcoes;
-  final bool mostrarEstimativa;
   final ValueChanged<int> aoAbrir;
   final void Function(
     int demandaId,
@@ -2186,7 +2118,6 @@ class _DemandasVinculadasSprint extends StatelessWidget {
             demanda: demandasPorId[linha.id],
             nivel: linha.nivel,
             permiteMenu: permiteAcoes,
-            mostrarEstimativa: mostrarEstimativa,
             onAbrir: () => aoAbrir(linha.id),
             onAcao: (acao) =>
                 aoAcionar(linha.id, demandasPorId[linha.id], acao),
@@ -2277,7 +2208,6 @@ class _LinhaDemandaSprint extends StatelessWidget {
     required this.demanda,
     required this.nivel,
     required this.permiteMenu,
-    required this.mostrarEstimativa,
     required this.onAbrir,
     required this.onAcao,
   });
@@ -2286,7 +2216,6 @@ class _LinhaDemandaSprint extends StatelessWidget {
   final backend.Demanda? demanda;
   final int nivel;
   final bool permiteMenu;
-  final bool mostrarEstimativa;
   final VoidCallback onAbrir;
   final ValueChanged<_AcaoDemandaSprint> onAcao;
 
@@ -2295,7 +2224,12 @@ class _LinhaDemandaSprint extends StatelessWidget {
     final tema = Theme.of(context);
     final estimativa = demanda?.tempoEstimadoMinutos;
     return Padding(
-      padding: EdgeInsets.only(left: nivel * 24, bottom: 4),
+      padding: EdgeInsets.only(
+        left:
+            nivel.clamp(0, 4) *
+            (MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0),
+        bottom: 4,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: nivel == 0
@@ -2318,32 +2252,34 @@ class _LinhaDemandaSprint extends StatelessWidget {
                 : Icons.subdirectory_arrow_right,
             color: tema.colorScheme.primary,
           ),
-          title: Text(
-            demanda == null
-                ? 'Demanda #$demandaId'
-                : formatarIdentificacaoDemanda(demanda!),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  demanda == null
+                      ? 'Demanda #$demandaId'
+                      : formatarIdentificacaoDemanda(demanda!),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: 'Estimativa própria',
+                child: Text(
+                  estimativa == null ? '—' : _duracao(estimativa),
+                  key: ValueKey('estimativa-propria-sprint-$demandaId'),
+                  style: tema.textTheme.labelMedium,
+                ),
+              ),
+            ],
           ),
-          subtitle: mostrarEstimativa && estimativa != null && estimativa > 0
-              ? Text('Estimativa própria: ${_duracao(estimativa)}')
-              : null,
           trailing: permiteMenu
               ? PopupMenuButton<_AcaoDemandaSprint>(
                   key: ValueKey('menu-demanda-sprint-$demandaId'),
                   tooltip: 'Ações da Demanda',
                   onSelected: onAcao,
                   itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: _AcaoDemandaSprint.excluir,
-                      enabled: demanda != null,
-                      key: ValueKey('menu-excluir-demanda-sprint-$demandaId'),
-                      child: const Text('Excluir permanentemente'),
-                    ),
-                    PopupMenuItem(
-                      value: _AcaoDemandaSprint.backlog,
-                      enabled: false,
-                      key: ValueKey('menu-backlog-demanda-sprint-$demandaId'),
-                      child: const Text('Enviar para Backlog'),
-                    ),
                     PopupMenuItem(
                       value: _AcaoDemandaSprint.desvincular,
                       key: ValueKey(

@@ -1,3 +1,4 @@
+import 'app_selection.dart';
 import '../../ui/components/demand_components.dart';
 import '../../ui/theme/tokens.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -39,7 +40,7 @@ class DemandaCard extends StatelessWidget {
   final Widget? sprintContexto;
   final int tempoExecutadoTotalMinutos;
   final VoidCallback onEditar;
-  final VoidCallback onExcluir;
+  final VoidCallback? onExcluir;
   final ValueChanged<backend.DemandaStatus> onAlterarStatus;
   final VoidCallback onConcluir;
   final VoidCallback? onReabrir;
@@ -183,7 +184,7 @@ class DemandaCard extends StatelessWidget {
         : RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
           );
-    return SelectionArea(
+    return AppSelection(
       child: Card(
         key: ValueKey('demanda-card-${demanda.id}'),
         shape: destacado
@@ -518,7 +519,7 @@ class DemandaCard extends StatelessWidget {
           case _AcaoDemanda.mostrarTudo:
             onMostrarTudo?.call();
           case _AcaoDemanda.excluir:
-            onExcluir();
+            onExcluir?.call();
           case _AcaoDemanda.reabrir:
             onReabrir?.call();
         }
@@ -572,24 +573,26 @@ class DemandaCard extends StatelessWidget {
               child: const Text('Lançar tempo'),
             ),
         ],
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          key: ValueKey('excluir-demanda-${demanda.id}'),
-          value: _AcaoDemanda.excluir,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              redesign ? Symbols.delete_rounded : Icons.delete_outline,
-              color: corDestrutiva,
-            ),
-            title: Text(
-              'Excluir',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(color: corDestrutiva),
+        if (onExcluir != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            key: ValueKey('excluir-demanda-${demanda.id}'),
+            value: _AcaoDemanda.excluir,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                redesign ? Symbols.delete_rounded : Icons.delete_outline,
+                color: corDestrutiva,
+              ),
+              title: Text(
+                'Excluir',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(color: corDestrutiva),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
     return redesign ? RevealOnHover(child: menu) : menu;

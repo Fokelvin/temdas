@@ -98,6 +98,16 @@ class AgendaViewModel extends ChangeNotifier {
 
   backend.Demanda? demandaPorId(int demandaId) => _demandasPorId[demandaId];
 
+  /// Incorpora somente a resposta da criação explícita, sem lançar horas ou
+  /// recarregar a agenda enquanto o formulário de lançamento está aberto.
+  void adicionarDemandaCriada(backend.Demanda demanda) {
+    final id = demanda.id;
+    if (_disposed || id == null) return;
+    _demandas = [..._demandas.where((d) => d.id != id), demanda];
+    _demandasPorId = {..._demandasPorId, id: demanda};
+    _notificar();
+  }
+
   List<backend.RegistroTempo> registrosDoDia(DateTime data) {
     final chave = _somenteDataLocal(data);
     return _registrosPorDia[chave] ?? const [];

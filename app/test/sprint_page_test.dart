@@ -840,8 +840,8 @@ void main() {
       expect(find.text('31 - Entrega da área'), findsOneWidget);
       expect(find.text('32 - Revisar tela'), findsOneWidget);
       expect(find.byIcon(Icons.subdirectory_arrow_right), findsOneWidget);
-      expect(find.text('Estimativa própria: 1h35'), findsOneWidget);
-      expect(find.text('Estimativa própria: 45min'), findsOneWidget);
+      expect(find.text('1h35'), findsOneWidget);
+      expect(find.text('45min'), findsOneWidget);
       expect(
         find.text('Texto longo não deve aparecer na árvore compacta.'),
         findsNothing,
@@ -1091,7 +1091,7 @@ void main() {
   });
 
   testWidgets(
-    'menu mantém Backlog desativado e desvincula pelo SprintViewModel',
+    'menu oferece somente desvinculação confirmada pelo SprintViewModel',
     (tester) async {
       await _configurarTela(tester);
       final resultado = await _abrirDetalhe(
@@ -1106,17 +1106,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('menu-demanda-sprint-61')));
       await tester.pumpAndSettle();
-      expect(find.text('Excluir permanentemente'), findsOneWidget);
-      expect(find.text('Enviar para Backlog'), findsOneWidget);
+      expect(find.text('Excluir permanentemente'), findsNothing);
+      expect(find.text('Enviar para Backlog'), findsNothing);
       expect(find.text('Desvincular da Sprint'), findsOneWidget);
-      expect(
-        tester
-            .widget<PopupMenuItem<dynamic>>(
-              find.byKey(const ValueKey('menu-backlog-demanda-sprint-61')),
-            )
-            .enabled,
-        isFalse,
-      );
       await tester.tap(
         find.byKey(const ValueKey('menu-desvincular-demanda-sprint-61')),
       );
@@ -1139,48 +1131,36 @@ void main() {
     },
   );
 
-  testWidgets('exclusão permanente reutiliza exclusão normal da árvore', (
-    tester,
-  ) async {
-    await _configurarTela(tester);
-    final resultado = await _abrirDetalhe(
-      tester,
-      sprints: [_sprint()],
-      demandas: [
-        demandaFixture(id: 71, titulo: 'Pai'),
-        demandaFixture(id: 72, demandaPaiId: 71, titulo: 'Filha'),
-      ],
-      vinculosPorSprint: {
-        7: [
-          backend.SprintDemanda(id: 1, sprintId: 7, demandaId: 71),
-          backend.SprintDemanda(id: 2, sprintId: 7, demandaId: 72),
+  testWidgets(
+    'Sprint não disponibiliza nenhum caminho de exclusão de Demandas',
+    (tester) async {
+      await _configurarTela(tester);
+      final resultado = await _abrirDetalhe(
+        tester,
+        sprints: [_sprint()],
+        demandas: [
+          demandaFixture(id: 71, titulo: 'Pai'),
+          demandaFixture(id: 72, demandaPaiId: 71, titulo: 'Filha'),
         ],
-      },
-    );
-    addTearDown(resultado.viewModel.dispose);
+        vinculosPorSprint: {
+          7: [
+            backend.SprintDemanda(id: 1, sprintId: 7, demandaId: 71),
+            backend.SprintDemanda(id: 2, sprintId: 7, demandaId: 72),
+          ],
+        },
+      );
+      addTearDown(resultado.viewModel.dispose);
 
-    await tester.tap(find.byKey(const ValueKey('menu-demanda-sprint-71')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('menu-excluir-demanda-sprint-71')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('confirmar-excluir-demanda-sprint-71')),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(
-        const ValueKey('confirmar-excluir-demanda-sprint-71-confirmar'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(resultado.demandasRepository.chamadasExcluirArvore, 1);
-    expect(resultado.demandasRepository.ultimoIdArvoreExcluida, 71);
-    expect(resultado.demandasRepository.chamadasExcluir, 0);
-    expect(resultado.repository.chamadasDesvinculo, 0);
-  });
+      await tester.tap(find.byKey(const ValueKey('menu-demanda-sprint-71')));
+      await tester.pumpAndSettle();
+      expect(find.text('Excluir permanentemente'), findsNothing);
+      expect(find.text('Enviar para Backlog'), findsNothing);
+      expect(find.text('Desvincular da Sprint'), findsOneWidget);
+      expect(resultado.demandasRepository.chamadasExcluirArvore, 0);
+      expect(resultado.demandasRepository.chamadasExcluir, 0);
+      expect(resultado.repository.chamadasDesvinculo, 0);
+    },
+  );
 
   testWidgets('mostra ações do cabeçalho conforme o status', (tester) async {
     await _configurarTela(tester);

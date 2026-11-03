@@ -1,3 +1,4 @@
+import 'widgets/app_selection.dart';
 import 'widgets/sprints_da_demanda.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,7 @@ Future<void> mostrarDetalhesDemandaDialog(
   BuildContext context,
   int demandaId, {
   DemandaDetalheViewModel? viewModel,
+  bool permitirExclusao = true,
 }) => showGeneralDialog<void>(
   context: context,
   barrierDismissible: true,
@@ -72,9 +74,16 @@ Future<void> mostrarDetalhesDemandaDialog(
       demandaId: demandaId,
       viewModel: viewModel,
       painel: true,
+      permitirExclusao: permitirExclusao,
       onVoltar: () => Navigator.pop(dialogContext),
       onAbrirDemanda: (id) {
-        if (id != null) mostrarDetalhesDemandaDialog(dialogContext, id);
+        if (id != null) {
+          mostrarDetalhesDemandaDialog(
+            dialogContext,
+            id,
+            permitirExclusao: permitirExclusao,
+          );
+        }
       },
     ),
   ),
@@ -88,9 +97,11 @@ class _DemandaDetalheConteudo extends StatefulWidget {
     required this.onAbrirDemanda,
     this.viewModel,
     this.painel = false,
+    this.permitirExclusao = true,
   });
 
   final bool painel;
+  final bool permitirExclusao;
   final int demandaId;
   final VoidCallback onVoltar;
   final ValueChanged<int?> onAbrirDemanda;
@@ -200,7 +211,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
     );
   }
 
-  Widget _visaoGeral(backend.Demanda demanda) => SelectionArea(
+  Widget _visaoGeral(backend.Demanda demanda) => AppSelection(
     child: ListView(
       key: const PageStorageKey('demanda-visao-geral'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -218,6 +229,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
           demanda: demanda,
           acoes: _viewModel.acoesViewModel != null
               ? DemandaPainelAcoes(
+                  permitirExclusao: widget.permitirExclusao,
                   demanda: demanda,
                   viewModel: _viewModel.acoesViewModel!,
                   onAtualizar: () => _viewModel.carregar(widget.demandaId),
@@ -310,7 +322,7 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
                 if (anotacao.editadoEm != null)
                   Text('Editada em ${_formatarDataHora(anotacao.editadoEm!)}'),
                 const SizedBox(height: 8),
-                SelectableText(anotacao.conteudo),
+                Text(anotacao.conteudo),
                 if (anotacao.autorId == demanda.usuarioId)
                   Wrap(
                     children: [

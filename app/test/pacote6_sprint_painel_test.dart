@@ -97,7 +97,8 @@ void main() {
         );
         final vm = SprintViewModel(repository: repo);
         final dvm = DemandasViewModel(
-          repository: FakeDemandaRepository(demandas: [demandaFixture(id: 1)]),
+          repository: FakeDemandaRepository(demandas: [demandaFixture(id: 1,
+            titulo: 'Título longo de uma Demanda que mantém suas horas próprias alinhadas antes do menu sem repetir a soma das filhas')]),
         );
         final detail = detalhes.model();
         addTearDown(vm.dispose);
@@ -128,6 +129,8 @@ void main() {
           size.width < 840 ? size.width : 420,
         );
         expect(tester.getTopRight(panel).dx, size.width);
+        expect(find.byTooltip('Abrir Sprint em nova aba'), findsNothing);
+        expect(find.byTooltip('Abrir Sprint'), findsOneWidget);
         expect(find.byKey(const ValueKey('concluir-sprint')), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('0 de 1 Demandas concluídas'),
@@ -161,6 +164,11 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        final ownHours = find.byKey(const ValueKey('estimativa-propria-sprint-1'));
+        expect(ownHours, findsOneWidget);
+        expect(tester.widget<Text>(ownHours).data, '1h');
+        expect(tester.getRect(ownHours).right,
+          lessThanOrEqualTo(tester.getRect(find.byKey(const ValueKey('menu-demanda-sprint-1'))).left));
         await tester.tap(link);
         await tester.pumpAndSettle();
         expect(

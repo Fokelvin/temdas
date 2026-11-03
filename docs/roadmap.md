@@ -17,6 +17,35 @@ documentação específica de autenticação e Sprint.
 As prioridades P1, P2 e P3 seguem a ordem de produto solicitada. Infraestrutura
 usa prioridade operacional, conforme sua relação com homologação e produção.
 
+## Pacote de refinamento UX — novembro de 2026
+
+Implementação Flutter na branch `feat/refinamento-ux-novembro-2026`, sem
+mudanças de backend e sem publicação.
+
+- Sprint: o resumo abre a Sprint na mesma aba. A lista de vínculos oferece
+  somente desvinculação confirmada, conforme estado e hierarquia. A exclusão
+  de Demandas não está disponível nos detalhes abertos pela Sprint. Cada
+  linha mostra sua estimativa própria ao lado do título, inclusive em
+  **Mostrar tudo**, sem recalcular indicadores.
+- Log Time: a edição carrega a observação salva. O lançamento abre direto,
+  inclusive no calendário sem Demandas. A busca ignora acentos e caixa;
+  o formulário compartilhado cria e seleciona a Demanda mantendo o rascunho.
+  O registro de horas ainda exige confirmação explícita.
+- Seleção de texto: uma área por superfície nas telas principais e painéis,
+  com seleção própria dos campos de edição.
+
+Validação local: `flutter analyze --no-pub` sem apontamentos. Os lotes
+finais passaram com 41 testes de Log Time, seleção e arraste e 69 de Sprint,
+painéis e arraste de Demandas. A cobertura inclui temas claro e escuro,
+larguras a partir de 320 px e densidade compacta nas telas de Demandas.
+Um único build Web release foi concluído em 40,9 s, com aviso de fonte
+Cupertino. SHA-256 de `main.dart.js`:
+`3ddc0e9e05b4e22b87c012f60ac3c1fcbdc487153dd676187cbf0a3d7312c80d`.
+
+Homologação manual pendente: seleção e cópia por toque em navegador móvel,
+convivência com arraste e menus, títulos longos em Sprint compacta e cadastro
+de Demanda durante lançamento com teclado virtual.
+
 ## Resumo das funcionalidades
 
 ### Concluídas
@@ -202,8 +231,8 @@ adiado para o último item deste roadmap.
 - **Descrição:** habilitar seleção de texto global com `SelectionArea`, sem
   prejudicar menus, botões, campos ou gestos de interação.
 - **Prioridade:** P2.
-- **Estado:** Parcial; há seleção em áreas como cards e detalhes, mas não uma
-  área global do app.
+- **Estado:** Implementado na branch de refinamento UX de novembro;
+  pendente de homologação manual e publicação.
 - **Dependências:** validar interações nas telas e componentes interativos.
 - **Critérios de aceite:** textos informativos podem ser selecionados nas
   telas principais e ações e campos continuam operáveis.
@@ -519,7 +548,8 @@ desta seção autoriza implementação automática.
   Time, carregar no campo **Observação (opcional)** o texto já salvo para
   aquele registro; quando não houver observação, mostrar o campo vazio.
 - **Prioridade:** P2 — correção de UX.
-- **Estado:** Aprovado em 30/10/2026; pendente de implementação.
+- **Estado:** Implementado na branch de refinamento UX de novembro;
+  pendente de homologação manual e publicação.
 - **Dependências:** observação opcional de RegistroTempo já entregue no Pacote
   4; preservar associação com o registro, data, horas e regras de edição.
 - **Critérios de aceite:** a observação existente aparece integralmente ao
@@ -534,8 +564,8 @@ desta seção autoriza implementação automática.
   editável/pesquisável por ID ou título, com opções elegíveis selecionáveis,
   e um botão **+** ao lado para cadastrar uma Demanda sem sair do fluxo.
 - **Prioridade:** P2 — melhoria de produtividade.
-- **Estado:** Novo fluxo aprovado em 03/11/2026, substituindo o escopo anterior
-  de busca apenas no popup inicial; pendente de implementação.
+- **Estado:** Implementado na branch de refinamento UX de novembro;
+  pendente de homologação manual e publicação.
 - **Criação rápida:** o botão **+** deve abrir o **mesmo formulário completo**
   de criação de Demanda da tela de Demandas, preferencialmente extraído como
   componente compartilhado, sem duplicação de regras. Após criação bem-sucedida,

@@ -1,3 +1,4 @@
+import 'app_selection.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -122,7 +123,7 @@ class _PainelState extends State<DemandaPainelRedimensionavel> {
                             ],
                           ),
                         ),
-                        Expanded(child: widget.child),
+                        Expanded(child: AppSelection(child: widget.child)),
                       ],
                     ),
                   ),

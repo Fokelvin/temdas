@@ -2,6 +2,168 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../formatters/demanda_identificacao.dart';
+import '../../view_model/demandas_view_model.dart';
+
+/// Cadastro completo compartilhado por Demandas e pelo lançamento de tempo.
+class CriarDemandaDialog extends StatefulWidget {
+  const CriarDemandaDialog({super.key, required this.viewModel});
+  final DemandasViewModel viewModel;
+  @override
+  State<CriarDemandaDialog> createState() => _CriarDemandaDialogState();
+}
+
+class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
+  final _form = GlobalKey<FormState>();
+  final _titulo = TextEditingController();
+  final _descricao = TextEditingController();
+  final _horas = TextEditingController(text: '1');
+  backend.Prioridade _prioridade = backend.Prioridade.media;
+  String? _erro;
+
+  @override
+  void dispose() {
+    _titulo.dispose();
+    _descricao.dispose();
+    _horas.dispose();
+    super.dispose();
+  }
+
+  Future<void> _salvar() async {
+    if (widget.viewModel.enviando || !_form.currentState!.validate()) return;
+    setState(() => _erro = null);
+    final descricao = _descricao.text.trim();
+    final criada = await widget.viewModel.criarDemanda(
+      titulo: _titulo.text.trim(),
+      descricao: descricao.isEmpty ? null : descricao,
+      tempoEstimadoHoras: _parseHoras(_horas.text)!,
+      prioridade: _prioridade,
+    );
+    if (!mounted) return;
+    final demanda = widget.viewModel.demandaCriada;
+    if (criada && demanda?.id != null) {
+      Navigator.pop(context, demanda);
+    } else {
+      setState(
+        () => _erro =
+            widget.viewModel.erro ?? 'Não foi possível criar a Demanda.',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.viewModel,
+    builder: (context, _) {
+      final ocupado = widget.viewModel.enviando;
+      return PopScope(
+        canPop: !ocupado,
+        child: AlertDialog(
+          scrollable: true,
+          title: Row(
+            children: [
+              const Expanded(child: Text('Criar demanda')),
+              IconButton(
+                tooltip: 'Fechar',
+                onPressed: ocupado ? null : () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    key: const ValueKey('criar-demanda-titulo'),
+                    controller: _titulo,
+                    autofocus: true,
+                    enabled: !ocupado,
+                    decoration: const InputDecoration(labelText: 'Título'),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Informe o título.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    key: const ValueKey('criar-demanda-descricao'),
+                    controller: _descricao,
+                    maxLines: 3,
+                    enabled: !ocupado,
+                    decoration: const InputDecoration(labelText: 'Descrição'),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<backend.Prioridade>(
+                    key: const ValueKey('criar-demanda-prioridade'),
+                    initialValue: _prioridade,
+                    decoration: const InputDecoration(labelText: 'Prioridade'),
+                    items: [
+                      for (final p in backend.Prioridade.values)
+                        DropdownMenuItem(
+                          value: p,
+                          child: Text(_prioridadeLabel(p)),
+                        ),
+                    ],
+                    onChanged: ocupado
+                        ? null
+                        : (v) {
+                            if (v != null) setState(() => _prioridade = v);
+                          },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    key: const ValueKey('criar-demanda-tempo'),
+                    controller: _horas,
+                    enabled: !ocupado,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Tempo estimado (horas)',
+                    ),
+                    validator: _validarHorasEstimadas,
+                  ),
+                  if (_erro != null) ...[
+                    const SizedBox(height: 16),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _erro!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: ocupado ? null : () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              key: const ValueKey('criar-demanda'),
+              onPressed: ocupado ? null : _salvar,
+              icon: ocupado
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+              label: Text(ocupado ? 'Criando...' : 'Criar demanda'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
 class DemandaEdicaoFormData {
   const DemandaEdicaoFormData({

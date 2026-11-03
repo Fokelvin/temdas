@@ -1,3 +1,4 @@
+import 'package:temdas/view/widgets/log_time_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/log_time_page.dart';
@@ -40,8 +41,14 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('abrir-lancamento-global')));
     await tester.pumpAndSettle();
-    expect(find.text('Selecionar demanda'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('confirmar-demanda-log-time')));
+    expect(find.byType(LogTimeDialog), findsOneWidget);
+    expect(find.text('Selecionar demanda'), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('selecionar-demanda-log-time')),
+      '1',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('opcao-demanda-log-time-1')));
     await tester.pumpAndSettle();
 
     await _preencherIntervalo(tester);
