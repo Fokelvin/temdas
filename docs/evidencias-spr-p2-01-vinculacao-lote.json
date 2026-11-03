@@ -2,7 +2,6 @@
   "postgres": "17.11",
   "serverpod": "3.4.11",
   "response_delay_ms": 500,
-  "production_access": false,
   "measurements": [
     {
       "case": "legacy_insert",
@@ -38,12 +37,12 @@
   "backend_tests_unique_passed": 43,
   "frontend_tests_unique_passed": 21,
   "static_analysis": "targeted clean",
-  "release_build_executed": false,
-  "production_or_dev_access": false,
-  "production_modified": false,
+  "release_build_executed": true,
+  "production_or_dev_access": true,
+  "production_modified": true,
   "migration_sql_executed": false,
-  "published": false,
-  "integrated_main": false,
+  "published": true,
+  "integrated_main": true,
   "unresolved_test_failures": [],
   "initial_fixture_correction": "deferred COMMIT exposes raw postgres ServerException/23514; corrected assertion and reran only that case successfully",
   "source_sha256": {
@@ -55,5 +54,91 @@
     "scripts/testing/run_sprint_tests.py": "ec06c2816d30c4177497772ad43aaeec68ce14101e49ac436e0d92c62ab114a6",
     "scripts/testing/pg_latency_proxy.py": "45b0fb57f90cc03d69d6dcdbd5490668d0168982d5ce4818dc727660c52d02f1"
   },
-  "unchanged_migration_sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f"
+  "unchanged_migration_sql_sha256": "01145a171e8296ef16bdf0d67b8991a7f0052c9b3c4a345043b00c7e00f1f31f",
+  "implementation_boundaries": {
+    "release_build_executed": false,
+    "production_or_dev_access": false,
+    "production_modified": false,
+    "migration_sql_executed": false,
+    "published": false,
+    "integrated_main": false
+  },
+  "publication": {
+    "authorization": "explicit user approval to publish 9d5b3af",
+    "code_commit": "9d5b3af6f12816eea10bdaa3348eb535444ac045",
+    "main_integration": "fast-forward; no force push",
+    "railway": {
+      "deployment": "2fab0925-2928-4582-805b-7b50fa53737e",
+      "status": "SUCCESS",
+      "replicas": 1,
+      "serverpod": "3.4.11",
+      "automatic_migrations": false,
+      "pre_deploy": [],
+      "public_port": 8080,
+      "region": "iad",
+      "final_status": "SUCCESS",
+      "critical_logs_observed": 0
+    },
+    "cloudflare": {
+      "workflow": 41691481038,
+      "commit": "9d5b3af6f12816eea10bdaa3348eb535444ac045",
+      "status": "success",
+      "url": "https://c68e8427.temdas-web.pages.dev",
+      "domain": "https://temdas.com.br",
+      "main_js_sha256": "6046902542fd7e5406e8f400b9e5565ecdab0c903e2c5da89ed439ac9cf7d252"
+    },
+    "public_smoke": {
+      "utc": "2026-11-03T18:14:32.579296+00:00",
+      "checks": {
+        "readyz": 200,
+        "frontend_https": 200,
+        "listarSprints": {
+          "status": 400,
+          "auth_code": "tokenMissing",
+          "cors_origin": "*"
+        },
+        "listarContextoDemandas": {
+          "status": 400,
+          "auth_code": "tokenMissing",
+          "cors_origin": "*"
+        },
+        "cors_preflight": {
+          "status": 200,
+          "origin": "*",
+          "headers": "Content-Type, Authorization, Accept, User-Agent, X-Requested-With",
+          "methods": "POST"
+        }
+      },
+      "passed": true
+    },
+    "local_release_builds": 0,
+    "schema_changes": false,
+    "migration_executed": false,
+    "infrastructure_changes": false,
+    "business_test_mutations": false,
+    "credentials_extracted_or_changed": false,
+    "pending": [
+      "manual_authenticated_link_homologation_and_production_latency_observation"
+    ],
+    "status": "published_verified_public_access_enabled",
+    "remote_backend_builds": 1,
+    "remote_frontend_builds": 1,
+    "authenticated_business_rpcs_homologated": false,
+    "production_link_performance_measured": false,
+    "public_access": "enabled on port 8080",
+    "browser_verification": {
+      "utc": "2026-11-03T18:15:24.142Z",
+      "domain": "temdas.com.br",
+      "status": 200,
+      "asset_status": 200,
+      "sha256": "6046902542fd7e5406e8f400b9e5565ecdab0c903e2c5da89ed439ac9cf7d252",
+      "reconciliation_message": true,
+      "context_rpc": true,
+      "production_backend": true,
+      "flutter_view": 1,
+      "canvas": 1,
+      "javascript_errors": []
+    }
+  },
+  "benchmark_production_access": false
 }

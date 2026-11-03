@@ -215,3 +215,12 @@ sem criar ou alterar dados para testar. Não é necessário fornecer ou extrair 
 Registrar depois o resultado da leitura autenticada e da navegação no celular.
 Em falha crítica de operação, restaurar somente o domínio para 8089 e reportar;
 não executar rollback de backend/schema ou restauração automática.
+
+### Atualização posterior — vinculação em lote e timeout
+
+Em 03/11/2026 foi autorizada e concluída a publicação de `9d5b3af`, com
+otimização da RPC de lote, timeout compartilhado de 60 s e reconciliação por
+leitura após timeout. Railway `2fab0925` e Cloudflare `c68e8427` concluídos,
+API pública mantida em 8080. Nenhuma nova migration ou vinculação de teste em
+PROD. Procedimento, resultados e limites em
+[vinculação em lote](spr-p2-01-vinculacao-lote.md).

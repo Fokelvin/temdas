@@ -215,14 +215,15 @@ adiado para o último item deste roadmap.
   outra Sprint ativa ou planejada, mesmo com períodos não sobrepostos.
 - **Prioridade:** P2 — melhoria funcional aprovada em 30/10/2026.
 - **Estado:** Publicado em PROD em 03/11/2026, API liberada para homologação manual.
-  Ensaios incremental/limpo e preflight aprovados; migration aplicada com dados
-  preservados, backend Railway compatível em `SUCCESS` e integração à `main`
-  em `8391659`, preservando a documentação posterior. Cloudflare concluído com
-  sucesso e app/HTTPS/contrato conferidos; JavaScript idêntico ao build aprovado.
-  Porta pública restaurada para 8080 por autorização explícita posterior;
-  saúde HTTPS 200, rejeição sem token e CORS conferidos. Login/MFA e RPCs
-  autenticadas aguardam homologação manual pelo responsável no celular.
-  Resultado real e evidências em [SPR-P2-01](spr-p2-01-multiplas-sprints.md).
+  Migration original aplicada com ensaios aprovados e dados preservados.
+  Otimização de vinculação em lote, timeout de 60 s e reconciliação por leitura
+  publicados em `9d5b3af`: Railway `2fab0925` e Cloudflare `c68e8427` em sucesso.
+  Saúde HTTPS 200, novo frontend renderizado, rejeição sem token e CORS conferidos;
+  API permanece na porta 8080, sem nova migration ou alteração de infraestrutura.
+  A vinculação dessa versão e seu desempenho real aguardam homologação manual;
+  8,55 s/8 consultas é medição descartável com atraso artificial, não SLA de PROD.
+  Histórico em [SPR-P2-01](spr-p2-01-multiplas-sprints.md) e publicação/medição
+  em [vinculação em lote](spr-p2-01-vinculacao-lote.md).
 - **Regra de vínculo:** permitir uma Demanda vinculada à Sprint ativa e
   simultaneamente a Sprints futuras planejadas, inclusive mais de uma, desde
   que os períodos não se sobreponham. Preservar o histórico das Sprints

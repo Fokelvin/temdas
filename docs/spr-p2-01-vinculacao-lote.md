@@ -2,8 +2,10 @@
 
 Implementado em 03/11/2026 na branch
 `feat/spr-p2-01-vinculacao-lote-timeout`, a partir de `main` em `1234777`.
-**Não integrado, não publicado.** Nenhuma conexão a PROD, migration de upgrade,
-alteração de infraestrutura ou dado de negócio real foi executada nesta etapa.
+Commit implementado e aprovado: `9d5b3af`. A publicação foi autorizada
+separadamente em 03/11/2026; o resultado está registrado ao final. Durante a
+implementação não houve conexão a PROD, migration de upgrade, alteração de
+infraestrutura ou uso de dados de negócio reais.
 
 ## Problema e implementação
 
@@ -129,11 +131,45 @@ rtk test flutter test --no-pub test/sprint_vinculacao_timeout_test.dart test/spr
 
 O advisory lock continua global e pode provocar fila sob concorrência; o lote
 reduz o tempo de retenção, mas não remove esse limite. Árvores muito grandes,
-contenção e a rede real ainda precisam de observação após uma futura publicação
-autorizada. Não há medição nova em PROD nem garantia de duração nesse ambiente.
+contenção e a rede real ainda precisam de observação durante a homologação em
+PROD. Não há medição nova de vinculação em PROD nem garantia de duração nesse ambiente.
 O timeout compartilhado de 60 s também afeta outras RPCs. A reconciliação é uma
 confirmação do estado observado, não um recibo da requisição; a pendência é mantida
 em memória e não sobrevive à recriação do view model/recarregamento da página.
 
-Publicação, integração à main, push e qualquer operação em PROD aguardam
-autorização separada. Não reaplicar a migration SPR-P2-01 para publicar esta mudança.
+Não reaplicar a migration SPR-P2-01 para publicar esta mudança.
+
+## Publicação autorizada — 03/11/2026
+
+- Autorização explícita do responsável: publicar a implementação aprovada
+  `9d5b3af`. Hashes dos arquivos reconferidos contra as evidências, árvore
+  rastreada limpa e artefatos de migrations inalterados.
+- Backend enviado a partir de snapshot contendo somente arquivos versionados
+  de `9d5b3af`, sem diretórios locais não rastreados. Railway
+  `2fab0925-2928-4582-805b-7b50fa53737e`: **SUCCESS**, uma réplica saudável,
+  Serverpod 3.4.11, `applyMigrations: false`, `applyRepairMigration: false` e
+  Pre-Deploy vazio. Porta pública 8080 e região `iad` preservadas.
+- Integração à main por fast-forward e push normal de `9d5b3af`, preservando
+  o histórico existente. Frontend: pipeline Cloudflare `41691481038` **SUCCESS**,
+  posterior à confirmação de saúde do backend. Deployment público:
+  `https://c68e8427.temdas-web.pages.dev`.
+- `https://temdas.com.br` e seu asset retornaram 200; navegador isolado confirmou
+  Flutter/canvas renderizados, nenhum erro JavaScript e a mensagem nova de
+  reconciliação no JavaScript servido. Contrato de contexto e URL do backend
+  oficial preservados. SHA-256 do `main.dart.js` efetivamente carregado:
+  `6046902542fd7e5406e8f400b9e5565ecdab0c903e2c5da89ed439ac9cf7d252`.
+- Checks de leitura sem credenciais: API `/readyz` e frontend HTTPS 200;
+  `listarSprints` e `listarContextoDemandas` rejeitam ausência de token com
+  HTTP 400/`tokenMissing`; CORS/OPTIONS permitem o frontend oficial.
+- Read-back final manteve o deployment Railway em SUCCESS, região `iad`, uma
+  réplica, porta pública 8080 e Pre-Deploy vazio; nenhum erro crítico nos logs
+  consultados. API continuou liberada durante a atualização compatível, sem
+  repetir a pausa de manutenção exigida na migration original.
+- Apenas builds remotos necessários à publicação; testes aprovados não foram
+  repetidos. Nenhuma migration, mutação de negócio para teste, extração de token,
+  alteração de credencial, pausa de API ou mudança de infraestrutura.
+
+Acesso público mantido para homologação manual com login/MFA em
+`https://temdas.com.br`. Recarregar as abas para obter o novo frontend.
+O desempenho real da vinculação e o fluxo autenticado dessa versão aguardam
+homologação do responsável; o benchmark descartável não equivale a essa validação.
