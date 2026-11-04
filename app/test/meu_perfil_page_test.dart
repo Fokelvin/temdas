@@ -114,13 +114,17 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Abrir menu'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Meu Perfil'));
+    final sessaoAnterior = supabaseSession;
+    supabaseSession = auth.session;
+    addTearDown(() => supabaseSession = sessaoAnterior);
+    await tester.tap(find.byTooltip('Meu Perfil'));
     await tester.pumpAndSettle();
 
     expect(find.text('Meu Perfil'), findsWidgets);
     expect(find.text('admin@example.com'), findsOneWidget);
+    await tester.tap(find.byTooltip('Sair'));
+    await tester.pumpAndSettle();
+    expect(auth.session.currentSession, isNull);
   });
 
   testWidgets('shows loading, recovers from error with retry', (tester) async {
@@ -195,18 +199,21 @@ void main() {
       ' TEST@Example.com ',
     );
 
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     expect(find.text('Novo convite'), findsOneWidget);
     expect(find.byKey(const ValueKey('enviar-convite')), findsOneWidget);
 
     status = 'pendente';
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     expect(find.text('Convite pendente'), findsOneWidget);
     expect(find.byKey(const ValueKey('reenviar-convite')), findsOneWidget);
 
     status = 'provisionado';
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     expect(find.text('Conta provisionada'), findsOneWidget);
@@ -239,6 +246,7 @@ void main() {
       find.byKey(const ValueKey('convite-email')),
       ' TEST@Example.com ',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('enviar-convite')));
@@ -267,6 +275,7 @@ void main() {
       find.byKey(const ValueKey('convite-email')),
       ' TEST@Example.com ',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('reenviar-convite')));
@@ -293,6 +302,7 @@ void main() {
       find.byKey(const ValueKey('convite-email')),
       'user@example.com',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('reenviar-convite')));
@@ -304,6 +314,7 @@ void main() {
       find.byKey(const ValueKey('convite-email')),
       'invalid',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     expect(find.text('Informe um e-mail válido.'), findsOneWidget);
@@ -332,6 +343,7 @@ void main() {
       find.byKey(const ValueKey('convite-email')),
       'user@example.com',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('consultar-convite')));
     await tester.tap(find.byKey(const ValueKey('consultar-convite')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('enviar-convite')));

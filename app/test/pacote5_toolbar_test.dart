@@ -71,7 +71,7 @@ void main() {
     }
   }
 
-  testWidgets('ícone persiste tema e Sistema continua disponível no menu', (
+  testWidgets('ícone superior persiste tema sem controle no menu', (
     tester,
   ) async {
     final preference = ThemePreference();
@@ -103,20 +103,7 @@ void main() {
       ),
       'dark',
     );
-    await tester.tap(find.byTooltip('Abrir menu'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(DropdownButtonFormField<ThemeMode>));
-    await tester.tap(find.byType(DropdownButtonFormField<ThemeMode>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sistema').last);
-    await tester.pumpAndSettle();
-    expect(preference.mode, ThemeMode.system);
-    expect(
-      (await SharedPreferences.getInstance()).containsKey(
-        ThemePreference.storageKey,
-      ),
-      isFalse,
-    );
+    expect(find.byType(DropdownButtonFormField<ThemeMode>), findsNothing);
   });
 
   testWidgets('busca usa a largura livre ao ampliar desktop', (tester) async {

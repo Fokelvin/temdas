@@ -451,7 +451,15 @@ void main() {
           );
           expect(
             calendar.width,
-            closeTo(size.width - (size.width < 600 ? 16 : 32), .01),
+            closeTo(
+              size.width -
+                  (size.width < 600
+                      ? 16
+                      : size.width < 1024
+                      ? 92
+                      : 244),
+              .01,
+            ),
           );
           expect(calendar.height, greaterThan(size.height / 2));
           expect(
@@ -520,12 +528,14 @@ Future<AgendaViewModel> _abrir(
   FakeRegistroTempoRepository? repository,
   List<backend.Demanda>? demandas,
   AgendaMode mode = AgendaMode.semana,
-  Size size = const Size(1280, 1000),
+  Size size = const Size(1440, 1000),
   ThemeData? theme,
   double escala = 1,
 }) async {
-  await tester.binding.setSurfaceSize(size);
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   final vm = AgendaViewModel(
     hoje: DateTime(2026, 9, 9),
     demandaRepository: FakeAgendaDemandaRepository(

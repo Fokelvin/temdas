@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/theme_preference.dart';
 
-/// Shares the existing persisted preference; Sistema stays in the drawer.
+/// Shares the existing persisted theme preference.
 class ThemeToggleButton extends StatelessWidget {
   const ThemeToggleButton({super.key});
 

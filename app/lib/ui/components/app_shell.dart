@@ -2,8 +2,7 @@ import '../../view/widgets/app_selection.dart';
 import 'mobile_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import '../../data/supabase_session.dart';
-import '../../theme/theme_preference.dart';
+import 'app_side_menu.dart';
 import '../../view/widgets/theme_toggle_button.dart';
 import '../theme/tokens.dart';
 
@@ -18,52 +17,6 @@ class AppShell extends StatelessWidget {
   final String route;
   final Widget header, body;
   final Widget? fab;
-  static const routes = AppNavigation.routes;
-  static const labels = AppNavigation.labels;
-  static const icons = AppNavigation.icons;
-  void _go(BuildContext context, int index) {
-    if (routes[index] != route) {
-      Navigator.of(context).pushReplacementNamed(routes[index]);
-    }
-  }
-
-  Widget _avatar(BuildContext context) {
-    final user = supabaseSession?.currentSession?.user;
-    final name = (user?.userMetadata?['nome'] ?? user?.email ?? 'Meu Perfil')
-        .toString();
-    final initials = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((s) => s.isEmpty ? '' : s[0])
-        .join()
-        .toUpperCase();
-    return CircleAvatar(
-      radius: 12,
-      backgroundColor: AppTokens.of(context).surface2,
-      child: Text(
-        initials,
-        style: TextStyle(fontSize: 10, color: AppTokens.of(context).text2),
-      ),
-    );
-  }
-
-  Widget _profileMenu(BuildContext context) => PopupMenuButton<String>(
-    tooltip: 'Opções do perfil e tema',
-    icon: const Icon(Symbols.more_horiz_rounded),
-    onSelected: (value) async {
-      if (value == 'perfil') _go(context, 4);
-      if (value == 'sair') await supabaseSession?.signOut();
-      if (value == 'sistema' && context.mounted) {
-        await ThemePreferenceScope.maybeOf(context)?.select(ThemeMode.system);
-      }
-    },
-    itemBuilder: (_) => const [
-      PopupMenuItem(value: 'perfil', child: Text('Meu Perfil')),
-      PopupMenuItem(value: 'sistema', child: Text('Tema: Sistema')),
-      PopupMenuItem(value: 'sair', child: Text('Sair')),
-    ],
-  );
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -71,6 +24,9 @@ class AppShell extends StatelessWidget {
     final desktop = width >= 1024;
     final t = AppTokens.of(context);
     return Scaffold(
+      drawer: mobile
+          ? Drawer(width: 212, child: AppSideMenu(route: route, drawer: true))
+          : null,
       floatingActionButton: mobile ? fab : null,
       bottomNavigationBar: mobile
           ? MobileBottomNavigation(currentRoute: route)
@@ -80,138 +36,7 @@ class AppShell extends StatelessWidget {
           bottom: !mobile,
           child: Row(
             children: [
-              if (!mobile)
-                Container(
-                  width: desktop ? 212 : 60,
-                  decoration: BoxDecoration(
-                    color: t.surface,
-                    border: Border(right: BorderSide(color: t.border)),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: desktop ? 12 : 4,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 32,
-                        child: Row(
-                          mainAxisAlignment: desktop
-                              ? MainAxisAlignment.start
-                              : MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: AppTokens.accent,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'T',
-                                style: TextStyle(
-                                  color: Color(0xFF0B1220),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            if (desktop) ...[
-                              const SizedBox(width: 8),
-                              const Text(
-                                'TEMDAS',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      for (var i = 0; i < 4; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Tooltip(
-                            message: labels[i],
-                            child: Material(
-                              color: route == routes[i]
-                                  ? t.accentSoft
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(6),
-                                onTap: () => _go(context, i),
-                                child: SizedBox(
-                                  height: desktop ? 32 : 44,
-                                  child: Row(
-                                    mainAxisAlignment: desktop
-                                        ? MainAxisAlignment.start
-                                        : MainAxisAlignment.center,
-                                    children: [
-                                      if (desktop) const SizedBox(width: 8),
-                                      Icon(
-                                        icons[i],
-                                        size: 16,
-                                        color: route == routes[i]
-                                            ? AppTokens.accent
-                                            : t.text2,
-                                      ),
-                                      if (desktop) ...[
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          labels[i],
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: route == routes[i]
-                                                ? t.text
-                                                : t.text2,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      const Spacer(),
-                      Divider(color: t.border),
-                      Tooltip(
-                        message: 'Meu Perfil',
-                        child: InkWell(
-                          onTap: () => _go(context, 4),
-                          child: SizedBox(
-                            height: 44,
-                            child: Row(
-                              mainAxisAlignment: desktop
-                                  ? MainAxisAlignment.start
-                                  : MainAxisAlignment.center,
-                              children: [
-                                _avatar(context),
-                                if (desktop) ...[
-                                  const SizedBox(width: 8),
-                                  const Text('Meu Perfil'),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (desktop)
-                        Row(
-                          children: [
-                            const ThemeToggleButton(),
-                            const Spacer(),
-                            _profileMenu(context),
-                          ],
-                        )
-                      else ...[
-                        const ThemeToggleButton(),
-                        _profileMenu(context),
-                      ],
-                    ],
-                  ),
-                ),
+              if (!mobile) AppSideMenu(route: route, compact: !desktop),
               Expanded(
                 child: Column(
                   children: [
@@ -405,6 +230,7 @@ class PageHeader extends StatelessWidget {
               if (mobile) ...[
                 Row(
                   children: [
+                    const AppMenuButton(),
                     Expanded(child: title),
                     refresh,
                     const ThemeToggleButton(),
@@ -437,6 +263,7 @@ class PageHeader extends StatelessWidget {
                       refresh,
                       const SizedBox(width: 8),
                       create,
+                      const ThemeToggleButton(),
                     ],
                   )
                 else ...[
@@ -454,6 +281,7 @@ class PageHeader extends StatelessWidget {
                         refresh,
                         create,
                       ],
+                      const ThemeToggleButton(),
                     ],
                   ),
                   const SizedBox(height: 8),

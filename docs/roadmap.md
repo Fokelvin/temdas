@@ -140,7 +140,8 @@ de escopo.
 ### Gerenciamento de vínculos de Sprint em Demandas
 
 - **Estado:** Implementado na branch `feat/sprints-na-tela-demandas`.
-  Homologação manual e publicação pendentes.
+  Publicado em produção no SHA `417211c`. Homologação funcional
+  confirmada pelo responsável.
 - O cadastro compartilhado de Demandas, inclusive no Log Time, permite
   selecionar Sprints abertas opcionalmente. A edição exibe o histórico e aplica
   somente as alterações de vínculo solicitadas ao salvar. O painel permite
@@ -284,7 +285,10 @@ adiado para o último item deste roadmap.
   compartilhado para navegação, branding, ícones, textos, estados ativos e
   ações de usuário, evitando implementações divergentes por página.
 - **Prioridade:** P2 — correção de consistência do redesign frontend.
-- **Estado:** Aprovado em 04/11/2026; pendente de implementação.
+- **Estado:** Implementado na branch `feat/ui-p2-04-menu-lateral`. Publicação e
+  homologação em produção pendentes. Análise Flutter, testes direcionados
+  de navegação, perfil, logout, tema e responsividade e um build Web release
+  concluídos localmente.
 - **Escopo:** uniformizar a navegação lateral de Demandas, Sprints, Log Time,
   Relatórios e demais rotas autenticadas que exibam o menu. Preservar destinos,
   permissões, seleção da rota ativa, acesso a Meu Perfil e saída da sessão,

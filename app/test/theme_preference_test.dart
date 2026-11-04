@@ -75,29 +75,22 @@ void main() {
     },
   );
 
-  testWidgets('menu compartilhado oferece Sistema, Claro e Escuro', (
-    tester,
-  ) async {
+  testWidgets('menu não possui controle de tema', (tester) async {
     final preference = ThemePreference();
     addTearDown(preference.dispose);
     await tester.pumpWidget(
       ThemePreferenceScope(
         notifier: preference,
         child: const MaterialApp(
-          home: Scaffold(body: AppDrawer(currentRoute: '/demandas')),
+          home: PageScaffold(
+            title: 'Demandas',
+            route: '/demandas',
+            body: SizedBox(),
+          ),
         ),
       ),
     );
-    await tester.tap(find.byType(DropdownButtonFormField<ThemeMode>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Escuro').last);
-    await tester.pumpAndSettle();
-    expect(preference.mode, ThemeMode.dark);
-    expect(
-      (await SharedPreferences.getInstance()).getString(
-        ThemePreference.storageKey,
-      ),
-      'dark',
-    );
+    expect(find.byType(DropdownButtonFormField<ThemeMode>), findsNothing);
+    expect(find.byKey(const ValueKey('alternar-tema')), findsOneWidget);
   });
 }
