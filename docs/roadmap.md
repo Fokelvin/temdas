@@ -289,13 +289,22 @@ adiado para o último item deste roadmap.
   Relatórios e demais rotas autenticadas que exibam o menu. Preservar destinos,
   permissões, seleção da rota ativa, acesso a Meu Perfil e saída da sessão,
   com comportamento responsivo em desktop e mobile.
+- **Identidade visual:** corrigir também o cabeçalho do menu moderno de
+  Demandas: substituir o avatar quadrado com a letra genérica `T` pela logo
+  oficial do TEMDAS. Reutilizar os assets já presentes em `app/assets/images/`
+  (por exemplo `temdas_logo.png` para o símbolo e/ou `temdas_texto.png`/
+  `temdas_wordmark_transparent.png` para a marca escrita), conferindo o uso
+  correto, proporções e contraste nos temas claro/escuro; não criar marca nova
+  nem recuperar o layout legado do drawer. Replicar o cabeçalho corrigido em
+  todas as telas via componente compartilhado.
 - **Tema:** retirar o ícone/controle de alternância claro/escuro do menu
   lateral, inclusive na versão de Demandas, pois o controle já existe na barra
   superior compartilhada. Não remover a alternância da barra superior nem
   alterar a persistência da preferência de tema.
 - **Critérios de aceite:** todas as páginas exibem o mesmo componente e estilo
-  de menu, com item atual destacado; navegação funcional sem perder o estado
-  de autenticação; ausência de controles de tema duplicados no menu;
+  de menu, com identidade visual oficial do TEMDAS no cabeçalho e item atual
+  destacado; navegação funcional sem perder o estado de autenticação; ausência
+  de controles de tema duplicados no menu;
   funcionamento consistente em telas pequenas e nos temas claro/escuro.
 - **Impacto previsto:** frontend Flutter somente; reutilizar o menu existente
   em vez de redesenhar cada página. Sem alterações de schema, backend ou
