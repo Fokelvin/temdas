@@ -225,10 +225,10 @@ de escopo.
 
 ## P2 — Refinamentos de autenticação e interface
 
-**Próximos refinamentos frontend:** UX-AUTH-03 (entrada por painel lateral e
-navegação), AUTH-P2-02 (mensagens de autenticação) e UI-P2-03 (seleção de texto).
-Preservar login, MFA obrigatório e interações do Flutter Web. AUTH-P2-01 foi
-adiado para o último item deste roadmap.
+Esta seção reúne refinamentos frontend concluídos e aprovados. A navegação
+unificada (UI-P2-04) e o contraste do modo escuro (UI-P2-05) estão pendentes
+de implementação; preservar login, MFA obrigatório e interações do Flutter Web.
+AUTH-P2-01 permanece adiado para o último item deste roadmap.
 
 ### UX-AUTH-03 — Entrada por painel lateral e correção da navegação pública
 
@@ -309,6 +309,61 @@ adiado para o último item deste roadmap.
 - **Impacto previsto:** frontend Flutter somente; reutilizar o menu existente
   em vez de redesenhar cada página. Sem alterações de schema, backend ou
   migrations. Publicação e homologação posteriores dependem de aprovação.
+
+### UI-P2-05 — Contraste e hierarquia visual do modo escuro
+
+- **Descrição:** corrigir a baixa distinção visual entre fundo da página,
+  colunas e cards do TEMDAS no tema escuro. Melhorar o contraste de bordas,
+  textos secundários, ícones, controles, chips de Sprint, indicadores de
+  prioridade/status e estados ativos sem redesenhar as telas nem acrescentar
+  informações.
+- **Prioridade:** P2 — consistência visual, legibilidade e acessibilidade.
+- **Estado:** Aprovado em 04/11/2026; **pendente de implementação, validação
+  e publicação**. Não considerar concluído por existir um mockup HTML ou uma
+  especificação visual.
+- **Referência de design:** especificação
+  `temdas-contraste-modo-escuro-flutter-codex.md` fornecida nesta conversa,
+  versão 1.1 de 04/11/2026. É uma referência visual externa ao repositório:
+  anexá-la ao Codex quando executar; não presumir que o arquivo está versionado.
+- **Paleta e hierarquia:** fundo `#0b1220` (preservado), colunas/sidebar
+  `#111a2b` (preservado), cards `#1a2640`; bordas de cards/colunas
+  `#32446a`, controles `#52669a`; texto principal `#e6ebf5` (preservado),
+  secundário `#c2cce0`, auxiliar `#a9b6cd`. Chip ativo de Sprint:
+  fundo `#22365f`, borda `#2e4f8c`, texto `#9cc2ff`. Reforçar
+  estado ativo de sidebar e Kanban/Lista com o azul `#4c8dff` em opacidades
+  de 18% (fundo) e 55% (contorno). Preservar verde, âmbar e azul semântico
+  atuais em seus demais papéis.
+- **Detalhes pontuais:** trilho da barra de progresso `#3b4d75`, altura
+  de 3 para **5 pixels lógicos**; bolinhas de prioridade/status de 6 para
+  **8 pixels lógicos**; ícones e alças legíveis conforme a especificação.
+  Revisar hover, foco, seleção e arraste para não perder visibilidade com
+  a nova superfície de card.
+- **Escopo técnico:** implementar **somente no Flutter Web/Dart**, convertendo
+  os papéis visuais para o `AppTheme.dark`, `ColorScheme`, extensões/tokens
+  e widgets reais de `app/lib/theme/` e das páginas. Não implementar
+  HTML/CSS, não copiar seletor ilustrativo e não trocar hexadecimais
+  globalmente sem identificar seus papéis. Aplicar superfícies equivalentes
+  às telas Demandas (Kanban e Lista), Sprints, Log Time, Relatórios e
+  componentes compartilhados (modais, popovers, menus).
+- **Restrições:** não alterar **modo claro**, dados, textos, funcionalidades,
+  rotas, regras de negócio, modelos, API, banco, fontes, espaçamentos, raios
+  ou estrutura do layout. Admitir apenas as dimensões pontuais aprovadas na
+  especificação e até 2 pixels lógicos de variação de altura do card pela
+  barra de progresso. Itens opcionais do documento (botão primário e aviso
+  visual para horas acima da estimativa) ficam **fora do escopo**, salvo
+  aprovação específica.
+- **Dependências:** coordenar com UI-P2-04 para reutilizar o menu lateral
+  unificado em vez de criar implementações visuais divergentes. Verificar
+  os valores reais dos tokens e widgets antes de editar; a origem dos hex
+  foi uma captura, portanto os valores do fonte podem ter outra representação.
+- **Critérios de aceite:** texto normal com contraste WCAG AA de pelo menos
+  **4,5:1** e informações não textuais essenciais com **3:1**, quando
+  aplicável; metas de separação das superfícies e bordas conforme a tabela
+  de contrastes da especificação. Validar Kanban (inclusive coluna recolhida),
+  Lista, Sprints, Log Time, Relatórios, modais e dropdowns; verificar estados
+  interativos, responsividade, não regressão do modo claro, análise, build
+  Web e testes afetados. **Sem commit, push ou deploy automático como parte
+  da implementação inicial**; publicação exige aprovação posterior.
 
 ### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
 
