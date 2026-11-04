@@ -601,9 +601,9 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
 - `autenticacao-supabase.md`, `auth-callback-flutter.md` e `convites-admin.md`:
   autenticação, AAL2, callbacks, convites e operação.
 - `schema-sprints-serverpod.md`: migração e objetos SQL customizados de Sprint.
-- `TEMDAS_HANDOFF_CODEX.md` e `prova-mfa-totp.md` são registros históricos;
-  decisões antigas devem ser conferidas com a arquitetura, escopo e código
-  atuais antes de virar trabalho pendente.
+- Os antigos arquivos de handoff do Codex e da prova inicial de MFA foram
+  retirados da documentação ativa por estarem obsoletos; permanecem acessíveis
+  no histórico do Git. Não utilizar suas instruções como base para novas entregas.
 
 
 ## Adições aprovadas em 2026-10-27 — UX e pós-produção
@@ -728,9 +728,9 @@ desta seção autoriza implementação automática.
 - **Estado:** Concluído, publicado e homologado em PROD (29/10/2026). Migration
   do Pacote 4 e correção dos objetos SQL customizados aplicadas com backup
   verificado e preservação de dados; deploy Railway → Cloudflare validado.
-  Implementação: [pacote4-painel-demandas.md](pacote4-painel-demandas.md).
-  Ensaios complementares: [pacote4-validacao-complementar.md](pacote4-validacao-complementar.md).
-  Publicação: [pacote4-publicacao.md](pacote4-publicacao.md).
+  Implementação: [pacote4-painel-demandas.md](historico/pacote4-painel-demandas.md).
+  Ensaios complementares: [pacote4-validacao-complementar.md](historico/pacote4-validacao-complementar.md).
+  Publicação: [pacote4-publicacao.md](historico/pacote4-publicacao.md).
   A largura de 50% corresponde à versão entregue e será refinada no UX-P5-04.
 - **Interface:** painel à direita com aproximadamente metade da largura no
   desktop e tela cheia no celular; cabeçalho fixo, rolagem independente e abas
@@ -840,7 +840,7 @@ desta seção autoriza implementação automática.
 **Estado:** Concluído, publicado e homologado em PROD pelo responsável antes
  do redesign complementar de 30/10/2026. Inclui os commits `b3e67ad` e
  `b071e4d`, com análise, testes afetados e build Web release aprovados.
- Detalhes em [pacote5-toolbar-demandas.md](pacote5-toolbar-demandas.md).
+ Detalhes em [pacote5-toolbar-demandas.md](historico/pacote5-toolbar-demandas.md).
  O redesign posterior de Lista/Kanban e da navegação mobile está registrado
  separadamente abaixo. Nenhuma migration ou mudança de backend.
 
@@ -930,7 +930,7 @@ responsável, exclusivamente frontend, com confirmação do workflow e HTTPS.
 - **Estado:** **Concluído, publicado e homologado em PROD pelo responsável** em
   29/10/2026 (commit `764a845`). Análise, testes direcionados, build Web release
   e workflow Cloudflare aprovados. Evidências em
-  [pacote6-sprints-responsividade.md](pacote6-sprints-responsividade.md).
+  [pacote6-sprints-responsividade.md](historico/pacote6-sprints-responsividade.md).
   Avaliações adicionais em diferentes aparelhos permanecem contínuas.
 - **Objetivo 1 — Sprints (P1):** modernizar a interface de Sprints e concluir os
   itens UX-P1-01 (Sprint ativa e histórico), UX-P1-02 (navegação e vínculos com
@@ -965,7 +965,7 @@ responsável, exclusivamente frontend, com confirmação do workflow e HTTPS.
   Sprints, Log Time, Relatórios e Perfil, com destaque para a seção atual;
   análise, testes afetados e build Web release aprovados.
 - **Escopo:** frontend; sem alterações de modelo, backend ou migrations.
-- **Referência:** [redesign-demandas.md](redesign-demandas.md).
+- **Referência:** [redesign-demandas.md](historico/redesign-demandas.md).
 
 ## Pós-produção — Estabilização do MVP
 

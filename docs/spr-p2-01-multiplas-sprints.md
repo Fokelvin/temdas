@@ -88,7 +88,7 @@ flutter test --no-pub test/sprint_page_test.dart test/sprint_view_model_test.dar
 ```
 
 Evidências da execução em `/tmp/temdas-spr-*`: análises, testes, build e hashes
-consolidados em `docs/evidencias-spr-p2-01.json`. O build release é local e usa as definições públicas oficiais, sem publicação.
+consolidados em `docs/historico/evidencias-spr-p2-01.json`. O build release é local e usa as definições públicas oficiais, sem publicação.
 Foram executados dois builds locais: o segundo foi autorizado separadamente
 pelo responsável após o ajuste final da largura de Sprints em lista/cards.
 Os testes desse ajuste usam a fonte Inter real e verificam texto sem recorte.

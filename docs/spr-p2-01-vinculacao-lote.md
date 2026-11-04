@@ -116,7 +116,7 @@ Os dois casos novos passaram na asserção de duração inferior a 10 s. A medi�
 inclui uma consulta real de usuário equivalente à RPC, mas não login/MFA, rede
 do navegador ou serialização HTTP. É uma amostra por estado, não um p95/SLA.
 Os tempos de query incluem o atraso do proxy; não são tempos puros do motor SQL.
-Valores brutos e hashes estão em `evidencias-spr-p2-01-vinculacao-lote.json`.
+Valores brutos e hashes estão em `historico/evidencias-spr-p2-01-vinculacao-lote.json`.
 
 Reprodução (nenhum comando acessa PROD):
 

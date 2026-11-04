@@ -112,7 +112,7 @@ A agenda semanal do Log Time usa **domingo a sábado** após o refinamento publi
 
 A interface possui tema claro/escuro com preferência persistente (incluindo a opção de seguir o sistema), IBM Plex Sans, design tokens, cores semânticas, barra superior compartilhada, densidade compacta, painel lateral responsivo e navegação mobile. A visualização normal/compacta e a escolha Kanban/Lista são preferências de apresentação; não alteram dados ou regras de domínio.
 
-Referências: [Pacote 4](pacote4-painel-demandas.md), [Pacote 5](pacote5-toolbar-demandas.md), [Pacote 6](pacote6-sprints-responsividade.md) e [Redesign de Demandas](redesign-demandas.md).
+Referências: [Pacote 4](historico/pacote4-painel-demandas.md), [Pacote 5](historico/pacote5-toolbar-demandas.md), [Pacote 6](historico/pacote6-sprints-responsividade.md) e [Redesign de Demandas](historico/redesign-demandas.md).
 
 ## 4. Autenticação, identidade e autorização
 
