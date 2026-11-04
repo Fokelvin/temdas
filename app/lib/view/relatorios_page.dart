@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../ui/theme/tokens.dart';
 import '../app/app_routes.dart';
 import '../app/relatorio_web.dart';
 import '../view_model/relatorios_view_model.dart';
@@ -177,6 +178,7 @@ class _Filtros extends StatelessWidget {
       SizedBox(
         width: 180,
         child: DropdownButtonFormField<RelatorioPeriodoTipo>(
+          dropdownColor: AppTokens.of(context).dropdownSurface,
           key: const ValueKey('relatorio-periodo'),
           initialValue: viewModel.tipo,
           isExpanded: true,
@@ -222,6 +224,7 @@ class _Filtros extends StatelessWidget {
       SizedBox(
         width: 160,
         child: DropdownButtonFormField<backend.DemandaStatus?>(
+          dropdownColor: AppTokens.of(context).dropdownSurface,
           key: const ValueKey('relatorio-status'),
           initialValue: viewModel.status,
           isExpanded: true,
@@ -244,6 +247,7 @@ class _Filtros extends StatelessWidget {
       SizedBox(
         width: 160,
         child: DropdownButtonFormField<backend.Prioridade?>(
+          dropdownColor: AppTokens.of(context).dropdownSurface,
           key: const ValueKey('relatorio-prioridade'),
           initialValue: viewModel.prioridade,
           isExpanded: true,

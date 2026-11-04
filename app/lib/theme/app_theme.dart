@@ -90,9 +90,14 @@ abstract final class AppTheme {
         Radius.circular(TemdasTokens.controlRadius),
       ),
     );
+    final t = colors.brightness == Brightness.dark
+        ? AppTokens.dark
+        : AppTokens.light;
     final cardShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
-      side: TemdasTokens.subtleBorder(colors),
+      side: t.darkContrast
+          ? BorderSide(color: t.surfaceBorder)
+          : TemdasTokens.subtleBorder(colors),
     );
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(TemdasTokens.controlRadius),
@@ -120,18 +125,20 @@ abstract final class AppTheme {
       focusColor: colors.primary.withValues(alpha: 0.12),
       iconTheme: IconThemeData(color: colors.onSurfaceVariant, size: 16),
       cardTheme: CardThemeData(
-        color: colors.surface,
+        color: t.darkContrast ? t.cardSurface : colors.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: cardShape,
         clipBehavior: Clip.antiAlias,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: colors.surface,
+        backgroundColor: t.darkContrast ? t.cardHover : colors.surface,
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(TemdasTokens.dialogRadius),
-          side: BorderSide(color: colors.outlineVariant),
+          side: BorderSide(
+            color: t.darkContrast ? t.surfaceBorder : colors.outlineVariant,
+          ),
         ),
         titleTextStyle: text.titleLarge,
         contentTextStyle: text.bodyMedium,
@@ -200,10 +207,12 @@ abstract final class AppTheme {
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: colors.surface,
+        color: t.darkContrast ? t.cardHover : colors.surface,
         elevation: 4,
         shape: controlShape.copyWith(
-          side: BorderSide(color: colors.outlineVariant),
+          side: BorderSide(
+            color: t.darkContrast ? t.surfaceBorder : colors.outlineVariant,
+          ),
         ),
         textStyle: text.bodyMedium,
       ),

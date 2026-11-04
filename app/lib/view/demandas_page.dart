@@ -1,3 +1,4 @@
+import '../ui/theme/tokens.dart';
 import 'widgets/sprint_vinculos_editor.dart';
 import 'widgets/sprints_da_demanda.dart';
 import 'formatters/sprint_apresentacao.dart';
@@ -884,6 +885,7 @@ class _DemandasPageState extends State<DemandasPage> {
 
   Widget _toolbar() {
     final mobile = MediaQuery.sizeOf(context).width < 600;
+    final t = AppTokens.of(context);
     return PageHeader(
       count: _viewModel.demandas.length,
       search: SearchField(
@@ -896,6 +898,18 @@ class _DemandasPageState extends State<DemandasPage> {
       ),
       filters: OutlinedButton.icon(
         key: const ValueKey('abrir-filtros-demandas'),
+        style: t.darkContrast
+            ? ButtonStyle(
+                iconColor: WidgetStatePropertyAll(t.secondaryLabel),
+                side: WidgetStateProperty.resolveWith(
+                  (states) => BorderSide(
+                    color: states.contains(WidgetState.focused)
+                        ? AppTokens.accent
+                        : t.controlBorder,
+                  ),
+                ),
+              )
+            : null,
         onPressed: _abrirFiltros,
         icon: const Icon(Symbols.filter_alt_rounded, size: 16),
         label: Text(
@@ -942,7 +956,11 @@ class _DemandasPageState extends State<DemandasPage> {
           : PopupMenuButton<DensidadeDemanda>(
               tooltip: 'Densidade dos cards',
               initialValue: _densidade,
-              icon: const Icon(Symbols.density_small_rounded, size: 16),
+              icon: Icon(
+                Symbols.density_small_rounded,
+                size: 16,
+                color: t.darkContrast ? t.secondaryLabel : null,
+              ),
               onSelected: (v) => setState(() => _densidade = v),
               itemBuilder: (_) => [
                 for (final v in DensidadeDemanda.values)
@@ -983,6 +1001,7 @@ class _DemandasPageState extends State<DemandasPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<backend.Prioridade?>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: ValueKey('filtro-prioridade-$_filtroPrioridade'),
                     initialValue: _filtroPrioridade,
                     isExpanded: true,
@@ -1005,6 +1024,7 @@ class _DemandasPageState extends State<DemandasPage> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int?>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: ValueKey('filtro-sprint-$_filtroSprint'),
                     initialValue: _filtroSprint,
                     isExpanded: true,

@@ -91,27 +91,43 @@ class SearchField extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
   @override
-  Widget build(BuildContext context) => TextField(
-    key: const ValueKey('buscar-demandas'),
-    controller: controller,
-    onChanged: onChanged,
-    style: const TextStyle(fontSize: 13),
-    decoration: InputDecoration(
-      isDense: true,
-      hintText: 'Buscar por ID ou título...',
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      prefixIcon: const Icon(Symbols.search_rounded, size: 16),
-      prefixIconConstraints: const BoxConstraints(minWidth: 32),
-      suffixIcon: controller.text.isEmpty
-          ? null
-          : IconButton(
-              key: const ValueKey('limpar-busca-demandas'),
-              tooltip: 'Limpar busca',
-              onPressed: onClear,
-              icon: const Icon(Symbols.close_rounded),
-            ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final t = AppTokens.of(context);
+    final input = Theme.of(context).inputDecorationTheme;
+    final border = input.enabledBorder;
+    return TextField(
+      key: const ValueKey('buscar-demandas'),
+      controller: controller,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 13),
+      decoration: InputDecoration(
+        isDense: true,
+        enabledBorder: t.darkContrast
+            ? border?.copyWith(borderSide: BorderSide(color: t.controlBorder))
+            : null,
+        hintStyle: t.darkContrast
+            ? input.hintStyle?.copyWith(color: t.metadata)
+            : null,
+        prefixIconColor: t.darkContrast ? t.secondaryLabel : null,
+        suffixIconColor: t.darkContrast ? t.secondaryLabel : null,
+        hintText: 'Buscar por ID ou título...',
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        prefixIcon: const Icon(Symbols.search_rounded, size: 16),
+        prefixIconConstraints: const BoxConstraints(minWidth: 32),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                key: const ValueKey('limpar-busca-demandas'),
+                tooltip: 'Limpar busca',
+                onPressed: onClear,
+                style: t.darkContrast
+                    ? IconButton.styleFrom(foregroundColor: t.secondaryLabel)
+                    : null,
+                icon: const Icon(Symbols.close_rounded),
+              ),
+      ),
+    );
+  }
 }
 
 class SegmentedToggle<T> extends StatelessWidget {
@@ -125,13 +141,9 @@ class SegmentedToggle<T> extends StatelessWidget {
   final T value;
   final ValueChanged<Set<T>> onChanged;
   @override
-  Widget build(BuildContext context) => SegmentedButton<T>(
-    key: const ValueKey('visualizacao-demandas'),
-    showSelectedIcon: false,
-    segments: segments,
-    selected: {value},
-    onSelectionChanged: onChanged,
-    style: SegmentedButton.styleFrom(
+  Widget build(BuildContext context) {
+    final t = AppTokens.of(context);
+    final style = SegmentedButton.styleFrom(
       visualDensity: VisualDensity.compact,
       minimumSize: Size(0, MediaQuery.sizeOf(context).width >= 1024 ? 30 : 44),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -140,10 +152,82 @@ class SegmentedToggle<T> extends StatelessWidget {
         context,
       ).textTheme.labelMedium?.copyWith(fontSize: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      selectedBackgroundColor: AppTokens.of(context).surface2,
-      selectedForegroundColor: AppTokens.of(context).text,
-    ),
-  );
+      selectedBackgroundColor: t.darkContrast
+          ? t.activeSurface(t.bg)
+          : t.surface2,
+      foregroundColor: t.darkContrast ? t.secondaryLabel : null,
+      selectedForegroundColor: t.text,
+    );
+    final toggle = SegmentedButton<T>(
+      key: const ValueKey('visualizacao-demandas'),
+      showSelectedIcon: false,
+      segments: segments,
+      selected: {value},
+      onSelectionChanged: onChanged,
+      style: t.darkContrast
+          ? style.copyWith(
+              side: WidgetStatePropertyAll(BorderSide(color: t.controlBorder)),
+              iconColor: WidgetStatePropertyAll(t.secondaryLabel),
+            )
+          : style,
+    );
+    if (!t.darkContrast) return toggle;
+
+    // Flutter lays out equal-width segments and paints the outer border itself.
+    // Paint the selection over that layout so the inset stroke adds no padding.
+    final index = segments.indexWhere((segment) => segment.value == value);
+    final last = segments.length - 1;
+    const corner = Radius.circular(AppTokens.controlRadius);
+    return Focus(
+      canRequestFocus: false,
+      child: Builder(
+        builder: (context) => Stack(
+          fit: StackFit.passthrough,
+          children: [
+            toggle,
+            if (index >= 0)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: FractionallySizedBox(
+                    alignment: AlignmentDirectional(
+                      last == 0 ? 0 : 2 * index / last - 1,
+                      0,
+                    ),
+                    widthFactor: 1 / segments.length,
+                    heightFactor: 1,
+                    child: DecoratedBox(
+                      position: DecorationPosition.foreground,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadiusDirectional.only(
+                          topStart: index == 0 ? corner : Radius.zero,
+                          bottomStart: index == 0 ? corner : Radius.zero,
+                          topEnd: index == last ? corner : Radius.zero,
+                          bottomEnd: index == last ? corner : Radius.zero,
+                        ),
+                        border: Border.all(color: t.activeBorder(t.bg)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (Focus.of(context).hasFocus)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(corner),
+                      border: Border.fromBorderSide(
+                        BorderSide(color: AppTokens.accent),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class PageHeader extends StatelessWidget {
@@ -183,14 +267,25 @@ class PageHeader extends StatelessWidget {
           Text(
             '$count',
             style: TextStyle(
-              color: AppTokens.of(context).text2,
+              color: AppTokens.of(context).metadata,
               fontSize: 13,
               fontFeatures: AppTokens.numbers,
             ),
           ),
         ],
       );
-      final theme = Theme.of(context);
+      final inherited = Theme.of(context);
+      final t = AppTokens.of(context);
+      final theme = t.darkContrast
+          ? inherited.copyWith(
+              iconButtonTheme: IconButtonThemeData(
+                style: (inherited.iconButtonTheme.style ?? const ButtonStyle())
+                    .copyWith(
+                      foregroundColor: WidgetStatePropertyAll(t.secondaryLabel),
+                    ),
+              ),
+            )
+          : inherited;
       final small = ButtonStyle(
         minimumSize: const WidgetStatePropertyAll(Size(0, 30)),
         padding: const WidgetStatePropertyAll(

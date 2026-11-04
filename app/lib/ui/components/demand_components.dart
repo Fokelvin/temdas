@@ -46,12 +46,18 @@ class PriorityTag extends StatelessWidget {
         },
       ),
       const SizedBox(width: 4),
-      Text(switch (priority) {
-        b.Prioridade.baixa => 'Baixa',
-        b.Prioridade.media => 'Média',
-        b.Prioridade.alta => 'Alta',
-        b.Prioridade.urgente => 'Urgente',
-      }, style: TextStyle(fontSize: 12, color: AppTokens.of(context).text2)),
+      Text(
+        switch (priority) {
+          b.Prioridade.baixa => 'Baixa',
+          b.Prioridade.media => 'Média',
+          b.Prioridade.alta => 'Alta',
+          b.Prioridade.urgente => 'Urgente',
+        },
+        style: TextStyle(
+          fontSize: 12,
+          color: AppTokens.of(context).secondaryLabel,
+        ),
+      ),
     ],
   );
 }
@@ -61,7 +67,7 @@ class SprintTag extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => DefaultTextStyle.merge(
-    style: TextStyle(fontSize: 12, color: AppTokens.of(context).text2),
+    style: TextStyle(fontSize: 12, color: AppTokens.of(context).secondaryLabel),
     child: child,
   );
 }
@@ -88,12 +94,14 @@ class HoursLabel extends StatelessWidget {
         children: [
           TextSpan(
             text: format(minutes),
-            style: TextStyle(color: minutes == 0 ? t.text2 : t.text),
+            style: TextStyle(
+              color: minutes == 0 && !t.darkContrast ? t.text2 : t.text,
+            ),
           ),
           if (estimate != null)
             TextSpan(
               text: ' / ${format(estimate!)}',
-              style: TextStyle(color: t.text2),
+              style: TextStyle(color: t.secondaryLabel),
             ),
           const TextSpan(text: ' h'),
         ],
@@ -103,7 +111,7 @@ class HoursLabel extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontSize: compact ? 11 : 12,
-        color: t.text2,
+        color: t.secondaryLabel,
         fontFeatures: AppTokens.numbers,
       ),
     );
@@ -130,7 +138,7 @@ class HoursMeter extends StatelessWidget {
             child: LinearProgressIndicator(
               value: (real / estimate).clamp(0, 1),
               color: real >= estimate ? AppTokens.low : AppTokens.accent,
-              backgroundColor: AppTokens.of(context).borderStrong,
+              backgroundColor: AppTokens.of(context).progressTrack,
               borderRadius: BorderRadius.circular(999),
             ),
           ),
@@ -217,7 +225,7 @@ class GroupHeader extends StatelessWidget {
             Text(
               '$count',
               style: TextStyle(
-                color: AppTokens.of(context).text2,
+                color: AppTokens.of(context).metadata,
                 fontSize: 12,
                 fontFeatures: AppTokens.numbers,
               ),
@@ -242,7 +250,10 @@ class EmptyStatusesLine extends StatelessWidget {
       children: [
         Text(
           'Sem demandas',
-          style: TextStyle(fontSize: 12, color: AppTokens.of(context).text2),
+          style: TextStyle(
+            fontSize: 12,
+            color: AppTokens.of(context).secondaryLabel,
+          ),
         ),
         for (final s in statuses)
           Row(
@@ -254,7 +265,7 @@ class EmptyStatusesLine extends StatelessWidget {
                 '${statusLabel(s)} 0',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTokens.of(context).text2,
+                  color: AppTokens.of(context).secondaryLabel,
                 ),
               ),
             ],
@@ -285,7 +296,7 @@ class DemandTableHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w500,
-            color: AppTokens.of(context).text2,
+            color: AppTokens.of(context).secondaryLabel,
           ),
           child: Row(
             children: [
@@ -340,7 +351,7 @@ class DemandRow extends StatelessWidget {
     style: TextStyle(
       fontFamily: 'Roboto Mono',
       fontSize: 12,
-      color: AppTokens.of(context).text2,
+      color: AppTokens.of(context).metadata,
       fontFeatures: AppTokens.numbers,
     ),
   );
@@ -357,7 +368,7 @@ class DemandRow extends StatelessWidget {
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: status == b.DemandaStatus.concluida
-              ? AppTokens.of(context).text2
+              ? AppTokens.of(context).secondaryLabel
               : AppTokens.of(context).text,
         ),
       ),
@@ -380,6 +391,7 @@ class DemandRow extends StatelessWidget {
         ],
       );
       return HoverRegion(
+        focusBorderRadius: BorderRadius.zero,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -542,17 +554,20 @@ class DemandCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppTokens.of(context);
     return HoverRegion(
+      focusBorderRadius: BorderRadius.circular(AppTokens.cardRadius),
       child: Material(
-        color: t.bg,
+        color: highlighted && t.darkContrast ? t.cardHover : t.cardSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: highlighted ? AppTokens.accent : t.border),
+          side: BorderSide(
+            color: highlighted ? AppTokens.accent : t.surfaceBorder,
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: ValueKey('abrir-painel-demanda-${demand.id}'),
           onTap: onTap,
-          hoverColor: t.hover,
+          hoverColor: t.cardHover,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -571,7 +586,7 @@ class DemandCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'Roboto Mono',
-                        color: t.text2,
+                        color: t.metadata,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -584,7 +599,7 @@ class DemandCard extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: demand.status == b.DemandaStatus.concluida
-                              ? t.text2
+                              ? t.secondaryLabel
                               : t.text,
                         ),
                       ),
@@ -657,8 +672,12 @@ class KanbanColumn extends StatelessWidget {
         duration: AppTokens.motion(context, 200),
         curve: AppTokens.curve,
         decoration: BoxDecoration(
-          color: target ? t.accentSoft : t.surface,
-          border: Border.all(color: target ? AppTokens.accent : t.border),
+          color: target
+              ? (t.darkContrast ? t.cardHover : t.accentSoft)
+              : t.surface,
+          border: Border.all(
+            color: target ? AppTokens.accent : t.surfaceBorder,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
         child: collapsed
@@ -679,7 +698,10 @@ class KanbanColumn extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(
                                 '${statusLabel(status)}  0',
-                                style: TextStyle(fontSize: 12, color: t.text2),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: t.metadata,
+                                ),
                               ),
                             ],
                           ),
@@ -778,8 +800,9 @@ class AppFab extends StatelessWidget {
 
 /// Keeps keyboard actions reachable when the desktop pointer is outside a row.
 class HoverRegion extends StatefulWidget {
-  const HoverRegion({super.key, required this.child});
+  const HoverRegion({super.key, required this.child, this.focusBorderRadius});
   final Widget child;
+  final BorderRadius? focusBorderRadius;
   @override
   State<HoverRegion> createState() => _HoverRegionState();
 }
@@ -794,7 +817,20 @@ class _HoverRegionState extends State<HoverRegion> {
       onFocusChange: (v) => setState(() => focused = v),
       child: _HoverScope(
         show: hovered || focused || MediaQuery.sizeOf(context).width < 1024,
-        child: widget.child,
+        child:
+            AppTokens.of(context).darkContrast &&
+                widget.focusBorderRadius != null
+            ? DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  borderRadius: widget.focusBorderRadius,
+                  border: Border.all(
+                    color: focused ? AppTokens.accent : Colors.transparent,
+                  ),
+                ),
+                child: widget.child,
+              )
+            : widget.child,
       ),
     ),
   );

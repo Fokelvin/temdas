@@ -13,6 +13,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.text,
     required this.text2,
     required this.text3,
+    this.darkContrast = false,
   });
   final Color bg,
       surface,
@@ -23,6 +24,28 @@ class AppTokens extends ThemeExtension<AppTokens> {
       text,
       text2,
       text3;
+  final bool darkContrast;
+
+  // Component roles. The shared palette still serves dividers and neutral states.
+  Color get cardSurface => darkContrast ? const Color(0xFF1A2640) : bg;
+  Color get cardHover => darkContrast ? const Color(0xFF232F48) : hover;
+  Color? get dropdownSurface => darkContrast ? cardHover : null;
+  Color get surfaceBorder => darkContrast ? const Color(0xFF32446A) : border;
+  Color get controlBorder =>
+      darkContrast ? const Color(0xFF52669A) : borderStrong;
+  Color get secondaryLabel => darkContrast ? const Color(0xFFC2CCE0) : text2;
+  Color get metadata => darkContrast ? const Color(0xFFA9B6CD) : text2;
+  Color get progressTrack =>
+      darkContrast ? const Color(0xFF3B4D75) : borderStrong;
+  static const sprintChipSurface = Color(0xFF22365F);
+  static const sprintChipBorder = Color(0xFF2E4F8C);
+  static const sprintChipText = Color(0xFF9CC2FF);
+
+  Color activeSurface(Color surface) =>
+      Color.alphaBlend(accent.withValues(alpha: .18), surface);
+  Color activeBorder(Color surface) =>
+      Color.alphaBlend(accent.withValues(alpha: .55), surface);
+
   static const accent = Color(0xFF4C8DFF);
   static const high = Color(0xFFF2555A),
       medium = Color(0xFFE8B33C),
@@ -33,6 +56,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const curve = Cubic(0.23, 1, 0.32, 1);
   Color get accentSoft => accent.withValues(alpha: .12);
   static const dark = AppTokens(
+    darkContrast: true,
     bg: Color(0xFF0B1220),
     surface: Color(0xFF111A2B),
     surface2: Color(0xFF16213A),
@@ -68,6 +92,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     if (other == null) return this;
     Color mix(Color a, Color b) => Color.lerp(a, b, t)!;
     return AppTokens(
+      darkContrast: t < .5 ? darkContrast : other.darkContrast,
       bg: mix(bg, other.bg),
       surface: mix(surface, other.surface),
       surface2: mix(surface2, other.surface2),

@@ -37,53 +37,80 @@ class AppSideMenu extends StatelessWidget {
       VoidCallback onTap, {
       bool selected = false,
       int height = 32,
-    }) => Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Semantics(
-        selected: selected,
-        child: Tooltip(
-          message: label,
-          child: Material(
-            color: selected ? t.accentSoft : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: onTap,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: compact || drawer ? 44 : height.toDouble(),
+      bool profile = false,
+    }) {
+      Widget surface({bool focused = false}) => Material(
+        color: selected
+            ? (t.darkContrast ? t.activeSurface(t.surface) : t.accentSoft)
+            : Colors.transparent,
+        borderRadius: t.darkContrast && (selected || focused)
+            ? null
+            : BorderRadius.circular(6),
+        shape: t.darkContrast && (selected || focused)
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+                side: BorderSide(
+                  color: focused ? AppTokens.accent : t.activeBorder(t.surface),
                 ),
-                child: Row(
-                  mainAxisAlignment: compact
-                      ? MainAxisAlignment.center
-                      : MainAxisAlignment.start,
-                  children: [
-                    if (!compact) const SizedBox(width: 8),
-                    Icon(
-                      icon,
-                      size: 16,
-                      color: selected ? AppTokens.accent : t.text2,
-                    ),
-                    if (!compact) ...[
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: selected ? t.text : t.text2,
-                          ),
-                        ),
+              )
+            : null,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: compact || drawer ? 44 : height.toDouble(),
+            ),
+            child: Row(
+              mainAxisAlignment: compact
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
+              children: [
+                if (!compact) const SizedBox(width: 8),
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? AppTokens.accent : t.secondaryLabel,
+                ),
+                if (!compact) ...[
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: selected || (t.darkContrast && profile)
+                            ? t.text
+                            : t.secondaryLabel,
                       ),
-                    ],
-                  ],
-                ),
-              ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
-      ),
-    );
+      );
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Semantics(
+          selected: selected,
+          child: Tooltip(
+            message: label,
+            child: t.darkContrast
+                ? Focus(
+                    canRequestFocus: false,
+                    child: Builder(
+                      builder: (context) =>
+                          surface(focused: Focus.of(context).hasFocus),
+                    ),
+                  )
+                : surface(),
+          ),
+        ),
+      );
+    }
+
     void go(String destino) {
       final navigator = Navigator.of(context);
       if (drawer) navigator.pop();
@@ -154,6 +181,7 @@ class AppSideMenu extends StatelessWidget {
                       Symbols.person_rounded,
                       () => go(AppNavigation.routes.last),
                       selected: ativo == AppNavigation.routes.last,
+                      profile: true,
                       height: 44,
                     ),
                     item('Sair', Symbols.logout_rounded, () async {

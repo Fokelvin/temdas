@@ -85,11 +85,15 @@ class DemandaCard extends StatelessWidget {
   }
 
   Widget _redesign(BuildContext context) {
+    final t = AppTokens.of(context);
     return _RedesignExpansion(
       controller: expansionController,
       builder: (context, controller) {
         final chevron = IconButton(
           key: ValueKey('expandir-demanda-${demanda.id}'),
+          style: t.darkContrast
+              ? IconButton.styleFrom(foregroundColor: t.secondaryLabel)
+              : null,
           tooltip: controller.isExpanded
               ? 'Recolher demanda'
               : 'Expandir demanda',
@@ -504,6 +508,9 @@ class DemandaCard extends StatelessWidget {
       enabled: acoesHabilitadas,
       icon: Icon(redesign ? Symbols.more_vert_rounded : Icons.more_vert),
       style: IconButton.styleFrom(
+        foregroundColor: redesign && AppTokens.of(context).darkContrast
+            ? AppTokens.of(context).secondaryLabel
+            : null,
         visualDensity: VisualDensity.compact,
       ).merge(densidade.estiloBotao),
       onSelected: (acao) {

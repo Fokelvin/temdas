@@ -412,7 +412,9 @@ class _DemandaTreeState extends State<DemandaTree> {
         var offset = 0.0;
         for (final g in porStatus.entries) {
           stops.add(offset);
-          offset += (g.value.isEmpty && _dropHover?.status != g.key ? 44 : width) + gap;
+          offset +=
+              (g.value.isEmpty && _dropHover?.status != g.key ? 44 : width) +
+              gap;
         }
         return Scrollbar(
           key: const ValueKey('demandas-quadro-scrollbar'),
@@ -710,7 +712,9 @@ class _DemandaTreeState extends State<DemandaTree> {
             borderRadius: BorderRadius.circular(8),
             side: const BorderSide(color: AppTokens.accent),
           ),
-          color: AppTokens.of(context).bg,
+          color: AppTokens.of(context).darkContrast
+              ? AppTokens.of(context).cardHover
+              : AppTokens.of(context).bg,
           child: SizedBox(width: width, child: _arrastoPreview(raiz, count)),
         ),
       );
@@ -727,7 +731,9 @@ class _DemandaTreeState extends State<DemandaTree> {
           child: Center(
             child: Icon(
               Symbols.drag_indicator_rounded,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: AppTokens.of(context).darkContrast
+                  ? AppTokens.of(context).secondaryLabel
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -854,13 +860,16 @@ class _DemandaTreeState extends State<DemandaTree> {
 
   Widget _overlayDoAlvo({required bool carregando}) {
     final colors = Theme.of(context).colorScheme;
+    final t = AppTokens.of(context);
     return CustomPaint(
       foregroundPainter: const DashedOutline(),
       child: AnimatedContainer(
         duration: AppTokens.motion(context, 100),
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: colors.primaryContainer.withValues(alpha: .92),
+          color: t.darkContrast
+              ? t.cardHover
+              : colors.primaryContainer.withValues(alpha: .92),
 
           borderRadius: BorderRadius.circular(8),
         ),

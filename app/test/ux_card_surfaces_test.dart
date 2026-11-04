@@ -37,7 +37,18 @@ void main() {
           final card = tester.widget<Card>(find.byType(Card));
           expect(card.shape, isNull);
           final shape = theme.cardTheme.shape! as RoundedRectangleBorder;
-          expect(shape.side, TemdasTokens.subtleBorder(theme.colorScheme));
+          expect(
+            shape.side,
+            theme.brightness == Brightness.dark
+                ? const BorderSide(color: Color(0xFF32446A))
+                : TemdasTokens.subtleBorder(theme.colorScheme),
+          );
+          expect(
+            theme.cardTheme.color,
+            theme.brightness == Brightness.dark
+                ? const Color(0xFF1A2640)
+                : theme.colorScheme.surface,
+          );
           await build(true);
           final selected =
               tester.widget<Card>(find.byType(Card)).shape!

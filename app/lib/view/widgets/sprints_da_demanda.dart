@@ -1,3 +1,4 @@
+import '../../ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import '../../app/app_routes.dart';
@@ -16,6 +17,7 @@ class SprintsDaDemanda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppTokens.of(context);
     final ordenadas = ordenarSprints(sprints);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -29,6 +31,26 @@ class SprintsDaDemanda extends StatelessWidget {
               final texto = sprint == null
                   ? 'Sem Sprint'
                   : '${nomeSprint(sprint.nome)} · ${estadoSprint(sprint)}';
+              final style = TextButton.styleFrom(
+                minimumSize: const Size(0, 28),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: t.darkContrast
+                    ? (ativa ? AppTokens.sprintChipText : t.secondaryLabel)
+                    : ativa
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                backgroundColor: t.darkContrast
+                    ? (ativa ? AppTokens.sprintChipSurface : null)
+                    : ativa
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer.withValues(alpha: .35)
+                    : null,
+                textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: ativa ? FontWeight.w600 : FontWeight.normal,
+                ),
+              );
               return Tooltip(
                 message: texto,
                 child: TextButton(
@@ -37,25 +59,19 @@ class SprintsDaDemanda extends StatelessWidget {
                         ? 'sprint-da-demanda-$demandaId'
                         : 'sprint-da-demanda-$demandaId-${sprint!.id}',
                   ),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 28),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: ativa
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                    backgroundColor: ativa
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer.withValues(alpha: .35)
-                        : null,
-                    textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: ativa ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
+                  style: t.darkContrast
+                      ? style.copyWith(
+                          side: WidgetStateProperty.resolveWith(
+                            (states) => states.contains(WidgetState.focused)
+                                ? const BorderSide(color: AppTokens.accent)
+                                : ativa
+                                ? const BorderSide(
+                                    color: AppTokens.sprintChipBorder,
+                                  )
+                                : null,
+                          ),
+                        )
+                      : style,
                   onPressed: () {
                     if (onAbrir != null) {
                       onAbrir!(sprint);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../../ui/theme/tokens.dart';
 import '../formatters/demanda_identificacao.dart';
 import 'sprint_vinculos_editor.dart';
 import '../../view_model/sprint_view_model.dart';
@@ -122,6 +123,7 @@ class _CriarDemandaDialogState extends State<CriarDemandaDialog> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<backend.Prioridade>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: const ValueKey('criar-demanda-prioridade'),
                     initialValue: _prioridade,
                     decoration: const InputDecoration(labelText: 'Prioridade'),
@@ -298,6 +300,7 @@ class _CriarDemandaFilhaDialogState extends State<CriarDemandaFilhaDialog> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<backend.Prioridade>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: const ValueKey('criar-filha-prioridade'),
                     initialValue: _prioridade,
                     decoration: const InputDecoration(labelText: 'Prioridade'),
@@ -455,6 +458,7 @@ class _EditarDemandaDialogState extends State<EditarDemandaDialog> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<backend.DemandaStatus>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: const ValueKey('editar-demanda-status'),
                     initialValue: _status,
                     decoration: const InputDecoration(labelText: 'Status'),
@@ -474,6 +478,7 @@ class _EditarDemandaDialogState extends State<EditarDemandaDialog> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<backend.Prioridade>(
+                    dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: const ValueKey('editar-demanda-prioridade'),
                     initialValue: _prioridade,
                     decoration: const InputDecoration(labelText: 'Prioridade'),
