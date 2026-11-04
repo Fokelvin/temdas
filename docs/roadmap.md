@@ -276,6 +276,31 @@ adiado para o último item deste roadmap.
 - **Critérios de aceite:** textos informativos podem ser selecionados nas
   telas principais e ações e campos continuam operáveis.
 
+### UI-P2-04 — Navegação lateral unificada em todas as telas
+
+- **Descrição:** substituir os drawers/menus laterais legados nas demais telas
+  pelo mesmo menu lateral moderno atualmente utilizado em **Demandas**
+  (referência visual aprovada em 04/11/2026). Manter um único componente
+  compartilhado para navegação, branding, ícones, textos, estados ativos e
+  ações de usuário, evitando implementações divergentes por página.
+- **Prioridade:** P2 — correção de consistência do redesign frontend.
+- **Estado:** Aprovado em 04/11/2026; pendente de implementação.
+- **Escopo:** uniformizar a navegação lateral de Demandas, Sprints, Log Time,
+  Relatórios e demais rotas autenticadas que exibam o menu. Preservar destinos,
+  permissões, seleção da rota ativa, acesso a Meu Perfil e saída da sessão,
+  com comportamento responsivo em desktop e mobile.
+- **Tema:** retirar o ícone/controle de alternância claro/escuro do menu
+  lateral, inclusive na versão de Demandas, pois o controle já existe na barra
+  superior compartilhada. Não remover a alternância da barra superior nem
+  alterar a persistência da preferência de tema.
+- **Critérios de aceite:** todas as páginas exibem o mesmo componente e estilo
+  de menu, com item atual destacado; navegação funcional sem perder o estado
+  de autenticação; ausência de controles de tema duplicados no menu;
+  funcionamento consistente em telas pequenas e nos temas claro/escuro.
+- **Impacto previsto:** frontend Flutter somente; reutilizar o menu existente
+  em vez de redesenhar cada página. Sem alterações de schema, backend ou
+  migrations. Publicação e homologação posteriores dependem de aprovação.
+
 ### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
 
 - **Contexto:** uma Demanda pode atravessar várias Sprints. Hoje o backend
