@@ -227,8 +227,9 @@ de escopo.
 ## P2 — Refinamentos de autenticação e interface
 
 Esta seção reúne refinamentos frontend concluídos e aprovados. A navegação
-unificada (UI-P2-04) e o contraste do modo escuro (UI-P2-05) estão pendentes
-de implementação; preservar login, MFA obrigatório e interações do Flutter Web.
+unificada (UI-P2-04) está publicada e homologada; o contraste do modo escuro
+(UI-P2-05) está publicado, aguardando homologação visual em PROD. Preservar
+login, MFA obrigatório e interações do Flutter Web.
 AUTH-P2-01 permanece adiado para o último item deste roadmap.
 
 ### UX-AUTH-03 — Entrada por painel lateral e correção da navegação pública
@@ -285,10 +286,10 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
   compartilhado para navegação, branding, ícones, textos, estados ativos e
   ações de usuário, evitando implementações divergentes por página.
 - **Prioridade:** P2 — correção de consistência do redesign frontend.
-- **Estado:** Implementado na branch `feat/ui-p2-04-menu-lateral`. Publicação e
-  homologação em produção pendentes. Análise Flutter, testes direcionados
-  de navegação, perfil, logout, tema e responsividade e um build Web release
-  concluídos localmente.
+- **Estado:** Publicado e **homologado em PROD**, conforme confirmação do
+  responsável. Implementação integrada pela branch
+  `feat/ui-p2-04-menu-lateral`; navegação, perfil, logout, tema e
+  responsividade validados.
 - **Escopo:** uniformizar a navegação lateral de Demandas, Sprints, Log Time,
   Relatórios e demais rotas autenticadas que exibam o menu. Preservar destinos,
   permissões, seleção da rota ativa, acesso a Meu Perfil e saída da sessão,
@@ -312,7 +313,7 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
   funcionamento consistente em telas pequenas e nos temas claro/escuro.
 - **Impacto previsto:** frontend Flutter somente; reutilizar o menu existente
   em vez de redesenhar cada página. Sem alterações de schema, backend ou
-  migrations. Publicação e homologação posteriores dependem de aprovação.
+  migrations. Publicação e homologação concluídas.
 
 ### UI-P2-05 — Contraste e hierarquia visual do modo escuro
 
@@ -322,9 +323,19 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
   prioridade/status e estados ativos sem redesenhar as telas nem acrescentar
   informações.
 - **Prioridade:** P2 — consistência visual, legibilidade e acessibilidade.
-- **Estado:** Aprovado em 04/11/2026; **pendente de implementação, validação
-  e publicação**. Não considerar concluído por existir um mockup HTML ou uma
-  especificação visual.
+- **Estado:** Publicado em PROD em 05/11/2026; **aguardando homologação
+  visual do responsável em produção, pelo celular**. Não declarar homologado
+  antes dessa confirmação.
+- **Validação de publicação:** suíte Flutter completa executada uma única vez:
+  **717/717 testes aprovados, zero falhas e zero ignorados**;
+  `flutter analyze` sem ocorrências. Inclui tema/contraste, Demandas,
+  Sprints, Log Time, autenticação/MFA e responsividade. As 24 falhas
+  preexistentes foram tratadas com correção localizada dos SkeletonCards e
+  atualização de expectativas de interface, viewport e fuso horário.
+- **Publicação:** pipeline existente do Cloudflare Pages na `main`, em
+  `https://temdas.com.br`, com o único build release desta publicação
+  executado pelo pipeline; sem novo build local ou alteração de backend,
+  banco, migrations, secrets ou infraestrutura.
 - **Referência de design:** especificação
   `temdas-contraste-modo-escuro-flutter-codex.md` fornecida nesta conversa,
   versão 1.1 de 04/11/2026. É uma referência visual externa ao repositório:

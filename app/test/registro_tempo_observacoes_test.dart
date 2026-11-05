@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/widgets/registro_tempo_observacoes.dart';
@@ -34,13 +33,8 @@ void main() {
         texto: 'texto legítimo igual',
       ),
   ];
-  final sp = Platform.environment['TZ'] == 'America/Sao_Paulo';
-  final inicioEsperado = sp
-      ? '31/10/2026 às 23:45 (UTC-03:00)'
-      : '01/11/2026 às 02:45 (UTC+00:00)';
-  final fimEsperado = sp
-      ? '01/11/2026 às 00:15 (UTC-03:00)'
-      : '01/11/2026 às 03:15 (UTC+00:00)';
+  final inicioEsperado = _horarioLocalEsperado(inicio);
+  final fimEsperado = _horarioLocalEsperado(fim);
   test(
     'formata o instante original no fuso local e identifica a virada de dia',
     () {
@@ -194,4 +188,18 @@ void main() {
       expect(capturado!.duracaoMinutos, 30);
     },
   );
+}
+
+// Deriva o calendário esperado do instante UTC e do deslocamento do ambiente,
+// usando ISO para não reutilizar o formatador de produção nas expectativas.
+String _horarioLocalEsperado(DateTime instanteUtc) {
+  final deslocamento = instanteUtc.toLocal().timeZoneOffset;
+  final calendario = instanteUtc.add(deslocamento).toIso8601String();
+  final data = calendario.substring(0, 10).split('-').reversed.join('/');
+  final hora = calendario.substring(11, 16);
+  final fuso = DateTime.utc(
+    2000,
+  ).add(deslocamento.abs()).toIso8601String().substring(11, 16);
+  final sinal = deslocamento.isNegative ? '-' : '+';
+  return '$data às $hora (UTC$sinal$fuso)';
 }

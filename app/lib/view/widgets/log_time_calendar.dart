@@ -628,7 +628,10 @@ class _CalendarBlock extends StatelessWidget {
         child: Tooltip(
           message: '$title\n$horario',
           child: Material(
-            color: Theme.of(context).colorScheme.primaryContainer,
+            color: TemdasTokens.cardSurface(
+              context,
+              lightColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
               side: TemdasTokens.subtleBorder(Theme.of(context).colorScheme),
@@ -743,7 +746,10 @@ class _CalendarBlock extends StatelessWidget {
           borderRadius: BorderRadius.circular(TemdasTokens.cardRadius),
           side: TemdasTokens.subtleBorder(Theme.of(context).colorScheme),
         ),
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: TemdasTokens.cardSurface(
+          context,
+          lightColor: Theme.of(context).colorScheme.primaryContainer,
+        ),
         child: SizedBox(
           width: 180,
           child: Padding(

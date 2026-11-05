@@ -34,14 +34,14 @@ abstract final class TemdasColors {
         onTertiaryContainer: t.text,
         surface: t.surface,
         onSurface: t.text,
-        onSurfaceVariant: t.text2,
+        onSurfaceVariant: t.secondaryLabel,
         surfaceContainerLowest: t.bg,
         surfaceContainerLow: t.bg,
         surfaceContainer: t.surface2,
         surfaceContainerHigh: t.hover,
         surfaceContainerHighest: t.hover,
         surfaceTint: Colors.transparent,
-        outline: t.borderStrong,
+        outline: t.controlBorder,
         outlineVariant: t.border,
         error: brightness == Brightness.light
             ? const Color(0xFFB3261E)

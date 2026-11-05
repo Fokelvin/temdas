@@ -118,6 +118,12 @@ void main() {
               (material.shape! as RoundedRectangleBorder).side,
               TemdasTokens.subtleBorder(theme.colorScheme),
             );
+            expect(
+              material.color,
+              theme.brightness == Brightness.dark
+                  ? theme.cardTheme.color
+                  : theme.colorScheme.primaryContainer,
+            );
           },
         );
       }

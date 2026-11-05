@@ -4,6 +4,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/theme/app_theme.dart';
+import 'package:temdas/ui/components/app_shell.dart';
+import 'package:temdas/ui/components/demand_components.dart';
 import 'package:temdas/view/demandas_page.dart';
 import 'package:temdas/view/widgets/demanda_card.dart';
 import 'package:temdas/view/widgets/densidade_demanda.dart';
@@ -28,10 +30,7 @@ void main() {
         expect(find.byType(Form), findsNothing);
         final abrir = find.byKey(const ValueKey('abrir-criar-demanda'));
         expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('page-toolbar')),
-            matching: abrir,
-          ),
+          find.descendant(of: find.byType(PageHeader), matching: abrir),
           findsOneWidget,
         );
         await tester.tap(abrir);
@@ -65,7 +64,13 @@ void main() {
         expect(repository.chamadasCriar, 1);
         expect(repository.ultimaCriacao?.tempoEstimadoMinutos, 90);
         expect(viewModel.demandas, [original]);
-        expect(find.text('1 - Demanda inicial'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('demanda-card-1')),
+            matching: find.text('Demanda inicial'),
+          ),
+          findsOneWidget,
+        );
         expect(
           tester
               .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close))
@@ -93,9 +98,11 @@ void main() {
           );
           expect(viewModel.demandas, [original]);
           expect(
-            find.widgetWithText(
-              SnackBar,
-              'Não foi possível criar a demanda. Tente novamente.',
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text(
+                'Não foi possível criar a demanda. Tente novamente.',
+              ),
             ),
             findsOneWidget,
           );
@@ -109,7 +116,13 @@ void main() {
         } else {
           expect(find.byType(AlertDialog), findsNothing);
           expect(viewModel.demandas, hasLength(2));
-          expect(find.text('2 - Nova demanda'), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('demanda-card-2')),
+              matching: find.text('Nova demanda'),
+            ),
+            findsOneWidget,
+          );
           expect(find.text('Demanda criada com sucesso.'), findsOneWidget);
         }
       },
@@ -256,13 +269,19 @@ void main() {
       repository.ultimaAtualizacao?.status,
       backend.DemandaStatus.concluida,
     );
-    expect(find.text('1 - Demanda editada pela tela'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-1')),
+        matching: find.text('Demanda editada pela tela'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Demanda atualizada com sucesso.'), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('demanda-tree-node-1-0'))).dy,
       greaterThan(
         tester
-            .getTopLeft(find.byKey(const ValueKey('demanda-status-concluida')))
+            .getTopLeft(find.byKey(const ValueKey('demanda-coluna-concluida')))
             .dy,
       ),
     );
@@ -318,7 +337,13 @@ void main() {
     expect(repository.chamadasListar, 1);
     expect(find.byKey(const ValueKey('demanda-tree-node-2-1')), findsOneWidget);
     expect(repository.ultimaCriacao?.tempoEstimadoMinutos, 30);
-    expect(find.text('2 - Primeira filha'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-2')),
+        matching: find.text('Primeira filha'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Demanda filha criada com sucesso.'), findsOneWidget);
   });
 
@@ -353,7 +378,9 @@ void main() {
     expect(repository.chamadasExcluir, 1);
     expect(repository.chamadasExcluirArvore, 0);
     expect(repository.chamadasListar, 1);
-    expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(5));
+    expect(viewModel.demandas, isEmpty);
+    expect(find.byType(DemandaCard), findsNothing);
+    expect(find.text('Nenhuma demanda ainda.'), findsOneWidget);
     expect(find.text('Demanda excluída com sucesso.'), findsOneWidget);
   });
 
@@ -382,7 +409,13 @@ void main() {
     await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
     expect(repository.chamadasExcluirArvore, 0);
-    expect(find.text('1 - Mãe'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('demanda-card-1')),
+        matching: find.text('Mãe'),
+      ),
+      findsOneWidget,
+    );
 
     await _abrirMenuAcoes(tester, 1);
     await tester.tap(find.byKey(const ValueKey('excluir-demanda-1')));
@@ -396,7 +429,9 @@ void main() {
     expect(repository.chamadasExcluir, 0);
     expect(repository.chamadasExcluirArvore, 1);
     expect(repository.chamadasListar, 1);
-    expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(5));
+    expect(viewModel.demandas, isEmpty);
+    expect(find.byType(DemandaCard), findsNothing);
+    expect(find.text('Nenhuma demanda ainda.'), findsOneWidget);
     expect(
       find.text('Demanda e descendentes excluídos com sucesso.'),
       findsOneWidget,
@@ -451,29 +486,50 @@ void main() {
       expect(find.byType(DemandaCard), findsNWidgets(demandas.length));
       var ultimoX = double.negativeInfinity;
       final primeiroY = tester
-          .getTopLeft(find.byKey(const ValueKey('demanda-status-aberta')))
+          .getTopLeft(find.byKey(const ValueKey('demanda-coluna-aberta')))
           .dy;
       for (final grupo in grupos.entries) {
         final coluna = find.byKey(ValueKey('demanda-coluna-${grupo.key.name}'));
-        final cabecalho = find.byKey(
-          ValueKey('demanda-status-${grupo.key.name}'),
+        final kanban = tester.widget<KanbanColumn>(
+          find.descendant(of: coluna, matching: find.byType(KanbanColumn)),
         );
-        final posicao = tester.getTopLeft(cabecalho);
+        expect(kanban.status, grupo.key);
+        expect(kanban.count, grupo.value.raizes);
+        final cabecalho = find.descendant(
+          of: coluna,
+          matching: find.byType(GroupHeader),
+        );
+        final posicao = tester.getTopLeft(coluna);
         expect(posicao.dx, greaterThan(ultimoX));
         expect(posicao.dy, primeiroY);
         ultimoX = tester.getTopRight(coluna).dx;
-        expect(
-          find.descendant(
-            of: cabecalho,
-            matching: find.text('(${grupo.value.raizes})'),
-          ),
-          findsOneWidget,
-        );
+        if (grupo.value.raizes == 0) {
+          expect(kanban.collapsed, isTrue);
+          expect(cabecalho, findsNothing);
+          expect(
+            find.descendant(of: coluna, matching: find.text('Pausada  0')),
+            findsOneWidget,
+          );
+        } else {
+          expect(
+            tester.widget<GroupHeader>(cabecalho).count,
+            grupo.value.raizes,
+          );
+          expect(
+            find.descendant(
+              of: cabecalho,
+              matching: find.text('${grupo.value.raizes}'),
+            ),
+            findsOneWidget,
+          );
+        }
         expect(
           find.descendant(of: coluna, matching: find.byType(DemandaCard)),
           findsNWidgets(grupo.value.ids.length),
         );
-        var ultimoY = tester.getBottomLeft(cabecalho).dy;
+        var ultimoY = grupo.value.raizes == 0
+            ? posicao.dy
+            : tester.getBottomLeft(cabecalho).dy;
         for (final id in grupo.value.ids) {
           final card = find.byKey(ValueKey('demanda-card-$id'));
           expect(card, findsOneWidget);
@@ -513,15 +569,22 @@ void main() {
 
   for (final largura in [390.0, 1200.0, 2400.0]) {
     testWidgets(
-      'quadro inicia compacto com colunas de 288 px em largura $largura',
+      'quadro inicia compacto e adapta colunas ou abas em largura $largura',
       (tester) async {
-        await tester.binding.setSurfaceSize(Size(largura, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
         final vm = DemandasViewModel(
-          repository: FakeDemandaRepository(demandas: [demandaFixture()]),
+          repository: FakeDemandaRepository(
+            demandas: [
+              demandaFixture(titulo: 'Demanda aberta'),
+              demandaFixture(
+                id: 2,
+                titulo: 'Demanda concluída',
+                status: backend.DemandaStatus.concluida,
+              ),
+            ],
+          ),
         );
         addTearDown(vm.dispose);
-        await _abrirPagina(tester, vm);
+        await _abrirKanbanResponsivo(tester, vm, largura);
         expect(
           tester
               .widget<PopupMenuButton<DensidadeDemanda>>(
@@ -530,19 +593,65 @@ void main() {
               .initialValue,
           DensidadeDemanda.compacta,
         );
-        for (final status in backend.DemandaStatus.values) {
+        expect(
+          find.byKey(const ValueKey('buscar-demandas')).hitTestable(),
+          findsOneWidget,
+        );
+        if (largura < 600) {
+          expect(find.byType(StatusTabs), findsOneWidget);
+          expect(find.byType(KanbanColumn), findsNothing);
           expect(
-            tester
-                .getSize(find.byKey(ValueKey('demanda-coluna-${status.name}')))
-                .width,
-            288,
+            find.byKey(const ValueKey('demandas-quadro-scrollbar')),
+            findsNothing,
           );
+          expect(find.text('Demanda aberta'), findsOneWidget);
+          final aba = find.descendant(
+            of: find.byType(StatusTabs),
+            matching: find.text('Concluída'),
+          );
+          await tester.ensureVisible(aba);
+          await tester.tap(aba);
+          await tester.pumpAndSettle();
+          expect(find.text('Demanda concluída').hitTestable(), findsOneWidget);
+          expect(find.text('Demanda aberta'), findsNothing);
+          final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
+          await tester.fling(quadro, const Offset(250, 0), 1000);
+          await tester.pumpAndSettle();
+          expect(find.text('Demanda concluída'), findsNothing);
+          final abaAberta = find.descendant(
+            of: find.byType(StatusTabs),
+            matching: find.text('Aberta'),
+          );
+          await tester.ensureVisible(abaAberta);
+          await tester.tap(abaAberta);
+          await tester.pumpAndSettle();
+          expect(find.text('Demanda aberta').hitTestable(), findsOneWidget);
+        } else {
+          expect(find.byType(StatusTabs), findsNothing);
+          expect(find.byType(KanbanColumn), findsNWidgets(5));
+          double? larguraPreenchida;
+          for (final status in backend.DemandaStatus.values) {
+            final coluna = find.byKey(
+              ValueKey('demanda-coluna-${status.name}'),
+            );
+            final kanban = tester.widget<KanbanColumn>(
+              find.descendant(of: coluna, matching: find.byType(KanbanColumn)),
+            );
+            final preenchida =
+                status == backend.DemandaStatus.aberta ||
+                status == backend.DemandaStatus.concluida;
+            expect(kanban.count, preenchida ? 1 : 0);
+            expect(kanban.collapsed, !preenchida);
+            final width = tester.getSize(coluna).width;
+            if (preenchida) {
+              expect(width, inInclusiveRange(260, 360));
+              larguraPreenchida ??= width;
+              expect(width, larguraPreenchida);
+            } else {
+              expect(width, 44);
+            }
+          }
         }
-        final board = find.byKey(const ValueKey('demandas-quadro-status'));
-        final controller = tester
-            .widget<SingleChildScrollView>(board)
-            .controller!;
-        expect(controller.position.maxScrollExtent > 0, largura < 2000);
         expect(tester.takeException(), isNull);
       },
     );
@@ -550,24 +659,14 @@ void main() {
 
   for (final largura in [390.0, 1200.0, 2400.0]) {
     testWidgets(
-      'quadro normal com largura $largura mantém colunas e usa só o scroll vertical da página',
+      'quadro normal com largura $largura preserva agrupamento e rolagem responsiva',
       (tester) async {
-        await tester.binding.setSurfaceSize(Size(largura, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
         final repository = FakeDemandaRepository(
-          demandas: [
-            for (var id = 1; id <= 12; id++)
-              demandaFixture(id: id, titulo: 'Demanda $id'),
-            demandaFixture(
-              id: 100,
-              demandaPaiId: 1,
-              status: backend.DemandaStatus.concluida,
-            ),
-          ],
+          demandas: _demandasParaQuadro(),
         );
-        final viewModel = DemandasViewModel(repository: repository);
-        addTearDown(viewModel.dispose);
-        await _abrirPagina(tester, viewModel);
+        final vm = DemandasViewModel(repository: repository);
+        addTearDown(vm.dispose);
+        await _abrirKanbanResponsivo(tester, vm, largura);
         await tester.tap(find.byTooltip('Densidade dos cards'));
         await tester.pumpAndSettle();
         await tester.tap(
@@ -577,317 +676,249 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-
-        final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
-        final scrollQuadro = find.descendant(
-          of: quadro,
-          matching: find.byType(Scrollable),
-        );
-        expect(scrollQuadro, findsOneWidget);
-        final horizontal = tester.state<ScrollableState>(scrollQuadro);
-        expect(horizontal.position.axis, Axis.horizontal);
-        final barra = tester.widget<Scrollbar>(
-          find.byKey(const ValueKey('demandas-quadro-scrollbar')),
-        );
-        final controller = tester
-            .widget<SingleChildScrollView>(quadro)
-            .controller;
-        expect(controller, isNotNull);
-        expect(barra.controller, same(controller));
-        expect(controller!.position, same(horizontal.position));
-        expect(barra.thumbVisibility, largura < 2000);
-        expect(barra.trackVisibility, isFalse);
-        expect(barra.scrollbarOrientation, ScrollbarOrientation.bottom);
-        expect(barra.interactive, isTrue);
-        final scrollVertical = find.descendant(
-          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Scrollable &&
-                axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
-          ),
-        );
-        expect(scrollVertical, findsOneWidget);
-        expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('demandas-pagina-scroll')),
-            matching: scrollVertical,
-          ),
-          findsOneWidget,
-        );
-        final vertical = tester.state<ScrollableState>(scrollVertical);
-        expect(vertical.position.maxScrollExtent, greaterThan(0));
-
-        final nomes = {
-          backend.DemandaStatus.aberta: 'Abertas',
-          backend.DemandaStatus.emAndamento: 'Em andamento',
-          backend.DemandaStatus.pausada: 'Pausadas',
-          backend.DemandaStatus.concluida: 'Concluídas',
-          backend.DemandaStatus.cancelada: 'Canceladas',
-        };
-        var ultimoX = double.negativeInfinity;
-        final topo = tester
-            .getTopLeft(find.byKey(const ValueKey('demanda-status-aberta')))
-            .dy;
-        for (final status in nomes.entries) {
-          final coluna = find.byKey(
-            ValueKey('demanda-coluna-${status.key.name}'),
-          );
-          final cabecalho = find.byKey(
-            ValueKey('demanda-status-${status.key.name}'),
-          );
-          expect(
-            find.descendant(of: cabecalho, matching: find.text(status.value)),
-            findsOneWidget,
-          );
-          expect(tester.getSize(coluna).width, greaterThanOrEqualTo(360));
-          if (largura < 2000) {
-            expect(tester.getSize(coluna).width, 360);
-          } else {
-            final limites = tester.getRect(cabecalho);
-            final viewport = tester.getRect(quadro);
-            expect(limites.left, greaterThanOrEqualTo(viewport.left));
-            expect(limites.right, lessThanOrEqualTo(viewport.right));
-            expect(limites.top, greaterThanOrEqualTo(0));
-            expect(limites.bottom, lessThanOrEqualTo(900));
-          }
-          expect(tester.getTopLeft(cabecalho).dy, topo);
-          expect(tester.getTopLeft(coluna).dx, greaterThan(ultimoX));
-          ultimoX = tester.getTopRight(coluna).dx;
-        }
         expect(
           tester
-              .getSize(find.byKey(const ValueKey('demanda-coluna-aberta')))
-              .height,
-          greaterThan(vertical.position.viewportDimension),
+              .widget<PopupMenuButton<DensidadeDemanda>>(
+                find.byType(PopupMenuButton<DensidadeDemanda>),
+              )
+              .initialValue,
+          DensidadeDemanda.normal,
         );
-        expect(find.text('Nenhuma demanda neste status.'), findsNWidgets(4));
-        expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('demanda-status-aberta')),
-            matching: find.text('(12)'),
-          ),
-          findsOneWidget,
-        );
-
-        final tituloPagina = find.text('Demandas');
-        final posicaoTitulo = tester.getTopLeft(tituloPagina);
-        if (largura < 2000) {
-          expect(horizontal.position.maxScrollExtent, greaterThan(0));
-          await tester.dragFrom(
-            tester.getTopLeft(quadro) + const Offset(250, 20),
-            const Offset(-200, 0),
+        if (largura < 600) {
+          final aba = find.descendant(
+            of: find.byType(StatusTabs),
+            matching: find.text('Aberta'),
           );
+          await tester.ensureVisible(aba);
+          await tester.tap(aba);
           await tester.pumpAndSettle();
-          expect(horizontal.position.pixels, greaterThan(0));
-          expect(vertical.position.pixels, 0);
-          expect(tester.getTopLeft(tituloPagina), posicaoTitulo);
-        } else {
-          expect(horizontal.position.maxScrollExtent, 0);
-          expect(ultimoX, closeTo(largura - 24, 0.01));
         }
-
-        final deslocamentoHorizontal = horizontal.position.pixels;
-        final topoQuadro = tester.getTopLeft(quadro).dy;
-        await tester.dragFrom(const Offset(200, 400), const Offset(0, -250));
+        final quadro = find.byKey(const ValueKey('demandas-quadro-status'));
+        final toolbar = find.byType(PageHeader);
+        final posicaoToolbar = tester.getTopLeft(toolbar);
+        final vertical = largura < 600
+            ? _scrollNoEixo(tester, quadro, Axis.vertical)
+            : _scrollNoEixo(
+                tester,
+                find.byKey(const ValueKey('demanda-coluna-aberta')),
+                Axis.vertical,
+              );
+        expect(vertical.position.maxScrollExtent, greaterThan(0));
+        expect(
+          find.byKey(const ValueKey('demandas-pagina-scroll')),
+          findsNothing,
+        );
+        final primeira = find.byKey(const ValueKey('demanda-card-1'));
+        await tester.ensureVisible(primeira);
+        await tester.tap(find.byKey(const ValueKey('expandir-demanda-1')));
+        await tester.pumpAndSettle();
+        final filha = find.byKey(const ValueKey('demanda-tree-node-100-1'));
+        expect(filha, findsOneWidget);
+        if (largura >= 600) {
+          final coluna = find.byKey(const ValueKey('demanda-coluna-aberta'));
+          expect(find.descendant(of: coluna, matching: filha), findsOneWidget);
+          expect(
+            tester
+                .widget<GroupHeader>(
+                  find.descendant(
+                    of: coluna,
+                    matching: find.byType(GroupHeader),
+                  ),
+                )
+                .count,
+            12,
+          );
+          expect(
+            tester
+                .getTopLeft(find.byKey(const ValueKey('demanda-card-100')))
+                .dx,
+            greaterThan(tester.getTopLeft(primeira).dx),
+          );
+          final horizontal = tester
+              .widget<SingleChildScrollView>(quadro)
+              .controller!;
+          final barra = tester.widget<Scrollbar>(
+            find.byKey(const ValueKey('demandas-quadro-scrollbar')),
+          );
+          expect(barra.controller, same(horizontal));
+          expect(barra.thumbVisibility, isTrue);
+          double ultimoX = double.negativeInfinity;
+          for (final status in backend.DemandaStatus.values) {
+            final grupo = find.byKey(ValueKey('demanda-coluna-${status.name}'));
+            expect(tester.getSize(grupo).width, inInclusiveRange(260, 360));
+            expect(tester.getTopLeft(grupo).dx, greaterThan(ultimoX));
+            ultimoX = tester.getTopRight(grupo).dx;
+            expect(
+              tester
+                  .widget<KanbanColumn>(
+                    find.descendant(
+                      of: grupo,
+                      matching: find.byType(KanbanColumn),
+                    ),
+                  )
+                  .count,
+              status == backend.DemandaStatus.aberta ? 12 : 1,
+            );
+          }
+          expect(horizontal.position.maxScrollExtent > 0, largura == 1200);
+          if (horizontal.position.maxScrollExtent > 0) {
+            final posicaoVerticalAntes = vertical.position.pixels;
+            await tester.dragFrom(
+              tester.getTopLeft(quadro) + const Offset(150, 20),
+              const Offset(-400, 0),
+            );
+            await tester.pumpAndSettle();
+            expect(horizontal.offset, greaterThan(0));
+            expect(vertical.position.pixels, posicaoVerticalAntes);
+            horizontal.jumpTo(0);
+            await tester.pumpAndSettle();
+          }
+        } else {
+          expect(find.byType(StatusTabs), findsOneWidget);
+          expect(find.byType(KanbanColumn), findsNothing);
+        }
+        final topoQuadro = tester.getTopLeft(quadro);
+        final topoPrimeira = tester.getTopLeft(primeira).dy;
+        await tester.dragFrom(
+          tester.getTopLeft(primeira) + const Offset(100, 40),
+          const Offset(0, -250),
+        );
         await tester.pumpAndSettle();
         expect(vertical.position.pixels, greaterThan(0));
-        expect(horizontal.position.pixels, deslocamentoHorizontal);
-        expect(tester.getTopLeft(quadro).dy, lessThan(topoQuadro));
+        expect(tester.getTopLeft(primeira).dy, lessThan(topoPrimeira));
+        expect(tester.getTopLeft(quadro), topoQuadro);
+        expect(tester.getTopLeft(toolbar), posicaoToolbar);
         final ultimoCard = find.byKey(const ValueKey('demanda-card-12'));
         await tester.ensureVisible(ultimoCard);
         await tester.pumpAndSettle();
         expect(ultimoCard.hitTestable(), findsOneWidget);
+        expect(vm.demandas, hasLength(17));
+        expect(repository.chamadasAtualizar, 0);
         expect(tester.takeException(), isNull);
       },
     );
   }
 
   testWidgets(
-    'barra discreta no fim do conteúdo ganha destaque em hover e arraste',
+    'barra horizontal fixa ganha destaque em hover e permite arraste',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final viewModel = DemandasViewModel(
-        repository: FakeDemandaRepository(
-          demandas: [for (var id = 1; id <= 12; id++) demandaFixture(id: id)],
-        ),
+      final vm = DemandasViewModel(
+        repository: FakeDemandaRepository(demandas: _demandasParaQuadro()),
       );
-      addTearDown(viewModel.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light.copyWith(platform: TargetPlatform.linux),
-          home: DemandasPage(viewModel: viewModel),
-        ),
-      );
-      await tester.pumpAndSettle();
-      // A barra continua utilizável depois do tempo de fade padrão, sem hover.
+      addTearDown(vm.dispose);
+      await _abrirKanbanResponsivo(tester, vm, 1200);
       await tester.pump(const Duration(seconds: 3));
-
       final barra = find.byKey(const ValueKey('demandas-quadro-scrollbar'));
-      expect(
-        find.descendant(of: barra, matching: find.byType(Scrollbar)),
-        findsNothing,
-      );
       final controller = tester.widget<Scrollbar>(barra).controller!;
-      final pagina = tester.state<ScrollableState>(
-        find.descendant(
-          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Scrollable &&
-                widget.axisDirection == AxisDirection.down,
-          ),
-        ),
-      );
-      expect(controller.offset, 0);
-      expect(tester.getBottomLeft(barra).dy, greaterThan(900));
-      pagina.position.jumpTo(pagina.position.maxScrollExtent);
-      await tester.pumpAndSettle();
-      final posicaoVertical = pagina.position.pixels;
+      expect(controller.position.maxScrollExtent, greaterThan(0));
+      expect(tester.getBottomLeft(barra).dy, lessThanOrEqualTo(900));
       final pintor = _pintorBarra(tester, barra);
       expect(pintor.thickness, 4);
       expect(pintor.color.a, closeTo(0.28, 0.01));
       expect(pintor.fadeoutOpacityAnimation.value, 1);
-      expect(pintor.trackColor.a, 0);
-      final pontoBarra = tester.getBottomLeft(barra) + const Offset(20, -6);
+      final toolbar = tester.getTopLeft(find.byType(PageHeader));
+      final ponto = tester.getBottomLeft(barra) + const Offset(20, -6);
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer(location: Offset.zero);
-      await mouse.moveTo(pontoBarra);
+      addTearDown(mouse.removePointer);
+      await mouse.moveTo(ponto);
       await tester.pumpAndSettle();
       expect(pintor.thickness, 9);
       expect(pintor.color.a, closeTo(0.60, 0.01));
-      await mouse.down(pontoBarra);
+      await mouse.down(ponto);
       await mouse.moveBy(const Offset(150, 0));
       await tester.pump();
       expect(controller.offset, greaterThan(0));
       expect(pintor.thickness, 9);
       expect(pintor.color.a, closeTo(0.75, 0.01));
-      await mouse.moveBy(const Offset(900, 0));
+      await mouse.moveBy(const Offset(1800, 0));
       await mouse.up();
       await mouse.moveTo(Offset.zero);
-      await mouse.removePointer();
       await tester.pumpAndSettle();
       expect(controller.offset, controller.position.maxScrollExtent);
-      expect(pagina.position.pixels, posicaoVertical);
+      expect(tester.getTopLeft(find.byType(PageHeader)), toolbar);
       expect(pintor.thickness, 4);
       expect(pintor.color.a, closeTo(0.28, 0.01));
-      expect(pintor.fadeoutOpacityAnimation.value, 1);
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'barra segue a coluna mais alta e rola com o conteúdo da página',
+    'barra horizontal e cabeçalhos ficam fixos durante a rolagem independente das colunas',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final viewModel = DemandasViewModel(
-        repository: FakeDemandaRepository(
-          demandas: [
-            for (var id = 1; id <= 12; id++)
-              demandaFixture(id: id, titulo: 'Demanda $id'),
-            demandaFixture(id: 13, status: backend.DemandaStatus.emAndamento),
-          ],
-        ),
+      final vm = DemandasViewModel(
+        repository: FakeDemandaRepository(demandas: _demandasParaQuadro()),
       );
-      addTearDown(viewModel.dispose);
-      await _abrirPagina(tester, viewModel);
+      addTearDown(vm.dispose);
+      await _abrirKanbanResponsivo(tester, vm, 1200);
       final barra = find.byKey(const ValueKey('demandas-quadro-scrollbar'));
-      final colunaAlta = find.byKey(const ValueKey('demanda-coluna-aberta'));
-      final pintor = _pintorBarra(tester, barra);
-      double topoBarra() =>
-          tester.getBottomLeft(barra).dy -
-          pintor.crossAxisMargin -
-          pintor.thickness;
-      void verificarAbaixoDasColunas() {
-        for (final status in backend.DemandaStatus.values) {
-          final coluna = find.byKey(ValueKey('demanda-coluna-${status.name}'));
-          expect(topoBarra(), greaterThan(tester.getBottomLeft(coluna).dy));
-        }
-        // Confere também a região efetivamente pintada/interativa da barra.
-        expect(
-          pintor.hitTestOnlyThumbInteractive(
-            Offset(
-              20,
-              tester.getSize(barra).height - pintor.crossAxisMargin - 2,
-            ),
-            PointerDeviceKind.mouse,
-          ),
-          isTrue,
-        );
-      }
-
-      verificarAbaixoDasColunas();
-      expect(topoBarra(), greaterThan(900));
-      final topoAntes = topoBarra();
-      final alturaAntes = tester.getSize(colunaAlta).height;
+      final coluna = find.byKey(const ValueKey('demanda-coluna-aberta'));
+      final header = find.descendant(
+        of: coluna,
+        matching: find.byType(GroupHeader),
+      );
+      final topoHeader = tester.getTopLeft(header);
+      final limitesBarra = tester.getRect(barra);
+      final alturaColuna = tester.getSize(coluna).height;
+      final vertical = _scrollNoEixo(tester, coluna, Axis.vertical);
+      final outra = _scrollNoEixo(
+        tester,
+        find.byKey(const ValueKey('demanda-coluna-emAndamento')),
+        Axis.vertical,
+      );
+      final alcanceAntes = vertical.position.maxScrollExtent;
       await tester.tap(find.byKey(const ValueKey('expandir-demanda-1')));
       await tester.pumpAndSettle();
-      final crescimento = tester.getSize(colunaAlta).height - alturaAntes;
-      expect(crescimento, greaterThan(0));
-      expect(topoBarra() - topoAntes, closeTo(crescimento, 0.01));
-      verificarAbaixoDasColunas();
-
-      final pagina = tester.state<ScrollableState>(
-        find.descendant(
-          of: find.byKey(const ValueKey('demandas-pagina-scroll')),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Scrollable &&
-                widget.axisDirection == AxisDirection.down,
-          ),
-        ),
+      expect(vertical.position.maxScrollExtent, greaterThan(alcanceAntes));
+      expect(tester.getSize(coluna).height, alturaColuna);
+      expect(tester.getRect(barra), limitesBarra);
+      await tester.dragFrom(
+        tester.getTopLeft(coluna) + const Offset(100, 100),
+        const Offset(0, -250),
       );
-      final topoAntesDoScroll = topoBarra();
-      final distanciaDaColuna =
-          topoBarra() - tester.getBottomLeft(colunaAlta).dy;
-      pagina.position.jumpTo(120);
       await tester.pumpAndSettle();
-      expect(topoBarra(), closeTo(topoAntesDoScroll - 120, 0.01));
-      expect(
-        topoBarra() - tester.getBottomLeft(colunaAlta).dy,
-        closeTo(distanciaDaColuna, 0.01),
-      );
-      expect(topoBarra(), greaterThan(900));
-      verificarAbaixoDasColunas();
-
-      pagina.position.jumpTo(pagina.position.maxScrollExtent);
+      expect(vertical.position.pixels, greaterThan(0));
+      expect(outra.position.pixels, 0);
+      expect(tester.getTopLeft(header), topoHeader);
+      expect(tester.getRect(barra), limitesBarra);
+      await tester.ensureVisible(find.byKey(const ValueKey('demanda-card-12')));
       await tester.pumpAndSettle();
-      expect(topoBarra(), lessThan(900));
       expect(
-        topoBarra() - tester.getBottomLeft(colunaAlta).dy,
-        closeTo(distanciaDaColuna, 0.01),
+        find.byKey(const ValueKey('demanda-card-12')).hitTestable(),
+        findsOneWidget,
       );
-      verificarAbaixoDasColunas();
+      expect(tester.getRect(barra), limitesBarra);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('quadro vazio mantém as cinco colunas e contagens zeradas', (
+  testWidgets('quadro vazio oferece criação sem colunas ou contagens antigas', (
     tester,
   ) async {
-    await _configurarTela(tester);
-    final viewModel = DemandasViewModel(repository: FakeDemandaRepository());
-    addTearDown(viewModel.dispose);
-    await _abrirPagina(tester, viewModel);
-
+    final vm = DemandasViewModel(repository: FakeDemandaRepository());
+    addTearDown(vm.dispose);
+    await _abrirKanbanResponsivo(tester, vm, 1200);
+    expect(vm.demandas, isEmpty);
     expect(find.byType(DemandaCard), findsNothing);
-    for (final status in backend.DemandaStatus.values) {
-      final coluna = find.byKey(ValueKey('demanda-coluna-${status.name}'));
-      expect(coluna, findsOneWidget);
-      expect(
-        find.descendant(of: coluna, matching: find.text('(0)')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: coluna,
-          matching: find.text('Nenhuma demanda neste status.'),
-        ),
-        findsOneWidget,
-      );
-    }
+    expect(find.byType(KanbanColumn), findsNothing);
+    expect(find.byType(StatusTabs), findsNothing);
+    expect(
+      find.byKey(const ValueKey('demandas-quadro-scrollbar')),
+      findsNothing,
+    );
+    expect(find.text('Nenhuma demanda ainda.'), findsOneWidget);
+    expect(tester.widget<PageHeader>(find.byType(PageHeader)).count, 0);
+    final criar = find.widgetWithText(TextButton, 'Criar demanda');
+    expect(criar.hitTestable(), findsOneWidget);
+    await tester.tap(criar);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byKey(const ValueKey('criar-demanda')), findsOneWidget);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhuma demanda ainda.'), findsOneWidget);
+    expect(vm.demandas, isEmpty);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('expande e recolhe cards sem mudar a posição dos descendentes', (
@@ -969,7 +1000,7 @@ void main() {
           final limites = tester.getRect(coluna);
           var ultimoY = tester
               .getBottomLeft(
-                find.byKey(ValueKey('demanda-status-${statusRaiz.name}')),
+                find.descendant(of: coluna, matching: find.byType(GroupHeader)),
               )
               .dy;
           var ultimoX = double.negativeInfinity;
@@ -1165,17 +1196,72 @@ void main() {
   });
 }
 
+List<backend.Demanda> _demandasParaQuadro() => [
+  for (var id = 1; id <= 12; id++)
+    demandaFixture(id: id, titulo: 'Demanda $id'),
+  demandaFixture(
+    id: 100,
+    demandaPaiId: 1,
+    titulo: 'Filha concluída',
+    status: backend.DemandaStatus.concluida,
+  ),
+  for (final status in backend.DemandaStatus.values.where(
+    (s) => s != backend.DemandaStatus.aberta,
+  ))
+    demandaFixture(
+      id: 20 + status.index,
+      titulo: 'Raiz ${status.name}',
+      status: status,
+    ),
+];
+
+Future<void> _abrirKanbanResponsivo(
+  WidgetTester tester,
+  DemandasViewModel vm,
+  double largura,
+) async {
+  final dpr = largura < 600 ? 3.0 : 1.0;
+  tester.view.devicePixelRatio = dpr;
+  tester.view.physicalSize = Size(largura * dpr, 900 * dpr);
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light.copyWith(platform: TargetPlatform.linux),
+      home: DemandasPage(viewModel: vm),
+    ),
+  );
+  await tester.pumpAndSettle();
+  expect(
+    MediaQuery.sizeOf(tester.element(find.byType(DemandasPage))),
+    Size(largura, 900),
+  );
+}
+
+ScrollableState _scrollNoEixo(WidgetTester tester, Finder dentro, Axis eixo) =>
+    tester.state<ScrollableState>(
+      find.descendant(
+        of: dentro,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Scrollable && axisDirectionToAxis(w.axisDirection) == eixo,
+        ),
+      ),
+    );
+
 ScrollbarPainter _pintorBarra(WidgetTester tester, Finder barra) =>
     tester
             .widget<CustomPaint>(
-              find.descendant(
-                of: barra,
-                matching: find.byWidgetPredicate(
-                  (widget) =>
-                      widget is CustomPaint &&
-                      widget.foregroundPainter is ScrollbarPainter,
-                ),
-              ),
+              find
+                  .descendant(
+                    of: barra,
+                    matching: find.byWidgetPredicate(
+                      (widget) =>
+                          widget is CustomPaint &&
+                          widget.foregroundPainter is ScrollbarPainter,
+                    ),
+                  )
+                  .first,
             )
             .foregroundPainter!
         as ScrollbarPainter;

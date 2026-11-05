@@ -579,9 +579,12 @@ class _WeekRegistroCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Theme.of(
+        color: TemdasTokens.cardSurface(
           context,
-        ).colorScheme.primaryContainer.withValues(alpha: .35),
+          lightColor: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: .35),
+        ),
         borderRadius: BorderRadius.circular(10),
         child: Tooltip(
           message: 'Editar lançamento',

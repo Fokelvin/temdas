@@ -1,3 +1,4 @@
+import 'package:temdas/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -259,6 +260,7 @@ void main() {
     addTearDown(sprint.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light,
         home: DemandasPage(viewModel: vm, sprintViewModel: sprint),
       ),
     );

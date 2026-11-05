@@ -815,8 +815,8 @@ class _DemandasPageState extends State<DemandasPage> {
                                   for (var i = 0; i < 8; i++) SkeletonRow(),
                                 ],
                               )
-                            : LayoutBuilder(
-                                builder: (context, box) => Row(
+                            : SingleChildScrollView(
+                                child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     for (var i = 0; i < (mobile ? 1 : 3); i++)
