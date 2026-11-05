@@ -269,38 +269,16 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 
 ### EMAIL-P2-01 — Identidade visual dos e-mails de autenticação
 
-- **Contexto:** os corpos HTML atuais de convite e recuperação de senha no
-  Supabase Auth são muito simples, com texto e link sem identidade visual
-  consistente com o TEMDAS. Os templates atualmente versionados em
-  `docs/auth-email-templates/invite.html` e `recovery.html` ainda estão
-  em inglês.
-- **Prioridade:** P2 — melhoria de UX e comunicação de autenticação.
-- **Estado:** Aprovado para o roadmap em 05/11/2026; **pendente de definição
-  visual e implementação**. Não faz parte da execução AUTH-P2-01/UX-AUTH-04
-  já enviada ao Codex.
-- **Objetivo:** modernizar o design dos e-mails transacionais do TEMDAS,
-  começando por **convite de acesso** e **recuperação de senha**, com linguagem
-  clara em português do Brasil, identidade visual oficial, hierarquia
-  tipográfica, botão de ação destacado, instruções objetivas e rodapé discreto.
-  Inventariar outras mensagens automáticas ativas antes de decidir se entram
-  no mesmo pacote.
-- **Requisitos de UX:** apresentação limpa e responsiva; boa leitura em
-  clientes de e-mail comuns e em modo claro/escuro; texto alternativo para
-  logo e ação com link legível como fallback; mensagens coerentes com o fluxo
-  efetivo (o e-mail de recuperação não deve ser apresentado como novo convite).
-  Evitar layouts dependentes exclusivamente de imagens ou estilos não
-  suportados por clientes de e-mail.
-- **Segurança e compatibilidade:** preservar integralmente variáveis,
-  URLs e semântica dos links de uso único do Supabase, confirmação explícita,
-  redirects, antienumeração e MFA obrigatório. Não adicionar dados sensíveis,
-  pixels de rastreamento nem recursos externos desnecessários. Não alterar
-  configuração do Supabase/Resend sem aprovação específica; conferir templates
-  reais de PROD, fazer backup e prever rollback antes de qualquer ativação.
-- **Critérios de aceite:** prévias revisadas e aprovadas nos dois fluxos,
-  renderização adequada em desktop/mobile e clientes de e-mail relevantes,
-  CTA e fallback funcionais, texto e identidade TEMDAS consistentes, sem
-  regressão na entrega, no consumo dos links ou na autenticação. Publicação
-  dos templates e homologação real somente após autorização separada.
+- **Contexto:** o TEMDAS utiliza Supabase Auth com SMTP Resend. Os templates de convite e recuperação versionados em `docs/auth-email-templates/` ainda usam HTML simples e textos em inglês. As notificações de segurança precisam compartilhar a identidade visual.
+- **Prioridade:** P2 — UX, comunicação transacional e identidade visual.
+- **Estado:** Escopo ampliado e aprovado em 05/11/2026; **pendente de implementação e publicação separada**.
+- **Escopo aprovado:** criar e revisar **13 templates suportados pelo Supabase Auth**, sendo seis de autenticação (**confirmar cadastro, convite, link mágico/OTP, mudança de e-mail, recuperação de senha e reautenticação**) e sete notificações de segurança (**senha alterada, e-mail alterado, telefone alterado, método de login vinculado/removido e método de verificação adicionado/removido**). Revisar assuntos e corpos em português brasileiro, incluindo fluxos não utilizados hoje, sem habilitá-los automaticamente.
+- **Identidade:** usar logo oficial TEMDAS, cabeçalho azul-marinho, corpo de leitura clara, botão de ação azul, hierarquia tipográfica, instruções objetivas e rodapé discreto. HTML responsivo e compatível com clientes de e-mail (principalmente Gmail/Outlook/mobile), com estilos inline, texto alternativo e links de fallback. Evitar dependência de imagens e recursos externos.
+- **Precisão dos fluxos:** o e-mail de recuperação deve continuar sendo identificado como **recuperação de senha**, mesmo quando a interface usa "Enviar link para continuar" para recuperar um convite já aceito. Os templates dos outros fluxos devem refletir a operação real, sem prometer funcionalidades indisponíveis.
+- **Segurança:** preservar os links de uso único e as variáveis oficiais do Supabase em cada tipo de template; especialmente manter em convite e recuperação a confirmação explícita por `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite|recovery`, evitando `{{ .ConfirmationURL }}` nesses dois fluxos. Não habilitar fluxo novo, remover MFA, modificar redirects, inventar tokens, inserir pixels de rastreamento, expor dados sensíveis ou alterar links/variáveis de templates sem verificar a compatibilidade do fluxo correspondente.
+- **Entrega em duas fases:** (1) inventariar a configuração atual de PROD e seu estado de ativação, criar os 13 HTMLs/assuntos versionados, gerar prévias locais com dados fictícios, validar compatibilidade e apresentar para aprovação; **não alterar Supabase/Resend nesta fase**. (2) somente após autorização separada, fazer backup e diff da configuração real, aplicar exclusivamente templates/assuntos aprovados com rollback e homologação de envios reais.
+- **Critérios de aceite:** textos em pt-BR e identidade consistente nos 13 modelos; links, tokens, OTPs, variáveis e fallback corretos; acessibilidade e renderização mobile/desktop; ausência de regressão em convite, recuperação, login e MFA; notificações de segurança anteriormente desabilitadas permanecem desabilitadas.
+- **Referência:** [Email Templates — Supabase](https://supabase.com/docs/guides/auth/auth-email-templates).
 
 ### UI-P2-03 — Seleção global de texto no Flutter Web
 
