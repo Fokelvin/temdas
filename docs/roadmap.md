@@ -323,9 +323,9 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
   prioridade/status e estados ativos sem redesenhar as telas nem acrescentar
   informações.
 - **Prioridade:** P2 — consistência visual, legibilidade e acessibilidade.
-- **Estado:** Publicado em PROD em 05/11/2026; **aguardando homologação
-  visual do responsável em produção, pelo celular**. Não declarar homologado
-  antes dessa confirmação.
+- **Estado:** **Concluído, publicado e homologado visualmente em PROD em
+  05/11/2026**, conforme confirmação explícita do responsável após validação
+  pelo celular. Publicação da implementação no commit `e5e597c`.
 - **Validação de publicação:** suíte Flutter completa executada uma única vez:
   **717/717 testes aprovados, zero falhas e zero ignorados**;
   `flutter analyze` sem ocorrências. Inclui tema/contraste, Demandas,
