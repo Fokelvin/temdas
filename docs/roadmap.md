@@ -267,6 +267,41 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Critérios de aceite:** mensagens preservam proteção contra enumeração;
   falhas de rede/servidor permitem nova tentativa; AAL2 permanece obrigatório.
 
+### EMAIL-P2-01 — Identidade visual dos e-mails de autenticação
+
+- **Contexto:** os corpos HTML atuais de convite e recuperação de senha no
+  Supabase Auth são muito simples, com texto e link sem identidade visual
+  consistente com o TEMDAS. Os templates atualmente versionados em
+  `docs/auth-email-templates/invite.html` e `recovery.html` ainda estão
+  em inglês.
+- **Prioridade:** P2 — melhoria de UX e comunicação de autenticação.
+- **Estado:** Aprovado para o roadmap em 05/11/2026; **pendente de definição
+  visual e implementação**. Não faz parte da execução AUTH-P2-01/UX-AUTH-04
+  já enviada ao Codex.
+- **Objetivo:** modernizar o design dos e-mails transacionais do TEMDAS,
+  começando por **convite de acesso** e **recuperação de senha**, com linguagem
+  clara em português do Brasil, identidade visual oficial, hierarquia
+  tipográfica, botão de ação destacado, instruções objetivas e rodapé discreto.
+  Inventariar outras mensagens automáticas ativas antes de decidir se entram
+  no mesmo pacote.
+- **Requisitos de UX:** apresentação limpa e responsiva; boa leitura em
+  clientes de e-mail comuns e em modo claro/escuro; texto alternativo para
+  logo e ação com link legível como fallback; mensagens coerentes com o fluxo
+  efetivo (o e-mail de recuperação não deve ser apresentado como novo convite).
+  Evitar layouts dependentes exclusivamente de imagens ou estilos não
+  suportados por clientes de e-mail.
+- **Segurança e compatibilidade:** preservar integralmente variáveis,
+  URLs e semântica dos links de uso único do Supabase, confirmação explícita,
+  redirects, antienumeração e MFA obrigatório. Não adicionar dados sensíveis,
+  pixels de rastreamento nem recursos externos desnecessários. Não alterar
+  configuração do Supabase/Resend sem aprovação específica; conferir templates
+  reais de PROD, fazer backup e prever rollback antes de qualquer ativação.
+- **Critérios de aceite:** prévias revisadas e aprovadas nos dois fluxos,
+  renderização adequada em desktop/mobile e clientes de e-mail relevantes,
+  CTA e fallback funcionais, texto e identidade TEMDAS consistentes, sem
+  regressão na entrega, no consumo dos links ou na autenticação. Publicação
+  dos templates e homologação real somente após autorização separada.
+
 ### UI-P2-03 — Seleção global de texto no Flutter Web
 
 - **Descrição:** habilitar seleção de texto global com `SelectionArea`, sem
@@ -323,9 +358,9 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   prioridade/status e estados ativos sem redesenhar as telas nem acrescentar
   informações.
 - **Prioridade:** P2 — consistência visual, legibilidade e acessibilidade.
-- **Estado:** Publicado em PROD em 05/11/2026; **aguardando homologação
-  visual do responsável em produção, pelo celular**. Não declarar homologado
-  antes dessa confirmação.
+- **Estado:** **Concluído, publicado e homologado visualmente em PROD em
+  05/11/2026**, conforme confirmação explícita do responsável após validação
+  pelo celular. Publicação da implementação no commit `e5e597c`.
 - **Validação de publicação:** suíte Flutter completa executada uma única vez:
   **717/717 testes aprovados, zero falhas e zero ignorados**;
   `flutter analyze` sem ocorrências. Inclui tema/contraste, Demandas,
@@ -1082,15 +1117,18 @@ dentro do orçamento inicial; nenhum item pendente foi iniciado neste encerramen
 Validação local do pacote em 05/11/2026: testes direcionados aprovados,
 `dart format` concluído, `flutter analyze` sem ocorrências e uma única suíte
 Flutter completa com **744/744 testes aprovados, zero falhas e zero ignorados**.
-Nenhum build, commit, push, merge ou deploy executado nesta etapa. Backend,
-banco, migrations, secrets, configuração e templates Supabase preservados.
+Publicação autorizada pelo responsável pelo workflow existente do Cloudflare
+Pages na `main`, com um único build release no pipeline, sem repetir a suíte
+validada nem executar build local. Backend, banco, migrations, secrets, SMTP,
+configuração e templates de e-mail Supabase preservados. Homologação funcional
+em PROD pelo responsável, pelo celular, permanece pendente.
 
 ### AUTH-P2-01 — Simplificar o fluxo MFA/TOTP
 
 - **Descrição:** remover da interface a ação explícita “Iniciar challenge” e
   simplificar a apresentação do fluxo TOTP.
 - **Prioridade:** P2 — antecipação aprovada pelo responsável em conjunto com UX-AUTH-04, substituindo o adiamento anterior.
-- **Estado:** Implementado e validado localmente. Não publicado nem homologado.
+- **Estado:** Implementado e publicado em PROD em 05/11/2026; **aguardando homologação funcional do responsável**, pelo celular.
 - **Implementação:** instruções, QR Code e chave manual, código de seis dígitos e
   confirmação com challenge + verify internos por `SupabaseSession.verifyTotp()`.
   Cadastro pendente pode ser confirmado ou reiniciado explicitamente após
@@ -1105,7 +1143,7 @@ banco, migrations, secrets, configuração e templates Supabase preservados.
 ### UX-AUTH-04 — Retomada da ativação após convite interrompido
 
 - **Prioridade:** P2 — melhoria aprovada pelo responsável no pacote com AUTH-P2-01.
-- **Estado:** Implementado e validado localmente. Não publicado nem homologado.
+- **Estado:** Implementado e publicado em PROD em 05/11/2026; **aguardando homologação funcional do responsável**, pelo celular.
 - **Implementação:** links inválidos/expirados oferecem e-mail e **Enviar link
   para continuar**; o login oferece **Problemas para ativar sua conta?**.
   Ambos reutilizam o mesmo formulário, validação, envio de recuperação de senha,
@@ -1117,5 +1155,6 @@ banco, migrations, secrets, configuração e templates Supabase preservados.
   não seja aplicável. Uma sessão de convite ainda válida pode retomar a definição
   de senha, com identidade e contexto revalidados; links novos continuam exigindo
   confirmação explícita e consumo único. Login, MFA/AAL2 e provisioning preservados.
-- **Publicação e homologação:** pendentes de etapa posterior; homologação visual
-  pelo responsável em PROD, pelo celular.
+- **Publicação e homologação:** publicado em `https://temdas.com.br` pelo pipeline
+  Cloudflare Pages; aguardando homologação funcional do responsável em PROD,
+  pelo celular. Não declarar homologado antes dessa confirmação.
