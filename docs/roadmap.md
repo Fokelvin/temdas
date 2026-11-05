@@ -510,6 +510,17 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Dependências:** decisão individual de escopo antes de definir modelo,
   regras e critérios de aceite.
 
+
+### FUNC-P3-06 — To-do e Lembretes rápidos
+
+- **Contexto:** nem toda atividade cotidiana precisa se tornar uma Demanda com status, tempo estimado e vínculo a Sprint.
+- **Descrição:** oferecer uma área própria para pequenos itens pessoais, combinando lista de tarefas rápidas (To-do), conclusão simples e data opcional para lembretes. Explorar notificações apenas em uma evolução futura, mediante decisão separada.
+- **Prioridade:** P3 — funcionalidade futura; não antecipar em relação ao Backlog ou a outras entregas já priorizadas.
+- **Estado:** Conceito aprovado em 05/11/2026; **pendente de detalhamento funcional e técnico**, sem implementação autorizada.
+- **Direção inicial:** funcionalidade independente do fluxo de Demandas, Sprints e Log Time; evitar introduzir status de Demanda, rastreamento de horas ou regras de Sprint em itens rápidos.
+- **Pontos a decidir:** diferença entre To-do e lembrete, campos mínimos, datas/horários, recorrência, localização no menu, privacidade, vínculo opcional com Demandas e eventual mecanismo de notificação.
+- **Critérios futuros de aceite:** definir após alinhamento de escopo e UX; não criar modelagem, migrations, telas ou notificações nesta etapa.
+
 ## Infraestrutura e débitos técnicos
 
 ### INF-01 — Domínio e hospedagem de produção
