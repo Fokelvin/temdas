@@ -25,8 +25,11 @@ void main() {
     );
 
     expect(find.byType(QrImageView), findsOneWidget);
-    await tester.tap(find.byType(ExpansionTile));
-    await tester.pumpAndSettle();
-    expect(find.text('URI: $uri'), findsOneWidget);
+    expect(
+      tester.widget<TotpEnrollmentQr>(find.byType(TotpEnrollmentQr)).uri,
+      uri,
+    );
+    expect(find.text('server-returned'), findsOneWidget);
+    expect(find.textContaining('URI:'), findsNothing);
   });
 }

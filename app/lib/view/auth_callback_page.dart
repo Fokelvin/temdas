@@ -6,6 +6,7 @@ import 'widgets/theme_toggle_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_routes.dart';
+import 'auth_pages.dart';
 import '../data/auth_callback.dart';
 import '../data/auth_callback_storage.dart';
 import '../data/supabase_session.dart';
@@ -49,6 +50,10 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   bool _showPassword = false;
   bool _showConfirmation = false;
   AuthConfirmationIntent? _pendingConfirmation;
+  late final _recovery = PasswordRecoveryController(
+    session: _session,
+    currentUri: widget.uri,
+  );
 
   SupabaseSession? get _session => widget.session ?? supabaseSession;
   CallbackStorage get _storage => widget.storage ?? browserCallbackStorage;
@@ -60,10 +65,29 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     super.initState();
     if (widget.requireConfirmation) {
       _storage.clearUrl();
-      _processor.clear();
       _pendingConfirmation = AuthConfirmationIntent.parse(widget.uri);
-      if (_pendingConfirmation == null) {
-        _result = const CallbackResult(CallbackStatus.invalid);
+      final fragment = Uri.tryParse(widget.uri.fragment);
+      final clean =
+          (widget.uri.scheme == 'https' || widget.uri.scheme == 'http') &&
+          widget.uri.host.isNotEmpty &&
+          widget.uri.userInfo.isEmpty &&
+          (widget.uri.path == '/auth/confirm' ||
+              ((widget.uri.path == '/' || widget.uri.path.isEmpty) &&
+                  fragment?.path == '/auth/confirm')) &&
+          widget.uri.query.isEmpty &&
+          (widget.uri.fragment.isEmpty ||
+              (widget.uri.path == '/auth/confirm' &&
+                  widget.uri.fragment == '/demandas') ||
+              (fragment?.path == '/auth/confirm' &&
+                  !fragment!.hasQuery &&
+                  !fragment.hasFragment));
+      if (_pendingConfirmation == null && clean) {
+        unawaited(_resumeInvite());
+      } else {
+        _processor.clear();
+        if (_pendingConfirmation == null) {
+          _result = const CallbackResult(CallbackStatus.invalid);
+        }
       }
     } else {
       unawaited(_process());
@@ -72,10 +96,15 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 
   @override
   void dispose() {
+    _recovery.dispose();
     _totp.dispose();
     _password.dispose();
     _confirmation.dispose();
     super.dispose();
+  }
+
+  Future<void> _resumeInvite() async {
+    await _acceptResult(await _processor.restoreInvite());
   }
 
   Future<void> _process() async {
@@ -354,7 +383,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   Future<void> _goToLogin() async {
-    if (_submitting) return;
+    if (_submitting || _recovery.loading) return;
     setState(() => _submitting = true);
     try {
       await _session?.signOut();
@@ -585,10 +614,21 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
                           ),
                         ],
                         const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: _submitting ? null : _goToLogin,
-                          child: const Text('Voltar ao login'),
-                        ),
+                        if (result.status == CallbackStatus.invalid ||
+                            result.status == CallbackStatus.expired) ...[
+                          const Text('Este link não está mais disponível.'),
+                          const SizedBox(height: 12),
+                          PasswordRecoveryForm(
+                            controller: _recovery,
+                            activation: true,
+                            busy: _submitting,
+                            onBack: _goToLogin,
+                          ),
+                        ] else
+                          FilledButton(
+                            onPressed: _submitting ? null : _goToLogin,
+                            child: const Text('Voltar ao login'),
+                          ),
                       ],
                     ],
                   ),

@@ -163,7 +163,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Link ou sessão expirados'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.widgetWithText(TextField, 'E-mail'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+    expect(find.text('Salvar senha'), findsNothing);
   });
 
   testWidgets('double submit sends only one update request', (tester) async {

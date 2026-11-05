@@ -21,20 +21,21 @@ class TotpEnrollmentQr extends StatelessWidget {
             data: uri,
             version: QrVersions.auto,
             size: 220,
-            semanticsLabel: 'QR Code de enrollment TOTP',
+            semanticsLabel: 'QR Code para configurar o aplicativo autenticador',
           ),
         ),
       ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: const Text('Alternativa técnica: URI e secret'),
-        children: [
-          SelectableText('URI: $uri'),
-          const SizedBox(height: 8),
-          SelectableText('Secret: $secret'),
-          const SizedBox(height: 8),
-          const Text('Esses dados ficam apenas nesta tela temporária.'),
-        ],
+      const SizedBox(height: 12),
+      const Text(
+        'Ou informe esta chave manualmente no aplicativo autenticador:',
+      ),
+      SelectableText(
+        secret,
+        semanticsLabel: 'Chave manual do autenticador: $secret',
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Guarde essa chave com segurança. Ela só aparece durante a configuração.',
       ),
     ],
   );

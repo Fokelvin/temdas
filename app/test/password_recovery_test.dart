@@ -9,6 +9,8 @@ import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:temdas/data/supabase_session.dart';
 import 'package:temdas/view/auth_pages.dart';
+import 'package:temdas/view/auth_callback_page.dart';
+import 'package:temdas/theme/app_theme.dart';
 
 void main() {
   testWidgets(
@@ -230,6 +232,147 @@ void main() {
     expect(find.textContaining('endereço do app'), findsOneWidget);
     expect(server.calls, 0);
   });
+  for (final source in ['login', 'invalid', 'expired']) {
+    for (final status in [200, 404]) {
+      testWidgets(
+        'ativação via $source mantém confirmação genérica HTTP $status',
+        (tester) async {
+          final server = _RecoveryServer()
+            ..status = status
+            ..errorCode = 'user_not_found';
+          await _openActivation(tester, server, source);
+          expect(server.calls, 0);
+          expect(
+            find.textContaining('procure o administrador'),
+            findsOneWidget,
+          );
+          expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+          expect(
+            tester.widget<TextField>(find.byType(TextField)).controller!.text,
+            isEmpty,
+          );
+          await tester.enterText(
+            find.byType(TextField),
+            '  pessoa@example.com  ',
+          );
+          await tester.tap(find.text('Enviar link para continuar'));
+          await tester.pumpAndSettle();
+          expect(server.calls, 1);
+          expect(server.email, 'pessoa@example.com');
+          expect(
+            server.redirectTo,
+            'https://temdas.example:8443/auth/callback',
+          );
+          expect(server.client.auth.currentSession, isNull);
+          expect(find.textContaining('Se houver uma conta'), findsOneWidget);
+          expect(find.textContaining('internal account detail'), findsNothing);
+          expect(find.text('Enviar link para continuar'), findsNothing);
+          expect(find.text('Voltar ao login'), findsOneWidget);
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'limite de envio também bloqueia reenvio na retomada da ativação',
+    (tester) async {
+      final server = _RecoveryServer()..status = 429;
+      await _openActivation(tester, server, 'login');
+      await tester.enterText(find.byType(TextField), 'pessoa@example.com');
+      await tester.tap(find.text('Enviar link para continuar'));
+      await tester.pumpAndSettle();
+      expect(server.calls, 1);
+      expect(find.textContaining('Limite de tentativas'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Enviar link para continuar'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(server.calls, 1);
+      await tester.tap(find.text('Voltar ao login'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Esqueci minha senha'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Enviar instruções'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.pump(const Duration(minutes: 1));
+      server.status = 200;
+      await tester.tap(find.text('Enviar instruções'));
+      await tester.pumpAndSettle();
+      expect(server.calls, 2);
+      expect(find.textContaining('Se houver uma conta'), findsOneWidget);
+    },
+  );
+
+  for (final dark in [false, true]) {
+    for (final width in [320.0, 1440.0]) {
+      testWidgets('recuperação de ativação responsiva $width escuro=$dark', (
+        tester,
+      ) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = Size(width, 640);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final server = _RecoveryServer();
+        await _openActivation(tester, server, 'invalid', dark: dark);
+        await tester.ensureVisible(find.text('Enviar link para continuar'));
+        expect(
+          find.text('Enviar link para continuar').hitTestable(),
+          findsOneWidget,
+        );
+        expect(server.calls, 0);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+}
+
+Future<void> _openActivation(
+  WidgetTester tester,
+  _RecoveryServer server,
+  String source, {
+  bool dark = false,
+}) async {
+  final uri = source == 'expired'
+      ? Uri.parse(
+          'https://temdas.example:8443/auth/confirm?token_hash=${'a' * 56}&type=invite',
+        )
+      : Uri.parse(
+          'https://temdas.example:8443/auth/confirm?token_hash=invalid&type=invite&email=private@example.com',
+        );
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: dark ? AppTheme.dark : AppTheme.light,
+      home: source == 'login'
+          ? LoginPage(session: SupabaseSession(server.client), currentUri: uri)
+          : AuthCallbackPage.confirm(
+              session: SupabaseSession(server.client),
+              uri: uri,
+            ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  if (source == 'login') {
+    await tester.ensureVisible(find.text('Problemas para ativar sua conta?'));
+    await tester.tap(find.text('Problemas para ativar sua conta?'));
+  } else if (source == 'expired') {
+    await tester.tap(find.text('Aceitar convite'));
+  }
+  await tester.pumpAndSettle();
+  if (source != 'login') {
+    expect(find.text('Este link não está mais disponível.'), findsOneWidget);
+  }
 }
 
 Widget _app(_RecoveryServer server, {Uri? uri}) => MaterialApp(
@@ -284,6 +427,13 @@ class _RecoveryServer {
             'content-type': 'application/json',
             'x-supabase-api-version': '2024-01-01',
           },
+        );
+      }
+      if (request.url.path.endsWith('/verify')) {
+        return http.Response(
+          '{"code":"otp_expired","message":"private expired link"}',
+          400,
+          headers: {'content-type': 'application/json'},
         );
       }
       return http.Response('', 404);

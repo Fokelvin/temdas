@@ -81,6 +81,37 @@ void main() {
     },
   );
 
+  testWidgets(
+    'login usa autenticador verificado mesmo com outro cadastro pendente',
+    (tester) async {
+      final requests = <String>[];
+      final fixture = _AuthFixture(requests: requests);
+      final client = _client(fixture.client);
+      addTearDown(fixture.close);
+      await _signIn(client);
+      await tester.pumpWidget(_page(client, pending: true));
+      await tester.enterText(find.byType(TextField), '123456');
+      await tester.tap(find.text('Confirmar'));
+      await _pumpRequest(tester);
+      expect(
+        requests.where(
+          (path) => path.endsWith('/factors/factor-internal-id/challenge'),
+        ),
+        hasLength(1),
+      );
+      expect(
+        requests.where(
+          (path) => path.endsWith('/factors/factor-internal-id/verify'),
+        ),
+        hasLength(1),
+      );
+      expect(
+        requests.where((path) => path.contains('pending-factor')),
+        isEmpty,
+      );
+    },
+  );
+
   testWidgets('orienta quando o código não tem seis dígitos', (tester) async {
     final requests = <String>[];
     final fixture = _AuthFixture(requests: requests);
@@ -136,7 +167,11 @@ Future<void> _pumpRequest(WidgetTester tester) async {
   }
 }
 
-Widget _page(SupabaseClient supabase, {double scale = 1}) => MaterialApp(
+Widget _page(
+  SupabaseClient supabase, {
+  double scale = 1,
+  bool pending = false,
+}) => MaterialApp(
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
     child: child!,
@@ -144,6 +179,15 @@ Widget _page(SupabaseClient supabase, {double scale = 1}) => MaterialApp(
   home: MfaChallengePage(
     session: SupabaseSession(supabase),
     factors: [
+      if (pending)
+        Factor(
+          id: 'pending-factor',
+          friendlyName: 'Pendente',
+          factorType: FactorType.totp,
+          status: FactorStatus.unverified,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
       Factor(
         id: 'factor-internal-id',
         friendlyName: 'TEMDAS',

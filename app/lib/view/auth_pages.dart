@@ -8,7 +8,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app/app_routes.dart';
 import '../data/supabase_session.dart';
 import 'totp_enrollment_qr.dart';
-import 'totp_factor_selection.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.session, this.currentUri});
@@ -25,15 +24,16 @@ class _LoginPageState extends State<LoginPage> {
   bool _passwordVisible = false;
   bool _loading = false;
   bool _recovering = false;
-  bool _recoveryLoading = false;
-  bool _recoverySent = false;
-  bool _recoveryCooldown = false;
-  Timer? _recoveryTimer;
+  bool _activationRecovery = false;
+  late final _recovery = PasswordRecoveryController(
+    session: widget.session,
+    currentUri: widget.currentUri,
+  );
   String? _error;
 
   @override
   void dispose() {
-    _recoveryTimer?.cancel();
+    _recovery.dispose();
     _email.dispose();
     _password.dispose();
     _passwordFocus.dispose();
@@ -74,70 +74,12 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showRecovery(bool recovering) {
-    if (_recoveryLoading) return;
+  void _showRecovery(bool recovering, {bool activation = false}) {
+    if (_recovery.loading) return;
+    if (recovering && !_recovery.cooldown) _recovery.email.text = _email.text;
     setState(() {
       _recovering = recovering;
-      _error = null;
-    });
-  }
-
-  Future<void> _sendRecovery() async {
-    if (_recoveryLoading || _recoveryCooldown) return;
-    final email = _email.text.trim();
-    if (email.length > 254 ||
-        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
-      setState(() => _error = 'Informe um e-mail válido.');
-      return;
-    }
-    final session = widget.session;
-    if (session == null) {
-      setState(() => _error = 'A autenticação ainda não está configurada.');
-      return;
-    }
-    final location = widget.currentUri ?? Uri.base;
-    if ((location.scheme != 'https' && location.scheme != 'http') ||
-        location.host.isEmpty) {
-      setState(
-        () => _error = 'Não foi possível identificar o endereço do app.',
-      );
-      return;
-    }
-
-    setState(() {
-      _recoveryLoading = true;
-      _recoverySent = false;
-      _error = null;
-    });
-    try {
-      await session.client.auth.resetPasswordForEmail(
-        email,
-        redirectTo: '${location.origin}${AppRoutes.authCallback}',
-      );
-      if (mounted) _showRecoverySent();
-    } on AuthException catch (error) {
-      if (!mounted) return;
-      final message = _recoveryError(error);
-      if (message == null) {
-        _showRecoverySent();
-      } else {
-        setState(() => _error = message);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = _recoveryUnavailable);
-    } finally {
-      if (mounted) setState(() => _recoveryLoading = false);
-    }
-  }
-
-  void _showRecoverySent() {
-    _recoveryTimer?.cancel();
-    _recoveryTimer = Timer(const Duration(minutes: 1), () {
-      if (mounted) setState(() => _recoveryCooldown = false);
-    });
-    setState(() {
-      _recoverySent = true;
-      _recoveryCooldown = true;
+      _activationRecovery = activation;
       _error = null;
     });
   }
@@ -145,44 +87,16 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) => _recovering
       ? _AuthLayout(
-          title: 'Esqueci minha senha',
+          title: _activationRecovery
+              ? 'Continue a ativação da conta'
+              : 'Esqueci minha senha',
           subtitle:
               'Informe seu e-mail para receber instruções de recuperação.',
           children: [
-            if (!_recoverySent || !_recoveryCooldown) ...[
-              TextField(
-                controller: _email,
-                enabled: !_recoveryLoading,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'E-mail'),
-                onSubmitted: (_) => _sendRecovery(),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _recoveryLoading ? null : _sendRecovery,
-                  child: _recoveryLoading
-                      ? const AuthProgress(label: 'Enviando instruções…')
-                      : const Text('Enviar instruções'),
-                ),
-              ),
-            ],
-            if (_recoverySent) ...[
-              const SizedBox(height: 12),
-              const AuthFeedback(message: _recoveryConfirmation),
-              if (_recoveryCooldown)
-                const Text('Aguarde um minuto antes de solicitar novamente.'),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              AuthFeedback(message: _error!, error: true),
-            ],
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _recoveryLoading ? null : () => _showRecovery(false),
-              child: const Text('Voltar ao login'),
+            PasswordRecoveryForm(
+              controller: _recovery,
+              activation: _activationRecovery,
+              onBack: () => _showRecovery(false),
             ),
           ],
         )
@@ -238,8 +152,180 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: _loading ? null : () => _showRecovery(true),
               child: const Text('Esqueci minha senha'),
             ),
+            TextButton(
+              onPressed: _loading
+                  ? null
+                  : () => _showRecovery(true, activation: true),
+              child: const Text('Problemas para ativar sua conta?'),
+            ),
           ],
         );
+}
+
+/// Shared recovery request, validation and cooldown for login and activation.
+class PasswordRecoveryController extends ChangeNotifier {
+  PasswordRecoveryController({required this.session, this.currentUri});
+  final SupabaseSession? session;
+  final Uri? currentUri;
+  final email = TextEditingController();
+  bool loading = false;
+  bool sent = false;
+  bool cooldown = false;
+  String? error;
+  Timer? _timer;
+  bool _disposed = false;
+
+  void _update(VoidCallback update) {
+    if (_disposed) return;
+    update();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _timer?.cancel();
+    email.dispose();
+    super.dispose();
+  }
+
+  Future<void> send() async {
+    if (loading || cooldown) return;
+    final address = email.text.trim();
+    if (address.length > 254 ||
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(address)) {
+      _update(() => error = 'Informe um e-mail válido.');
+      return;
+    }
+    final auth = session;
+    if (auth == null) {
+      _update(() => error = 'A autenticação ainda não está configurada.');
+      return;
+    }
+    final location = currentUri ?? Uri.base;
+    if ((location.scheme != 'https' && location.scheme != 'http') ||
+        location.host.isEmpty) {
+      _update(() => error = 'Não foi possível identificar o endereço do app.');
+      return;
+    }
+
+    _update(() {
+      loading = true;
+      sent = false;
+      error = null;
+    });
+    try {
+      await auth.client.auth.resetPasswordForEmail(
+        address,
+        redirectTo: '${location.origin}${AppRoutes.authCallback}',
+      );
+      if (!_disposed) _showRecoverySent();
+    } on AuthException catch (failure) {
+      if (_disposed) return;
+      final message = _recoveryError(failure);
+      if (message == null) {
+        _showRecoverySent();
+      } else {
+        _update(() => error = message);
+        if (message == _recoveryRateLimited) _startCooldown();
+      }
+    } catch (_) {
+      if (!_disposed) _update(() => error = _recoveryUnavailable);
+    } finally {
+      if (!_disposed) _update(() => loading = false);
+    }
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
+    _timer = Timer(
+      const Duration(minutes: 1),
+      () => _update(() => cooldown = false),
+    );
+    _update(() => cooldown = true);
+  }
+
+  void _showRecoverySent() {
+    _startCooldown();
+    _update(() {
+      sent = true;
+      cooldown = true;
+      error = null;
+    });
+  }
+}
+
+class PasswordRecoveryForm extends StatelessWidget {
+  const PasswordRecoveryForm({
+    super.key,
+    required this.controller,
+    required this.onBack,
+    this.activation = false,
+    this.busy = false,
+  });
+  final PasswordRecoveryController controller;
+  final VoidCallback onBack;
+  final bool activation;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: controller,
+    builder: (context, _) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (activation) ...[
+          const Text(
+            'Se você já aceitou seu convite, pode continuar a configuração da conta solicitando um link de recuperação de senha por e-mail.',
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Se o convite nunca foi aceito ou a recuperação não for aplicável, procure o administrador para obter um novo convite.',
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (!controller.sent || !controller.cooldown) ...[
+          TextField(
+            controller: controller.email,
+            enabled: !controller.loading && !busy,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(labelText: 'E-mail'),
+            onSubmitted: (_) => controller.send(),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: controller.loading || controller.cooldown || busy
+                ? null
+                : controller.send,
+            child: controller.loading
+                ? const AuthProgress(label: 'Enviando instruções…')
+                : Text(
+                    activation
+                        ? 'Enviar link para continuar'
+                        : 'Enviar instruções',
+                  ),
+          ),
+        ],
+        if (controller.sent) ...[
+          const SizedBox(height: 12),
+          const AuthFeedback(message: _recoveryConfirmation),
+        ],
+        if (controller.cooldown)
+          const Text('Aguarde um minuto antes de solicitar novamente.'),
+        if (controller.error != null) ...[
+          const SizedBox(height: 12),
+          AuthFeedback(message: controller.error!, error: true),
+        ],
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: controller.loading || busy ? null : onBack,
+          child: const Text('Voltar ao login'),
+        ),
+      ],
+    ),
+  );
 }
 
 const _recoveryConfirmation =
@@ -310,11 +396,23 @@ class MfaEnrollPage extends StatefulWidget {
 class _MfaEnrollPageState extends State<MfaEnrollPage> {
   TOTPEnrollment? _enrollment;
   String? _factorId;
-  String? _challengeId;
+  late List<Factor> _factors = List.of(widget.factors);
   final _code = TextEditingController();
   bool _loading = false;
+  bool _completed = false;
+  bool _creationUncertain = false;
   String? _error;
-  bool get _hasPending => hasUnverifiedTotpFactor(widget.factors);
+  String? get _pendingId =>
+      _factorId ??
+      _factors
+          .where(
+            (f) =>
+                f.factorType == FactorType.totp &&
+                f.status == FactorStatus.unverified,
+          )
+          .firstOrNull
+          ?.id;
+  bool get _hasPending => _pendingId != null;
 
   @override
   void dispose() {
@@ -323,7 +421,7 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
-    if (_loading) return;
+    if (_loading || _completed) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -337,139 +435,137 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
     }
   }
 
+  Future<void> _refreshFactors() async {
+    final response = await widget.session.client.auth.mfa.listFactors();
+    if (!mounted) return;
+    setState(() => _factors = List.of(response.all));
+    if (_factors.any(
+      (f) =>
+          f.factorType == FactorType.totp && f.status == FactorStatus.verified,
+    )) {
+      throw const _ExistingAuthenticator();
+    }
+  }
+
   Future<void> _enroll() async {
-    final pending = preferredTotpFactor(widget.factors);
-    if (pending?.status == FactorStatus.unverified) {
-      setState(() => _factorId = pending!.id);
-      return;
-    }
-    final response = await widget.session.client.auth.mfa.enroll(
-      factorType: FactorType.totp,
-      friendlyName: 'TEMDAS',
-    );
-    if (response.totp == null) {
-      throw StateError('Supabase não retornou os dados do autenticador.');
-    }
-    setState(() {
-      _enrollment = response.totp;
-      _factorId = response.id;
-      _challengeId = null;
-    });
+    // A lost response may already have created a factor. Inspect before retrying.
+    if (_creationUncertain) await _refreshFactors();
+    if (!mounted || _hasPending) return;
+    await _createEnrollment();
   }
 
   Future<void> _restart() async {
-    final pending = widget.factors
+    // Re-read statuses before deletion; never remove a verified authenticator.
+    await _refreshFactors();
+    if (!mounted) return;
+    final pending = _factors
         .where(
-          (factor) =>
-              factor.factorType == FactorType.totp &&
-              factor.status == FactorStatus.unverified,
+          (f) =>
+              f.factorType == FactorType.totp &&
+              f.status == FactorStatus.unverified,
         )
         .toList();
-    if (pending.isEmpty) {
-      throw StateError('Não há cadastro pendente para reiniciar.');
-    }
     for (final factor in pending) {
       await widget.session.client.auth.mfa.unenroll(factor.id);
+      if (!mounted) return;
+      setState(() {
+        _factors.removeWhere((f) => f.id == factor.id);
+        if (_factorId == factor.id) _factorId = null;
+        _enrollment = null;
+        _code.clear();
+      });
     }
+    if (!mounted) return;
     setState(() {
       _enrollment = null;
       _factorId = null;
-      _challengeId = null;
+      _code.clear();
     });
     await _createEnrollment();
   }
 
   Future<void> _createEnrollment() async {
-    final response = await widget.session.client.auth.mfa.enroll(
-      factorType: FactorType.totp,
-      friendlyName: 'TEMDAS',
-    );
-    if (response.totp == null) {
-      throw StateError('Supabase não retornou os dados do autenticador.');
+    _creationUncertain = true;
+    final AuthMFAEnrollResponse response;
+    try {
+      response = await widget.session.client.auth.mfa.enroll(
+        factorType: FactorType.totp,
+        friendlyName: 'TEMDAS',
+      );
+    } on AuthException catch (error) {
+      if (error is! AuthRetryableFetchException &&
+          error is! AuthUnknownException &&
+          (int.tryParse(error.statusCode ?? '') ?? 500) < 500) {
+        _creationUncertain = false;
+      }
+      rethrow;
     }
+    if (!mounted) return;
     setState(() {
       _enrollment = response.totp;
       _factorId = response.id;
-      _challengeId = null;
-    });
-  }
-
-  Future<void> _challenge() async {
-    final factorId = _factorId ?? preferredTotpFactor(widget.factors)?.id;
-    if (factorId == null) {
-      throw StateError('Cadastre ou selecione um fator TOTP.');
-    }
-    final result = await widget.session.client.auth.mfa.challenge(
-      factorId: factorId,
-    );
-    setState(() {
-      _factorId = factorId;
-      _challengeId = result.id;
+      _creationUncertain = false;
     });
   }
 
   Future<void> _verify() async {
-    final factorId = _factorId;
-    final challengeId = _challengeId;
-    if (factorId == null || challengeId == null) {
-      throw StateError('Inicie o challenge antes de verificar.');
-    }
+    final factorId = _pendingId;
     final code = _code.text.trim();
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+    if (factorId == null || !RegExp(r'^\d{6}$').hasMatch(code)) {
       throw const _InvalidTotpCode();
     }
-    await widget.session.client.auth.mfa.verify(
-      factorId: factorId,
-      challengeId: challengeId,
-      code: code,
-    );
+    await widget.session.verifyTotp(factorId: factorId, code: code);
+    if (!mounted) return;
     _code.clear();
+    setState(() => _completed = true);
   }
 
   @override
   Widget build(BuildContext context) => _AuthLayout(
     title: 'Configure a verificação em duas etapas',
-    subtitle: _hasPending
-        ? 'Há um cadastro TOTP pendente. Continue com o fator existente.'
-        : 'Cadastre um autenticador para proteger sua conta.',
+    subtitle:
+        'Abra um aplicativo autenticador, como Google Authenticator ou Microsoft Authenticator, e adicione uma conta usando o QR Code ou a chave manual.',
     children: [
-      if (_hasPending)
-        const ListTile(
-          leading: Icon(Icons.pending_outlined),
-          title: Text('Cadastro TOTP pendente'),
-          subtitle: Text('O fator existente será reutilizado.'),
-        ),
-      if (_enrollment == null && !_hasPending)
-        FilledButton.tonal(
-          onPressed: _loading ? null : () => _run(_enroll),
-          child: const Text('Cadastrar TOTP'),
-        ),
-      if (_hasPending && _enrollment == null)
-        OutlinedButton(
-          onPressed: _loading ? null : () => _run(_restart),
-          child: const Text('Reiniciar cadastro TOTP'),
-        ),
-      if (_enrollment case final enrollment?) ...[
-        TotpEnrollmentQr(uri: enrollment.uri, secret: enrollment.secret),
-      ],
-      if (_enrollment != null || _hasPending) ...[
-        FilledButton.tonal(
-          onPressed: _loading ? null : () => _run(_challenge),
-          child: const Text('Iniciar challenge'),
-        ),
-        TextField(
-          controller: _code,
-          keyboardType: TextInputType.number,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          decoration: const InputDecoration(labelText: 'Código TOTP'),
-          onSubmitted: (_) => _run(_verify),
-        ),
-        FilledButton(
-          onPressed: _loading || _challengeId == null
-              ? null
-              : () => _run(_verify),
-          child: const Text('Verificar'),
-        ),
+      if (_completed)
+        const AuthFeedback(
+          message: 'Autenticador confirmado. Verificando acesso…',
+        )
+      else ...[
+        if (!_hasPending)
+          FilledButton.tonal(
+            onPressed: _loading ? null : () => _run(_enroll),
+            child: const Text('Configurar autenticador'),
+          ),
+        if (_hasPending && _enrollment == null) ...[
+          const AuthFeedback(
+            message:
+                'Há uma configuração pendente. Se você já adicionou a conta ao aplicativo autenticador, informe o código. Se não tem mais o QR Code ou a chave, reinicie a configuração.',
+          ),
+        ],
+        if (_hasPending)
+          OutlinedButton(
+            onPressed: _loading ? null : () => _run(_restart),
+            child: const Text('Reiniciar configuração'),
+          ),
+        if (_enrollment case final enrollment?)
+          TotpEnrollmentQr(uri: enrollment.uri, secret: enrollment.secret),
+        if (_hasPending) ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _code,
+            enabled: !_loading,
+            keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(labelText: 'Código de 6 dígitos'),
+            onSubmitted: (_) => _run(_verify),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _loading ? null : () => _run(_verify),
+            child: const Text('Confirmar'),
+          ),
+        ],
       ],
       if (_error != null) AuthFeedback(message: _error!, error: true),
       if (_loading) const AuthProgress(label: 'Verificando identidade…'),
@@ -479,6 +575,10 @@ class _MfaEnrollPageState extends State<MfaEnrollPage> {
       ),
     ],
   );
+}
+
+class _ExistingAuthenticator implements Exception {
+  const _ExistingAuthenticator();
 }
 
 class MfaChallengePage extends StatefulWidget {
@@ -526,13 +626,19 @@ class _MfaChallengePageState extends State<MfaChallengePage> {
       throw const _InvalidTotpCode();
     }
 
-    final factor = preferredTotpFactor(widget.factors);
+    final factor = widget.factors
+        .where(
+          (factor) =>
+              factor.factorType == FactorType.totp &&
+              factor.status == FactorStatus.verified,
+        )
+        .firstOrNull;
     if (factor == null || factor.status != FactorStatus.verified) {
       throw StateError('Não há fator TOTP verificado.');
     }
 
     await widget.session.verifyTotp(factorId: factor.id, code: code);
-    _code.clear();
+    if (mounted) _code.clear();
   }
 
   @override
@@ -587,6 +693,9 @@ class _InvalidTotpCode implements Exception {
 }
 
 String _mfaError(Object error) {
+  if (error is _ExistingAuthenticator) {
+    return 'Já existe um autenticador configurado. Saia e entre novamente para continuar.';
+  }
   return _challengeError(error);
 }
 

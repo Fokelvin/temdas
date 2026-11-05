@@ -221,6 +221,20 @@ class AuthCallbackProcessor {
     }
   }
 
+  /// A clean confirmation page may resume only a previously accepted invite.
+  /// No credential from a failed/new link is ever retried or used as identity.
+  Future<CallbackResult> restoreInvite() async {
+    try {
+      final data =
+          jsonDecode(storage.read(_key) ?? '{}') as Map<String, dynamic>;
+      if (data['flow'] == 'invite') return _restore();
+    } catch (_) {
+      // Invalid local metadata never grants access or supplies an email address.
+    }
+    clear();
+    return const CallbackResult(CallbackStatus.invalid);
+  }
+
   Future<CallbackResult> _restore() async {
     final raw = storage.read(_key);
     if (raw == null) {

@@ -206,7 +206,7 @@ void main() {
       _app(server, AuthProvisioning(provisionar: () async => _me(20, 'aal1'))),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cadastrar TOTP'));
+    await tester.tap(find.text('Configurar autenticador'));
     await tester.pumpAndSettle();
     final card = tester.state(find.byType(MfaEnrollPage));
     expect(find.byType(TotpEnrollmentQr), findsOneWidget);

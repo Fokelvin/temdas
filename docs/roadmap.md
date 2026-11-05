@@ -230,7 +230,7 @@ Esta seção reúne refinamentos frontend concluídos e aprovados. A navegação
 unificada (UI-P2-04) está publicada e homologada; o contraste do modo escuro
 (UI-P2-05) está publicado, aguardando homologação visual em PROD. Preservar
 login, MFA obrigatório e interações do Flutter Web.
-AUTH-P2-01 permanece adiado para o último item deste roadmap.
+AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04.
 
 ### UX-AUTH-03 — Entrada por painel lateral e correção da navegação pública
 
@@ -261,7 +261,7 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
   inexistentes, credenciais incorretas ou e-mail não confirmado.
   Validação conjunta com UX-AUTH-03: `flutter analyze` sem ocorrências e
   228 testes afetados aprovados, incluindo callbacks, convites, deep links,
-  fechamento do painel e exigência de AAL2. AUTH-P2-01 permanece adiado.
+  fechamento do painel e exigência de AAL2. A antecipação de AUTH-P2-01 foi aprovada posteriormente no pacote com UX-AUTH-04.
 - **Dependências:** contratos de erro documentados em `auth-callback-flutter.md`
   e nas páginas de autenticação.
 - **Critérios de aceite:** mensagens preservam proteção contra enumeração;
@@ -1077,15 +1077,45 @@ dentro do orçamento inicial; nenhum item pendente foi iniciado neste encerramen
 - **Critérios de aceite:** documentação reproduz a implantação real sem
   divulgar credenciais, e pendências não bloqueantes têm decisão registrada.
 
-## Última etapa do roadmap — Refinamento final do MFA/TOTP
+## P2 — Pacote de autenticação com antecipação aprovada
+
+Validação local do pacote em 05/11/2026: testes direcionados aprovados,
+`dart format` concluído, `flutter analyze` sem ocorrências e uma única suíte
+Flutter completa com **744/744 testes aprovados, zero falhas e zero ignorados**.
+Nenhum build, commit, push, merge ou deploy executado nesta etapa. Backend,
+banco, migrations, secrets, configuração e templates Supabase preservados.
 
 ### AUTH-P2-01 — Simplificar o fluxo MFA/TOTP
 
 - **Descrição:** remover da interface a ação explícita “Iniciar challenge” e
   simplificar a apresentação do fluxo TOTP.
-- **Prioridade:** Última etapa do roadmap, por decisão do responsável (manter identificador AUTH-P2-01).
-- **Estado:** Aprovado, mas adiado para o encerramento do roadmap; não incluir nos próximos pacotes. A interface atual permanece preservada.
+- **Prioridade:** P2 — antecipação aprovada pelo responsável em conjunto com UX-AUTH-04, substituindo o adiamento anterior.
+- **Estado:** Implementado e validado localmente. Não publicado nem homologado.
+- **Implementação:** instruções, QR Code e chave manual, código de seis dígitos e
+  confirmação com challenge + verify internos por `SupabaseSession.verifyTotp()`.
+  Cadastro pendente pode ser confirmado ou reiniciado explicitamente após
+  revalidar os fatores, sem excluir autenticadores verificados. Respostas de
+  cadastro perdidas são verificadas antes de criar outro fator. O login usa
+  fatores verificados mesmo quando há outro cadastro pendente.
 - **Dependências:** preservar a elevação de sessão para AAL2 e os fluxos de
   enrollment e verificação suportados pelo Supabase.
 - **Critérios de aceite:** o usuário consegue completar MFA sem a ação
   “Iniciar challenge”; as rotas funcionais continuam exigindo AAL2.
+
+### UX-AUTH-04 — Retomada da ativação após convite interrompido
+
+- **Prioridade:** P2 — melhoria aprovada pelo responsável no pacote com AUTH-P2-01.
+- **Estado:** Implementado e validado localmente. Não publicado nem homologado.
+- **Implementação:** links inválidos/expirados oferecem e-mail e **Enviar link
+  para continuar**; o login oferece **Problemas para ativar sua conta?**.
+  Ambos reutilizam o mesmo formulário, validação, envio de recuperação de senha,
+  mensagens genéricas e cooldown. O envio usa `resetPasswordForEmail()` com
+  redirect para `/auth/callback` na origem atual, sem alterar templates.
+- **Segurança:** não presume que o convite foi aceito, não revela existência de
+  conta, não extrai e-mail de links inválidos nem envia automaticamente. Orienta
+  procurar o administrador caso o convite não tenha sido aceito ou a recuperação
+  não seja aplicável. Uma sessão de convite ainda válida pode retomar a definição
+  de senha, com identidade e contexto revalidados; links novos continuam exigindo
+  confirmação explícita e consumo único. Login, MFA/AAL2 e provisioning preservados.
+- **Publicação e homologação:** pendentes de etapa posterior; homologação visual
+  pelo responsável em PROD, pelo celular.

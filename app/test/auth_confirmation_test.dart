@@ -165,7 +165,9 @@ void main() {
       await tester.tap(find.text('Aceitar convite'));
       await tester.pumpAndSettle();
       expect(find.text(expected), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(find.widgetWithText(TextField, 'E-mail'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+      expect(find.text('Salvar senha'), findsNothing);
       expect(server.client.auth.currentSession?.user.id, 'old-user');
       expect(server.verifyCalls, 1);
       expect(server.updateCalls, 0);
@@ -195,10 +197,104 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Link inválido'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.widgetWithText(TextField, 'E-mail'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+    expect(find.text('Salvar senha'), findsNothing);
     expect(server.requests, isEmpty);
     expect(storage.values, isEmpty);
   });
+
+  for (final location in [
+    'https://app.example/auth/confirm',
+    'https://app.example/auth/confirm#/demandas',
+    'https://app.example/#/auth/confirm',
+  ]) {
+    testWidgets(
+      'convite aceito retoma senha sem consumir outro link em $location',
+      (tester) async {
+        final server = _Server();
+        final storage = _Storage();
+        await tester.pumpWidget(
+          _app(
+            AuthCallbackPage.confirm(
+              uri: _link('invite'),
+              session: server.session,
+              storage: storage,
+            ),
+            server.session,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Aceitar convite'));
+        await tester.pumpAndSettle();
+        expect(find.text('Definir senha'), findsOneWidget);
+        expect(server.verifyCalls, 1);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(
+          _app(
+            AuthCallbackPage.confirm(
+              uri: Uri.parse(location),
+              session: server.session,
+              storage: storage,
+            ),
+            server.session,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Definir senha'), findsOneWidget);
+        expect(find.widgetWithText(TextField, 'Senha'), findsOneWidget);
+        expect(find.text('Enviar link para continuar'), findsNothing);
+        expect(server.verifyCalls, 1);
+        expect(server.updateCalls, 0);
+      },
+    );
+  }
+
+  testWidgets(
+    'convite consumido reaberto sem sessão oferece recuperação sem reutilizar acesso',
+    (tester) async {
+      final server = _Server();
+      final storage = _Storage();
+      await tester.pumpWidget(
+        _app(
+          AuthCallbackPage.confirm(
+            uri: _link('invite'),
+            session: server.session,
+            storage: storage,
+          ),
+          server.session,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Aceitar convite'));
+      await tester.pumpAndSettle();
+      expect(find.text('Definir senha'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await server.session.signOut();
+      await tester.pumpWidget(
+        _app(
+          AuthCallbackPage.confirm(
+            uri: _link('invite'),
+            session: server.session,
+            storage: storage,
+          ),
+          server.session,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(server.verifyCalls, 1);
+      await tester.tap(find.text('Aceitar convite'));
+      await tester.pumpAndSettle();
+      expect(server.verifyCalls, 2);
+      expect(find.text('Este link não está mais disponível.'), findsOneWidget);
+      expect(find.text('Enviar link para continuar'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'E-mail'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+      expect(server.updateCalls, 0);
+      expect(server.client.auth.currentSession, isNull);
+      expect(storage.values, isEmpty);
+    },
+  );
 
   test(
     'confirmation intent cannot verify twice, including after failure',
@@ -266,7 +362,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Link inválido'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(find.widgetWithText(TextField, 'E-mail'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Senha'), findsNothing);
+      expect(find.text('Salvar senha'), findsNothing);
       expect(server.requests, isEmpty);
     });
   }

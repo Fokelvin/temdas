@@ -114,7 +114,7 @@ void main() {
         ),
       );
       for (var i = 0; i < 2; i++) {
-        await tester.tap(find.text('Cadastrar TOTP'));
+        await tester.tap(find.text('Configurar autenticador'));
         await tester.pumpAndSettle();
         expect(find.textContaining('private enrollment detail'), findsNothing);
         expect(
