@@ -267,6 +267,41 @@ AUTH-P2-01 permanece adiado para o último item deste roadmap.
 - **Critérios de aceite:** mensagens preservam proteção contra enumeração;
   falhas de rede/servidor permitem nova tentativa; AAL2 permanece obrigatório.
 
+### EMAIL-P2-01 — Identidade visual dos e-mails de autenticação
+
+- **Contexto:** os corpos HTML atuais de convite e recuperação de senha no
+  Supabase Auth são muito simples, com texto e link sem identidade visual
+  consistente com o TEMDAS. Os templates atualmente versionados em
+  `docs/auth-email-templates/invite.html` e `recovery.html` ainda estão
+  em inglês.
+- **Prioridade:** P2 — melhoria de UX e comunicação de autenticação.
+- **Estado:** Aprovado para o roadmap em 05/11/2026; **pendente de definição
+  visual e implementação**. Não faz parte da execução AUTH-P2-01/UX-AUTH-04
+  já enviada ao Codex.
+- **Objetivo:** modernizar o design dos e-mails transacionais do TEMDAS,
+  começando por **convite de acesso** e **recuperação de senha**, com linguagem
+  clara em português do Brasil, identidade visual oficial, hierarquia
+  tipográfica, botão de ação destacado, instruções objetivas e rodapé discreto.
+  Inventariar outras mensagens automáticas ativas antes de decidir se entram
+  no mesmo pacote.
+- **Requisitos de UX:** apresentação limpa e responsiva; boa leitura em
+  clientes de e-mail comuns e em modo claro/escuro; texto alternativo para
+  logo e ação com link legível como fallback; mensagens coerentes com o fluxo
+  efetivo (o e-mail de recuperação não deve ser apresentado como novo convite).
+  Evitar layouts dependentes exclusivamente de imagens ou estilos não
+  suportados por clientes de e-mail.
+- **Segurança e compatibilidade:** preservar integralmente variáveis,
+  URLs e semântica dos links de uso único do Supabase, confirmação explícita,
+  redirects, antienumeração e MFA obrigatório. Não adicionar dados sensíveis,
+  pixels de rastreamento nem recursos externos desnecessários. Não alterar
+  configuração do Supabase/Resend sem aprovação específica; conferir templates
+  reais de PROD, fazer backup e prever rollback antes de qualquer ativação.
+- **Critérios de aceite:** prévias revisadas e aprovadas nos dois fluxos,
+  renderização adequada em desktop/mobile e clientes de e-mail relevantes,
+  CTA e fallback funcionais, texto e identidade TEMDAS consistentes, sem
+  regressão na entrega, no consumo dos links ou na autenticação. Publicação
+  dos templates e homologação real somente após autorização separada.
+
 ### UI-P2-03 — Seleção global de texto no Flutter Web
 
 - **Descrição:** habilitar seleção de texto global com `SelectionArea`, sem
