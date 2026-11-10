@@ -96,8 +96,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   ({backend.DemandaStatus status, int posicao})? _dropHover;
   _DemandaMovimentoPendente? _movimentoPendente;
 
-  DensidadeDemanda get _densidade =>
-      widget.lista ? DensidadeDemanda.compacta : widget.densidade;
+  DensidadeDemanda get _densidade => widget.densidade;
 
   String _chaveExpansao(backend.Demanda demanda) =>
       'demanda-expansao-${demanda.id ?? demanda.titulo}';
@@ -264,6 +263,7 @@ class _DemandaTreeState extends State<DemandaTree> {
             (g) => g.value.isNotEmpty,
           )) ...[
             GroupHeader(
+              densidade: _densidade,
               status: grupo.key,
               count: grupo.value.where((no) => no.nivel == 0).length,
               collapsed: _gruposRecolhidos.contains(grupo.key),
@@ -460,6 +460,7 @@ class _DemandaTreeState extends State<DemandaTree> {
           minWidth: visualWidth,
           maxWidth: visualWidth,
           child: KanbanColumn(
+            densidade: _densidade,
             status: status,
             count: nos.where((n) => n.nivel == 0).length,
             collapsed: collapsed,

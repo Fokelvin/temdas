@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as b;
 import '../theme/tokens.dart';
+import '../../view/widgets/densidade_demanda.dart';
 
 String statusLabel(b.DemandaStatus s) => switch (s) {
   b.DemandaStatus.aberta => 'Aberta',
@@ -182,11 +183,13 @@ class StatusPill extends StatelessWidget {
 class GroupHeader extends StatelessWidget {
   const GroupHeader({
     super.key,
+    this.densidade = DensidadeDemanda.normal,
     required this.status,
     required this.count,
     this.collapsed = false,
     this.onTap,
   });
+  final DensidadeDemanda densidade;
   final b.DemandaStatus status;
   final int count;
   final bool collapsed;
@@ -195,7 +198,7 @@ class GroupHeader extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
     child: SizedBox(
-      height: 40,
+      height: densidade.isCompacta ? 44 : 52,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
@@ -325,6 +328,7 @@ class DemandTableHeader extends StatelessWidget {
 class DemandRow extends StatelessWidget {
   const DemandRow({
     super.key,
+    this.densidade = DensidadeDemanda.normal,
     required this.id,
     required this.title,
     required this.priority,
@@ -337,6 +341,7 @@ class DemandRow extends StatelessWidget {
     this.sprint,
     this.statusControl,
   });
+  final DensidadeDemanda densidade;
   final int? id;
   final String title;
   final b.Prioridade priority;
@@ -362,7 +367,7 @@ class DemandRow extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        maxLines: 1,
+        maxLines: densidade.isCompacta ? 2 : 3,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 13,
@@ -386,7 +391,7 @@ class DemandRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           HoursLabel(minutes: hours, estimate: desktop ? null : estimate),
-          const SizedBox(height: 4),
+          SizedBox(height: densidade.isCompacta ? 4 : 8),
           HoursMeter(real: hours, estimate: estimate),
         ],
       );
@@ -400,7 +405,9 @@ class DemandRow extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: 8,
-                vertical: mobile ? 8 : 0,
+                vertical: mobile
+                    ? (densidade.isCompacta ? 4 : 12)
+                    : (densidade.isCompacta ? 0 : 8),
               ),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: t.border)),
@@ -422,7 +429,7 @@ class DemandRow extends StatelessWidget {
                             SizedBox(width: 44, child: actions),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: densidade.isCompacta ? 4 : 8),
                         Row(
                           children: [
                             PriorityTag(priority: priority),
@@ -460,7 +467,9 @@ class DemandRow extends StatelessWidget {
                       ],
                     )
                   : ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 40),
+                      constraints: BoxConstraints(
+                        minHeight: densidade.isCompacta ? 40 : 56,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -535,6 +544,7 @@ class DemandRow extends StatelessWidget {
 class DemandCard extends StatelessWidget {
   const DemandCard({
     super.key,
+    this.densidade = DensidadeDemanda.normal,
     required this.demand,
     required this.real,
     required this.actions,
@@ -544,6 +554,7 @@ class DemandCard extends StatelessWidget {
     this.onTap,
     this.highlighted = false,
   });
+  final DensidadeDemanda densidade;
   final b.Demanda demand;
   final int real;
   final Widget actions, chevron;
@@ -569,7 +580,7 @@ class DemandCard extends StatelessWidget {
           onTap: onTap,
           hoverColor: t.cardHover,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(densidade.isCompacta ? 8 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -593,7 +604,7 @@ class DemandCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         demand.titulo,
-                        maxLines: 1,
+                        maxLines: densidade.isCompacta ? 2 : 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
@@ -610,7 +621,7 @@ class DemandCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: densidade.espacamentoEntreCampos),
                 Row(
                   children: [
                     PriorityTag(priority: demand.prioridade),
@@ -626,7 +637,7 @@ class DemandCard extends StatelessWidget {
                             estimate: demand.tempoEstimadoMinutos,
                             compact: true,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: densidade.isCompacta ? 4 : 8),
                           HoursMeter(
                             real: real,
                             estimate: demand.tempoEstimadoMinutos,
@@ -653,12 +664,14 @@ class DemandCard extends StatelessWidget {
 class KanbanColumn extends StatelessWidget {
   const KanbanColumn({
     super.key,
+    this.densidade = DensidadeDemanda.normal,
     required this.status,
     required this.count,
     required this.child,
     this.collapsed = false,
     this.target = false,
   });
+  final DensidadeDemanda densidade;
   final b.DemandaStatus status;
   final int count;
   final Widget child;
@@ -713,11 +726,15 @@ class KanbanColumn extends StatelessWidget {
               )
             : Column(
                 children: [
-                  GroupHeader(status: status, count: count),
+                  GroupHeader(
+                    status: status,
+                    count: count,
+                    densidade: densidade,
+                  ),
                   Divider(height: 1, color: t.border),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(densidade.isCompacta ? 8 : 12),
                       child: child,
                     ),
                   ),

@@ -10,6 +10,7 @@ import 'package:temdas/view/widgets/demanda_tree.dart';
 import 'package:temdas/view/widgets/densidade_demanda.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
 import 'package:temdas/view_model/demandas_visualizacao.dart';
+import 'package:temdas/view_model/demandas_densidade.dart';
 import 'package:temdas/view_model/sprint_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as b;
 import 'support/fake_demanda_repository.dart';
@@ -63,6 +64,43 @@ void main() {
     expect(preference.value, VisualizacaoDemandas.kanban);
   });
 
+  test(
+    'densidade restaura normal, serializa seleções e protege escolha durante carga',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        DemandasDensidade.storageKey: 'normal',
+      });
+      final preference = DemandasDensidade();
+      addTearDown(preference.dispose);
+      await preference.load();
+      expect(preference.value, DensidadeDemanda.normal);
+      final loading = preference.load();
+      final first = preference.select(DensidadeDemanda.compacta);
+      final last = preference.select(DensidadeDemanda.normal);
+      await Future.wait([loading, first, last]);
+      expect(preference.value, DensidadeDemanda.normal);
+      final restored = DemandasDensidade();
+      addTearDown(restored.dispose);
+      await restored.load();
+      expect(restored.value, DensidadeDemanda.normal);
+    },
+  );
+
+  test(
+    'densidade inválida usa compacto e carga após descarte é segura',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        DemandasDensidade.storageKey: 'inválida',
+      });
+      final preference = DemandasDensidade();
+      await preference.load();
+      expect(preference.value, DensidadeDemanda.compacta);
+      final loading = preference.load();
+      preference.dispose();
+      await loading;
+    },
+  );
+
   Future<FakeDemandaRepository> open(
     WidgetTester tester, {
     List<b.Demanda>? demandas,
@@ -70,6 +108,7 @@ void main() {
     List<b.Sprint>? sprints,
     Map<int, List<b.SprintDemanda>> links = const {},
     double scale = 1,
+    ThemeData? theme,
   }) async {
     await tester.binding.setSurfaceSize(Size(width, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -106,7 +145,7 @@ void main() {
     addTearDown(svm.dispose);
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(
             size: Size(width, 850),
@@ -257,37 +296,135 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Lista mantém densidade compacta e restaura densidade do Kanban',
-    (tester) async {
-      await open(tester, demandas: [demandaFixture(id: 1)]);
-      await tester.tap(find.byTooltip('Densidade dos cards'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.widgetWithText(
-          CheckedPopupMenuItem<DensidadeDemanda>,
-          'Visualização normal',
-        ),
+  testWidgets('Lista e Kanban compartilham a densidade selecionada', (
+    tester,
+  ) async {
+    await open(tester, demandas: [demandaFixture(id: 1)]);
+    await tester.tap(find.byTooltip('Densidade dos cards'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(
+        CheckedPopupMenuItem<DensidadeDemanda>,
+        'Visualização normal',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
+      DensidadeDemanda.normal,
+    );
+    await tester.tap(find.text('Lista'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
+      DensidadeDemanda.normal,
+    );
+    await tester.tap(find.text('Kanban'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
+      DensidadeDemanda.normal,
+    );
+    await tester.tap(find.text('Lista'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Densidade dos cards'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(
+        CheckedPopupMenuItem<DensidadeDemanda>,
+        'Visualização compacta',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
+      DensidadeDemanda.compacta,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await open(tester, demandas: [demandaFixture(id: 1)]);
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).emLista,
+      isTrue,
+    );
+    expect(
+      tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
+      DensidadeDemanda.compacta,
+    );
+  });
+
+  for (final width in [320.0, 768.0, 1440.0]) {
+    for (final theme in [AppTheme.light, AppTheme.dark]) {
+      testWidgets(
+        'quatro densidades, título longo e árvore $width ${theme.brightness}',
+        (tester) async {
+          for (final list in [false, true]) {
+            final heights = <DensidadeDemanda, double>{};
+            for (final density in DensidadeDemanda.values) {
+              SharedPreferences.setMockInitialValues({
+                DemandasDensidade.storageKey: density.name,
+                DemandasVisualizacao.storageKey: list ? 'lista' : 'kanban',
+              });
+              await open(
+                tester,
+                width: width,
+                theme: theme,
+                demandas: [
+                  demandaFixture(
+                    id: 1,
+                    titulo:
+                        'Demanda mãe com título bastante longo para manter legibilidade e verificar a densidade em qualquer largura de tela',
+                  ),
+                  demandaFixture(
+                    id: 2,
+                    demandaPaiId: 1,
+                    titulo: 'Filha com descrição de atividade e título longo',
+                  ),
+                ],
+              );
+              expect(find.byTooltip('Densidade dos cards'), findsOneWidget);
+              final parent = find.byKey(const ValueKey('demanda-card-1'));
+              expect(parent, findsOneWidget);
+              expect(
+                tester
+                    .widget<DemandaCard>(find.byType(DemandaCard).first)
+                    .densidade,
+                density,
+              );
+              heights[density] = tester.getSize(parent).height;
+              final expand = find.byKey(const ValueKey('expandir-demanda-1'));
+              await tester.ensureVisible(expand);
+              await tester.tap(expand);
+              await tester.pumpAndSettle();
+              expect(
+                find.byKey(const ValueKey('concluir-demanda-1')),
+                findsOneWidget,
+              );
+              expect(
+                tester.getSize(parent).height,
+                greaterThan(heights[density]!),
+              );
+              expect(
+                find.byKey(const ValueKey('demanda-card-2')),
+                findsOneWidget,
+              );
+              await tester.tap(expand);
+              await tester.pumpAndSettle();
+              expect(
+                find.byKey(const ValueKey('concluir-demanda-1')),
+                findsNothing,
+              );
+              expect(tester.takeException(), isNull);
+              await tester.pumpWidget(const SizedBox.shrink());
+            }
+            expect(
+              heights[DensidadeDemanda.compacta],
+              lessThan(heights[DensidadeDemanda.normal]!),
+            );
+          }
+        },
       );
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
-        DensidadeDemanda.normal,
-      );
-      await tester.tap(find.text('Lista'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
-        DensidadeDemanda.compacta,
-      );
-      await tester.tap(find.text('Kanban'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<DemandaCard>(find.byType(DemandaCard)).densidade,
-        DensidadeDemanda.normal,
-      );
-    },
-  );
+    }
+  }
 
   testWidgets('filtrar não recalcula para menos o total da árvore', (
     tester,

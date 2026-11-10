@@ -14,6 +14,7 @@ import '../app/app_routes.dart';
 import 'formatters/demanda_identificacao.dart';
 import 'formatters/texto_busca.dart';
 import '../view_model/demandas_visualizacao.dart';
+import '../view_model/demandas_densidade.dart';
 import '../view_model/tempo_executado_total.dart';
 import '../view_model/demandas_view_model.dart';
 import '../view_model/sprint_view_model.dart';
@@ -50,7 +51,8 @@ class _DemandasPageState extends State<DemandasPage> {
   final _selecionadas = <int>{};
 
   backend.Prioridade? _filtroPrioridade;
-  DensidadeDemanda _densidade = DensidadeDemanda.compacta;
+  final _preferenciaDensidade = DemandasDensidade();
+  DensidadeDemanda get _densidade => _preferenciaDensidade.value;
   int?
   _filtroSprint; // null: todas; -1: sem Sprint aberta; demais: SprintDemanda.
   final _visualizacao = DemandasVisualizacao();
@@ -61,6 +63,7 @@ class _DemandasPageState extends State<DemandasPage> {
   void initState() {
     super.initState();
     unawaited(_visualizacao.load());
+    unawaited(_preferenciaDensidade.load());
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? DemandasViewModel();
     _viewModel.carregarDemandas();
@@ -74,6 +77,7 @@ class _DemandasPageState extends State<DemandasPage> {
     _sprintViewModel.removeListener(_consultarSprintsQuandoLivre);
     if (widget.sprintViewModel == null) _sprintViewModel.dispose();
     _visualizacao.dispose();
+    _preferenciaDensidade.dispose();
     _buscaController.dispose();
     _quadroHorizontalController.dispose();
     if (_possuiViewModel) {
@@ -687,7 +691,11 @@ class _DemandasPageState extends State<DemandasPage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([_viewModel, _visualizacao]),
+      listenable: Listenable.merge([
+        _viewModel,
+        _visualizacao,
+        _preferenciaDensidade,
+      ]),
       builder: (context, _) {
         final resultadoBusca = _resultadoBusca();
         final selecionadasVisiveis = resultadoBusca.demandas
@@ -951,30 +959,34 @@ class _DemandasPageState extends State<DemandasPage> {
             ? null
             : _abrirFormulario,
       ),
-      density: _visualizacao.value != VisualizacaoDemandas.kanban
-          ? const SizedBox.shrink()
-          : PopupMenuButton<DensidadeDemanda>(
-              tooltip: 'Densidade dos cards',
-              initialValue: _densidade,
-              icon: Icon(
-                Symbols.density_small_rounded,
-                size: 16,
-                color: t.darkContrast ? t.secondaryLabel : null,
+      density: PopupMenuButton<DensidadeDemanda>(
+        tooltip: 'Densidade dos cards',
+        initialValue: _densidade,
+        icon: Icon(
+          Symbols.density_small_rounded,
+          size: 16,
+          color: t.darkContrast ? t.secondaryLabel : null,
+        ),
+        onSelected: (v) async {
+          final saved = await _preferenciaDensidade.select(v);
+          if (!saved && mounted) {
+            _mostrarFeedback(
+              'Não foi possível salvar a densidade neste dispositivo.',
+              erro: true,
+            );
+          }
+        },
+        itemBuilder: (_) => [
+          for (final v in DensidadeDemanda.values)
+            CheckedPopupMenuItem(
+              value: v,
+              checked: _densidade == v,
+              child: Text(
+                v.isCompacta ? 'Visualização compacta' : 'Visualização normal',
               ),
-              onSelected: (v) => setState(() => _densidade = v),
-              itemBuilder: (_) => [
-                for (final v in DensidadeDemanda.values)
-                  CheckedPopupMenuItem(
-                    value: v,
-                    checked: _densidade == v,
-                    child: Text(
-                      v.isCompacta
-                          ? 'Visualização compacta'
-                          : 'Visualização normal',
-                    ),
-                  ),
-              ],
             ),
+        ],
+      ),
       refresh: RefreshAction(
         loading: _viewModel.carregando,
         onPressed:

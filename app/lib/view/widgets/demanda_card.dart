@@ -112,6 +112,7 @@ class DemandaCard extends StatelessWidget {
         );
         final summary = emLista
             ? DemandRow(
+                densidade: densidade,
                 id: demanda.id,
                 title: demanda.titulo,
                 priority: demanda.prioridade,
@@ -125,6 +126,7 @@ class DemandaCard extends StatelessWidget {
                 statusControl: _menuStatus(context),
               )
             : DemandCard(
+                densidade: densidade,
                 demand: demanda,
                 real: tempoExecutadoTotalMinutos,
                 actions: _menuAcoes(context),
@@ -141,7 +143,7 @@ class DemandaCard extends StatelessWidget {
             summary,
             if (controller.isExpanded)
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: densidade.paddingConteudo,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -165,7 +167,7 @@ class DemandaCard extends StatelessWidget {
                     ),
                     if (demanda.descricao?.isNotEmpty ?? false)
                       Text('Descrição: ${demanda.descricao}'),
-                    const SizedBox(height: 8),
+                    SizedBox(height: densidade.espacamentoEntreSecoes),
                     TempoComparacao(
                       estimadoMinutos: demanda.tempoEstimadoMinutos,
                       executadoMinutos: tempoExecutadoTotalMinutos,
