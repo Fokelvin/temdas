@@ -224,6 +224,19 @@ de escopo.
   consistência dos temas claro/escuro e comportamento responsivo nas densidades
   normal e compacta.
 
+
+### UX-P1-08 — Restaurar densidade compacta no redesign de Demandas
+
+- **Contexto:** o redesign recente reduziu o efeito do modo compacto: a Lista força densidade compacta, e os componentes redesenhados de Lista/Kanban não recebem integralmente as regras de densidade já definidas. O seletor de densidade não aparece na Lista.
+- **Prioridade:** P1 — correção de regressão de UX, antes do novo redesign de agrupamentos/hierarquia.
+- **Estado:** Aprovado em 10/11/2026; **pendente de implementação**.
+- **Escopo:** oferecer **Normal** e **Compacto** tanto no Kanban quanto na Lista, com preferência compartilhada e persistida no navegador. Propagar a densidade aos componentes atuais da árvore, cabeçalhos, linhas, cards e detalhes expandidos; aplicar diferenças reais de altura, padding, margens, espaçamentos e hierarquia visual, não apenas tamanho de fonte.
+- **Acessibilidade:** manter informações essenciais, clareza dos controles, contraste e alvos de toque adequados nas duas densidades; layouts responsivos para desktop, tablet e celular; não comprometer gesto de expandir, arrastar, selecionar, editar ou alterar status.
+- **Impacto previsto:** frontend Flutter, reutilizando abstrações de densidade existentes. Não modificar regras de negócio, API, status, Sprints, Log Time, banco ou migrations.
+- **Critérios de aceite:** Kanban Normal, Kanban Compacto, Lista Normal e Lista Compacta apresentam densidades realmente distintas; modo escolhido pode ser alternado em ambas as visualizações e preservado após recarga; itens com título grande, hierarquia de filhas, expansão e estados vazios permanecem legíveis e operáveis; testes afetados cobrem responsividade e temas.
+- **Sequenciamento:** implementar e homologar esta correção antes de UX-P2-06. Sem publicação automática; exigir autorização separada para commit, push e deploy.
+
+
 ## P2 — Refinamentos de autenticação e interface
 
 Esta seção reúne refinamentos frontend concluídos e aprovados. A navegação
@@ -392,6 +405,24 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   interativos, responsividade, não regressão do modo claro, análise, build
   Web e testes afetados. **Sem commit, push ou deploy automático como parte
   da implementação inicial**; publicação exige aprovação posterior.
+
+
+### UX-P2-06 — Lista configurável e hierarquia clara de Demandas
+
+- **Contexto:** o modo Lista força agrupamento por status seguindo o Kanban; a expansão confunde o ícone isolado de concluir com o controle de recolher; filhas não são suficientemente distinguíveis e perdem o contexto da mãe quando aparecem isoladas, especialmente no apontamento e na consulta de horas.
+- **Prioridade:** P2 — melhoria visual e de produtividade, após UX-P1-08.
+- **Estado:** Escopo de UX aprovado em 10/11/2026; **pendente de implementação**.
+- **Agrupar por (somente Lista):** seletor na toolbar com opções **Demanda (hierarquia)** como padrão, **Status** e **Prioridade** (campo atual correspondente à criticidade: urgente, alta, média, baixa). Salvar preferência no navegador. **Projeto** é opção futura a habilitar somente após a implementação de FUNC-P3-01, sem criar agrupamento vazio/agora. Kanban continua organizado por status.
+- **Coesão da árvore:** manter mães, filhas e demais descendentes juntos em todos os agrupamentos; quando agrupar por Status ou Prioridade, a **raiz/mãe** determina o grupo da árvore, mas cada descendente exibe seus próprios valores de status/prioridade. Não alterar o status nem o vínculo das filhas para adequar agrupamentos. Respeitar busca, filtros, contagem, hierarquia, seleção e abertura dos detalhes.
+- **Expansão e ações:** usar chevron exclusivamente para expandir/recolher; substituir o ícone solto de check por controle explícito com texto **Concluir demanda**, visualmente separado da navegação, do estado e das ações **Criar filha**/**Lançar tempo**. Exibir uma seção **Demandas filhas (N)** em árvores expandidas, com recuo e conector visual claro, sem criar repetição desnecessária ou confundir conclusão da mãe com conclusão de filhas. Preservar confirmação/cascata e permissões de status existentes.
+- **Identificação da filha:** **não alterar nem concatenar** o título persistido. Exibir referência hierárquica contextual com ícone de seta/ramificação (ex.: `#25 · CRM + Lojas` + `↳ iVertex – Reuniões`; em histórico, `iVertex – Reuniões › CRM + Lojas`). Para vários níveis, oferecer caminho completo conforme espaço disponível; usar recuo e relação visual nos grupos já expandidos sem repetir o nome da mãe em todas as linhas. Em contextos isolados, a referência deve ser inequívoca.
+- **Pontos de exibição:** Kanban e Lista, busca/resultado de Demandas, seleção para lançamento de Log Time, histórico/agenda de Log Time, Relatórios e detalhes da Demanda. Usuário precisa reconhecer que `CRM + Lojas` é filha de `iVertex – Reuniões`, principalmente ao lançar horas e ao consultar um registro posteriormente.
+- **Semântica temporal:** o contexto é derivado da hierarquia **atual** e acompanha renomeações de mãe; não prometer captura do nome histórico da mãe na data do lançamento. Histórico imutável seria uma funcionalidade distinta a decidir.
+- **Densidades:** projetar e validar todos os componentes em **Normal e Compacto**, em desktop e mobile, evitando regressão da correção UX-P1-08; preservar alvos de toque e clareza nas duas densidades.
+- **Impacto previsto:** principalmente frontend Flutter, reaproveitando campos de relação já existentes (`demandaPaiId`, títulos, status e prioridade); avaliar eventual necessidade de consulta adicional de contexto antes de autorizar alteração de backend. Sem migration ou mudança de modelo de domínio no escopo aprovado.
+- **Critérios de aceite:** agrupamentos corretos e persistentes; nenhuma filha duplicada ou perdida; conclusão/expansão visualmente inequívocas; hierarquia visível na árvore e nos contextos isolados; pesquisa, filtros, horas, Sprints e status preservados; testes direcionados nas quatro combinações Kanban/Lista × Normal/Compacto.
+- **Execução:** separada da correção UX-P1-08, com análise dos componentes reais e homologação visual antes de publicação. Não fazer commit, push ou deploy sem autorização.
+
 
 ### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
 
