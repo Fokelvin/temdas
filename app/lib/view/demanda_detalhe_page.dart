@@ -51,51 +51,70 @@ class DemandaDetalhePage extends StatelessWidget {
   );
 }
 
-Future<void> mostrarDetalhesDemandaDialog(
+Future<bool?> mostrarDetalhesDemandaDialog(
   BuildContext context,
   int demandaId, {
   DemandaDetalheViewModel? viewModel,
   bool permitirExclusao = true,
   Map<int, backend.Demanda> demandasPorId = const {},
   Future<void> Function()? onVinculosAlterados,
-}) => showGeneralDialog<void>(
+  Future<bool> Function(backend.Demanda)? onAlterarLocalizacao,
+}) => showGeneralDialog<bool>(
   context: context,
   barrierDismissible: true,
   barrierLabel: 'Fechar detalhes da demanda',
-  pageBuilder: (dialogContext, _, _) => DemandaPainelRedimensionavel(
-    title: 'Demanda #$demandaId',
-    onClose: () => Navigator.pop(dialogContext),
-    actions: [
-      if (kIsWeb)
-        IconButton(
-          key: const ValueKey('abrir-demanda-nova-aba'),
-          tooltip: 'Abrir em nova aba',
-          icon: const Icon(Icons.open_in_new),
-          onPressed: () =>
-              abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
-        ),
-    ],
-    child: _DemandaDetalheConteudo(
-      demandaId: demandaId,
-      viewModel: viewModel,
-      painel: true,
-      demandasPorId: demandasPorId,
-      onVinculosAlterados: onVinculosAlterados,
-      permitirExclusao: permitirExclusao,
-      onVoltar: () => Navigator.pop(dialogContext),
-      onAbrirDemanda: (id) {
-        if (id != null) {
-          mostrarDetalhesDemandaDialog(
-            dialogContext,
-            id,
-            permitirExclusao: permitirExclusao,
-            demandasPorId: demandasPorId,
-            onVinculosAlterados: onVinculosAlterados,
-          );
-        }
-      },
-    ),
-  ),
+  pageBuilder: (dialogContext, _, _) {
+    void fecharAposMovimentacao(bool? moveu) {
+      if (moveu == true &&
+          dialogContext.mounted &&
+          ModalRoute.of(dialogContext)?.isCurrent == true) {
+        Navigator.pop(dialogContext, true);
+      }
+    }
+
+    return DemandaPainelRedimensionavel(
+      title: 'Demanda #$demandaId',
+      onClose: () => Navigator.pop(dialogContext),
+      actions: [
+        if (kIsWeb)
+          IconButton(
+            key: const ValueKey('abrir-demanda-nova-aba'),
+            tooltip: 'Abrir em nova aba',
+            icon: const Icon(Icons.open_in_new),
+            onPressed: () =>
+                abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
+          ),
+      ],
+      child: _DemandaDetalheConteudo(
+        demandaId: demandaId,
+        viewModel: viewModel,
+        painel: true,
+        demandasPorId: demandasPorId,
+        onVinculosAlterados: onVinculosAlterados,
+        permitirExclusao: permitirExclusao,
+        onVoltar: () => Navigator.pop(dialogContext),
+        onAlterarLocalizacao: onAlterarLocalizacao == null
+            ? null
+            : (demanda) async {
+                fecharAposMovimentacao(await onAlterarLocalizacao(demanda));
+              },
+        onAbrirDemanda: (id) async {
+          if (id != null) {
+            fecharAposMovimentacao(
+              await mostrarDetalhesDemandaDialog(
+                dialogContext,
+                id,
+                permitirExclusao: permitirExclusao,
+                demandasPorId: demandasPorId,
+                onVinculosAlterados: onVinculosAlterados,
+                onAlterarLocalizacao: onAlterarLocalizacao,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  },
 );
 
 // A página e o popup compartilham carregamento e apresentação dos detalhes.
@@ -108,12 +127,14 @@ class _DemandaDetalheConteudo extends StatefulWidget {
     this.painel = false,
     this.demandasPorId = const {},
     this.onVinculosAlterados,
+    this.onAlterarLocalizacao,
     this.permitirExclusao = true,
   });
 
   final bool painel;
   final Map<int, backend.Demanda> demandasPorId;
   final Future<void> Function()? onVinculosAlterados;
+  final ValueChanged<backend.Demanda>? onAlterarLocalizacao;
   final bool permitirExclusao;
   final int demandaId;
   final VoidCallback onVoltar;
@@ -248,6 +269,9 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
                   demanda: demanda,
                   viewModel: _viewModel.acoesViewModel!,
                   sprintViewModel: _viewModel.sprintViewModel,
+                  onAlterarLocalizacao: widget.onAlterarLocalizacao == null
+                      ? null
+                      : () => widget.onAlterarLocalizacao!(demanda),
                   onAtualizar: () async {
                     await _viewModel.carregar(widget.demandaId);
                     await widget.onVinculosAlterados?.call();

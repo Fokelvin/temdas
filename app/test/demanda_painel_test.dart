@@ -91,6 +91,7 @@ Future<void> abrir(
   bool painel = true,
   Brightness brilho = Brightness.light,
   double escala = 1,
+  Future<bool> Function(b.Demanda)? onAlterarLocalizacao,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -105,8 +106,12 @@ Future<void> abrir(
           ? Builder(
               builder: (context) => Scaffold(
                 body: TextButton(
-                  onPressed: () =>
-                      mostrarDetalhesDemandaDialog(context, 1, viewModel: vm),
+                  onPressed: () => mostrarDetalhesDemandaDialog(
+                    context,
+                    1,
+                    viewModel: vm,
+                    onAlterarLocalizacao: onAlterarLocalizacao,
+                  ),
                   child: const Text('Abrir'),
                 ),
               ),
@@ -120,6 +125,82 @@ Future<void> abrir(
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  for (final (local, pai, status, rotulo) in [
+    (
+      b.DemandaLocalizacao.demandas,
+      null,
+      b.DemandaStatus.aberta,
+      'Enviar para Backlog',
+    ),
+    (
+      b.DemandaLocalizacao.backlog,
+      null,
+      b.DemandaStatus.cancelada,
+      'Voltar para Demandas',
+    ),
+    (b.DemandaLocalizacao.backlog, 2, b.DemandaStatus.aberta, null),
+    (b.DemandaLocalizacao.demandas, null, b.DemandaStatus.concluida, null),
+  ]) {
+    testWidgets('menu do painel em $local, pai $pai, status $status', (
+      tester,
+    ) async {
+      final sprints = SprintViewModel(
+        repository: FakeSprintRepository(sprints: []),
+      );
+      final vm = DemandaDetalheViewModel(
+        demandaRepository: FakeDemandaRepository(
+          demandas: [
+            demandaFixture(
+              id: 1,
+              demandaPaiId: pai,
+              status: status,
+            ).copyWith(localizacao: local),
+          ],
+        ),
+        registroTempoRepository: FakeRegistroTempoRepository(),
+        anotacaoRepository: Notes(),
+        sprintViewModel: sprints,
+      );
+      addTearDown(vm.dispose);
+      final solicitadas = <b.Demanda>[];
+      await abrir(
+        tester,
+        vm,
+        brilho: local == b.DemandaLocalizacao.backlog
+            ? Brightness.dark
+            : Brightness.light,
+        onAlterarLocalizacao: (demanda) async {
+          solicitadas.add(demanda);
+          return solicitadas.length > 1;
+        },
+      );
+      final menu = find.byKey(const ValueKey('acoes-demanda-1'));
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(find.text('Editar'), findsOneWidget);
+      expect(find.text('Excluir'), findsOneWidget);
+
+      if (rotulo == null) {
+        expect(find.text('Enviar para Backlog'), findsNothing);
+        expect(find.text('Voltar para Demandas'), findsNothing);
+        expect(solicitadas, isEmpty);
+        return;
+      }
+
+      await tester.tap(find.text(rotulo));
+      await tester.pumpAndSettle();
+      expect(solicitadas.single.localizacao, local);
+      expect(menu, findsOneWidget);
+
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(rotulo));
+      await tester.pumpAndSettle();
+      expect(solicitadas.map((d) => d.id), [1, 1]);
+      expect(menu, findsNothing);
+      expect(find.text('Abrir'), findsOneWidget);
+    });
+  }
   testWidgets('ampliar e arrastar preservam aba e consulta de anotações', (
     tester,
   ) async {

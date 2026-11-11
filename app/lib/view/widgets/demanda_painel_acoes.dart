@@ -18,8 +18,10 @@ class DemandaPainelAcoes extends StatefulWidget {
     required this.onAtualizar,
     this.permitirExclusao = true,
     this.sprintViewModel,
+    this.onAlterarLocalizacao,
   });
   final bool permitirExclusao;
+  final VoidCallback? onAlterarLocalizacao;
   final SprintViewModel? sprintViewModel;
   final backend.Demanda demanda;
   final DemandasViewModel viewModel;
@@ -132,6 +134,7 @@ class _DemandaPainelAcoesState extends State<DemandaPainelAcoes> {
           ),
         );
       }),
+      onAlterarLocalizacao: widget.onAlterarLocalizacao,
       onExcluir: widget.permitirExclusao ? () => executar(excluir) : null,
       onAlterarStatus: (destino) => executar(() => status(destino)),
       onConcluir: () => executar(() => status(backend.DemandaStatus.concluida)),

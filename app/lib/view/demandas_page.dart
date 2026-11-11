@@ -134,18 +134,22 @@ class _DemandasPageState extends State<DemandasPage> {
     );
   }
 
-  Future<void> _alterarLocalizacao(backend.Demanda demanda) async {
+  Future<bool> _alterarLocalizacao(backend.Demanda demanda) async {
     final id = demanda.id;
-    if (id == null || _preparandoMovimentacao || _viewModel.enviando) return;
+    if (id == null || _preparandoMovimentacao || _viewModel.enviando) {
+      return false;
+    }
     setState(() => _preparandoMovimentacao = true);
     try {
-      final destino = _backlog
+      final noBacklog =
+          demanda.localizacao == backend.DemandaLocalizacao.backlog;
+      final destino = noBacklog
           ? backend.DemandaLocalizacao.demandas
           : backend.DemandaLocalizacao.backlog;
       final confirmados = <int>[];
-      if (!_backlog) {
+      if (!noBacklog) {
         final previa = await _viewModel.preverEnvioAoBacklog(id);
-        if (!mounted) return;
+        if (!mounted) return false;
         if (previa.vinculos.isNotEmpty) {
           final demandasPorId = indexarDemandas(_viewModel.demandas);
           final confirmou = await showDialog<bool>(
@@ -192,7 +196,7 @@ class _DemandasPageState extends State<DemandasPage> {
               ],
             ),
           );
-          if (!mounted || confirmou != true) return;
+          if (!mounted || confirmou != true) return false;
           confirmados.addAll(previa.vinculos.map((v) => v.id!));
         }
       }
@@ -201,19 +205,20 @@ class _DemandasPageState extends State<DemandasPage> {
         destino,
         confirmados,
       );
-      if (!mounted) return;
+      if (!mounted) return false;
       if (moveu) {
         setState(() {
           final idsNaPagina = _viewModel.demandas.map((d) => d.id).toSet();
           _selecionadas.removeWhere((id) => !idsNaPagina.contains(id));
         });
         _mostrarFeedback(
-          _backlog
+          noBacklog
               ? 'Demanda devolvida para Demandas.'
               : 'Demanda enviada para Backlog.',
           erro: false,
         );
         await _carregarSprints();
+        return true;
       } else {
         _mostrarFeedback(
           _viewModel.erro ?? 'Não foi possível mover a demanda.',
@@ -232,6 +237,7 @@ class _DemandasPageState extends State<DemandasPage> {
     } finally {
       if (mounted) setState(() => _preparandoMovimentacao = false);
     }
+    return false;
   }
 
   @override
@@ -726,13 +732,14 @@ class _DemandasPageState extends State<DemandasPage> {
       _mostrarFeedback('A demanda não possui um ID válido.', erro: true);
       return;
     }
-    await mostrarDetalhesDemandaDialog(
+    final moveu = await mostrarDetalhesDemandaDialog(
       context,
       id,
+      onAlterarLocalizacao: _alterarLocalizacao,
       onVinculosAlterados: _carregarSprints,
       demandasPorId: indexarDemandas(_viewModel.demandas),
     );
-    if (!mounted) return;
+    if (!mounted || moveu == true) return;
     await _viewModel.carregarDemandas();
     if (mounted) await _carregarSprints();
   }
