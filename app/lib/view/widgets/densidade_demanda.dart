@@ -58,4 +58,13 @@ enum DensidadeDemanda {
           tapTargetSize: MaterialTapTargetSize.padded,
         )
       : null;
+
+  /// Apenas os controles da nova composição de Demandas usam 44 px.
+  /// Outros consumidores do token compacto conservam suas dimensões anteriores.
+  ButtonStyle? get estiloBotaoRedesign => isCompacta
+      ? estiloBotao!.copyWith(
+          minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        )
+      : null;
 }

@@ -1339,12 +1339,9 @@ Future<void> _abrirPagina(
 }
 
 Future<void> _expandirDemanda(WidgetTester tester, String titulo) async {
-  await tester.ensureVisible(find.textContaining(titulo));
+  await tester.ensureVisible(find.text(titulo));
   final card = find
-      .ancestor(
-        of: find.textContaining(titulo),
-        matching: find.byType(DemandaCard),
-      )
+      .ancestor(of: find.text(titulo), matching: find.byType(DemandaCard))
       .first;
   final id = tester.widget<DemandaCard>(card).demanda.id;
   await tester.tap(find.byKey(ValueKey('expandir-demanda-$id')));

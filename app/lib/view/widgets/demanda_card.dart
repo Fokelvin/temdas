@@ -165,6 +165,11 @@ class DemandaCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (densidade.isCompacta)
+                      Text(
+                        'Título: ${demanda.titulo}',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
                     if (demanda.descricao?.isNotEmpty ?? false)
                       Text('Descrição: ${demanda.descricao}'),
                     SizedBox(height: densidade.espacamentoEntreSecoes),
@@ -514,7 +519,7 @@ class DemandaCard extends StatelessWidget {
             ? AppTokens.of(context).secondaryLabel
             : null,
         visualDensity: VisualDensity.compact,
-      ).merge(densidade.estiloBotao),
+      ).merge(redesign ? densidade.estiloBotaoRedesign : densidade.estiloBotao),
       onSelected: (acao) {
         switch (acao) {
           case _AcaoDemanda.concluir:

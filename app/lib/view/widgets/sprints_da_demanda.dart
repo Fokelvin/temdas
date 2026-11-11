@@ -10,7 +10,9 @@ class SprintsDaDemanda extends StatelessWidget {
     required this.sprints,
     this.demandaId,
     this.onAbrir,
+    this.compacta = false,
   });
+  final bool compacta;
   final List<backend.Sprint> sprints;
   final int? demandaId;
   final ValueChanged<backend.Sprint?>? onAbrir;
@@ -19,6 +21,7 @@ class SprintsDaDemanda extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppTokens.of(context);
     final ordenadas = ordenarSprints(sprints);
+    if (compacta) return _resumoCompacto(context, ordenadas);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,6 +97,99 @@ class SprintsDaDemanda extends StatelessWidget {
             },
           ),
       ],
+    );
+  }
+
+  void _abrir(BuildContext context, backend.Sprint? sprint) {
+    if (onAbrir != null) {
+      onAbrir!(sprint);
+    } else {
+      Navigator.pushNamed(
+        context,
+        sprint?.id == null
+            ? AppRoutes.sprint
+            : AppRoutes.detalheDaSprint(sprint!.id!),
+      );
+    }
+  }
+
+  Widget _resumoCompacto(BuildContext context, List<backend.Sprint> ordenadas) {
+    final t = AppTokens.of(context);
+    final primeira = ordenadas.isEmpty ? null : ordenadas.first;
+    final label = primeira == null
+        ? 'Sem Sprint'
+        : '${nomeSprint(primeira.nome)}${ordenadas.length > 1 ? ' +${ordenadas.length - 1}' : ' · ${estadoSprint(primeira)}'}';
+    final tooltip = ordenadas.isEmpty
+        ? 'Sem Sprint'
+        : ordenadas
+              .map((s) => '${nomeSprint(s.nome)} · ${estadoSprint(s)}')
+              .join('\n');
+    final ativa = primeira?.status == backend.SprintStatus.ativa;
+    final color = t.darkContrast
+        ? (ativa ? AppTokens.sprintChipText : t.secondaryLabel)
+        : Theme.of(context).colorScheme.primary;
+    final child = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(fontSize: 11, color: color),
+    );
+    final mobile = MediaQuery.sizeOf(context).width < 1024;
+    final style = TextButton.styleFrom(
+      visualDensity: VisualDensity.standard,
+      foregroundColor: color,
+      minimumSize: Size(0, mobile ? 44 : 32),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      backgroundColor: ativa
+          ? (t.darkContrast
+                ? AppTokens.sprintChipSurface
+                : Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: .35))
+          : null,
+    );
+    if (ordenadas.length <= 1) {
+      return Tooltip(
+        message: tooltip,
+        child: TextButton(
+          key: ValueKey('sprint-da-demanda-$demandaId'),
+          style: style,
+          onPressed: () => _abrir(context, primeira),
+          child: child,
+        ),
+      );
+    }
+    return Tooltip(
+      message: tooltip,
+      child: PopupMenuButton<backend.Sprint>(
+        key: ValueKey('sprint-da-demanda-$demandaId'),
+        tooltip: 'Ver todas as Sprints da Demanda',
+        onSelected: (sprint) => _abrir(context, sprint),
+        itemBuilder: (_) => [
+          for (final sprint in ordenadas)
+            PopupMenuItem(
+              value: sprint,
+              child: Text(
+                '${nomeSprint(sprint.nome)} · ${estadoSprint(sprint)}',
+              ),
+            ),
+        ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: mobile ? 44 : 32,
+            minWidth: mobile ? 44 : 32,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              widthFactor: 1,
+              child: child,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

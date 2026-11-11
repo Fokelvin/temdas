@@ -4,6 +4,8 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as b;
 import '../theme/tokens.dart';
 import '../../view/widgets/densidade_demanda.dart';
 
+part 'compact_demand_components.dart';
+
 String statusLabel(b.DemandaStatus s) => switch (s) {
   b.DemandaStatus.aberta => 'Aberta',
   b.DemandaStatus.emAndamento => 'Em andamento',
@@ -279,50 +281,59 @@ class EmptyStatusesLine extends StatelessWidget {
 }
 
 class DemandTableHeader extends StatelessWidget {
-  const DemandTableHeader({super.key});
+  const DemandTableHeader({
+    super.key,
+    this.densidade = DensidadeDemanda.normal,
+  });
+  final DensidadeDemanda densidade;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      if (MediaQuery.sizeOf(context).width < 600) {
-        return const SizedBox.shrink();
-      }
-      final desktop = box.maxWidth >= 960;
-      Widget cell(String s, double w, [bool right = false]) => SizedBox(
-        width: w,
-        child: Text(s, textAlign: right ? TextAlign.right : TextAlign.left),
-      );
-      return Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: AppTokens.of(context).bg,
-        child: DefaultTextStyle.merge(
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w500,
-            color: AppTokens.of(context).secondaryLabel,
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 28),
-              cell('ID', 44),
-              const Expanded(child: Text('Demanda')),
-              cell('Prioridade', desktop ? 100 : 76),
-              if (desktop) ...[
-                cell('Sprint', 84),
-                cell('Est.', 64, true),
-                const SizedBox(width: 12),
-                cell('Real', 112, true),
-              ] else
-                cell('Real / Est.', 108, true),
-              const SizedBox(width: 12),
-              cell('Status', 136),
-              const SizedBox(width: 32),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+  Widget build(BuildContext context) => densidade.isCompacta
+      ? const _CompactDemandHeader()
+      : LayoutBuilder(
+          builder: (context, box) {
+            if (MediaQuery.sizeOf(context).width < 600) {
+              return const SizedBox.shrink();
+            }
+            final desktop = box.maxWidth >= 960;
+            Widget cell(String s, double w, [bool right = false]) => SizedBox(
+              width: w,
+              child: Text(
+                s,
+                textAlign: right ? TextAlign.right : TextAlign.left,
+              ),
+            );
+            return Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              color: AppTokens.of(context).bg,
+              child: DefaultTextStyle.merge(
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppTokens.of(context).secondaryLabel,
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 28),
+                    cell('ID', 44),
+                    const Expanded(child: Text('Demanda')),
+                    cell('Prioridade', desktop ? 100 : 76),
+                    if (desktop) ...[
+                      cell('Sprint', 84),
+                      cell('Est.', 64, true),
+                      const SizedBox(width: 12),
+                      cell('Real', 112, true),
+                    ] else
+                      cell('Real / Est.', 108, true),
+                    const SizedBox(width: 12),
+                    cell('Status', 136),
+                    const SizedBox(width: 32),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
 }
 
 class DemandRow extends StatelessWidget {
@@ -380,161 +391,171 @@ class DemandRow extends StatelessWidget {
     ),
   );
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final mobile =
-          MediaQuery.sizeOf(context).width < 600 || box.maxWidth < 560;
-      final desktop = box.maxWidth >= 960;
-      final t = AppTokens.of(context);
-      final hoursWidget = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          HoursLabel(minutes: hours, estimate: desktop ? null : estimate),
-          SizedBox(height: densidade.isCompacta ? 4 : 8),
-          HoursMeter(real: hours, estimate: estimate),
-        ],
-      );
-      return HoverRegion(
-        focusBorderRadius: BorderRadius.zero,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            hoverColor: t.hover,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: mobile
-                    ? (densidade.isCompacta ? 4 : 12)
-                    : (densidade.isCompacta ? 0 : 8),
-              ),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: t.border)),
-              ),
-              child: mobile
-                  ? Column(
-                      children: [
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: MediaQuery.sizeOf(context).width < 1024
-                                  ? 44
-                                  : 28,
-                              child: chevron,
-                            ),
-                            _id(context),
-                            const SizedBox(width: 8),
-                            Expanded(child: _title(context)),
-                            SizedBox(width: 44, child: actions),
-                          ],
-                        ),
-                        SizedBox(height: densidade.isCompacta ? 4 : 8),
-                        Row(
-                          children: [
-                            PriorityTag(priority: priority),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: HoursLabel(
-                                  minutes: hours,
-                                  estimate: estimate,
-                                  compact: true,
-                                ),
-                              ),
-                            ),
-                            if (box.maxWidth >= 400) ...[
-                              const SizedBox(width: 4),
-                              HoursMeter(
-                                real: hours,
-                                estimate: estimate,
-                                width: 32,
-                              ),
-                            ],
-                            const SizedBox(width: 8),
-                            SizedBox(width: 112, child: statusWidget(context)),
-                          ],
-                        ),
-                        if (sprint != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: sprint,
-                            ),
-                          ),
-                      ],
-                    )
-                  : ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: densidade.isCompacta ? 40 : 56,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
+  Widget build(BuildContext context) => densidade.isCompacta
+      ? _CompactDemandRow(row: this)
+      : LayoutBuilder(
+          builder: (context, box) {
+            final mobile =
+                MediaQuery.sizeOf(context).width < 600 || box.maxWidth < 560;
+            final desktop = box.maxWidth >= 960;
+            final t = AppTokens.of(context);
+            final hoursWidget = Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                HoursLabel(minutes: hours, estimate: desktop ? null : estimate),
+                SizedBox(height: densidade.isCompacta ? 4 : 8),
+                HoursMeter(real: hours, estimate: estimate),
+              ],
+            );
+            return HoverRegion(
+              focusBorderRadius: BorderRadius.zero,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  hoverColor: t.hover,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: mobile
+                          ? (densidade.isCompacta ? 4 : 12)
+                          : (densidade.isCompacta ? 0 : 8),
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: t.border)),
+                    ),
+                    child: mobile
+                        ? Column(
                             children: [
-                              SizedBox(
-                                width: MediaQuery.sizeOf(context).width < 1024
-                                    ? 44
-                                    : 28,
-                                child: chevron,
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.sizeOf(context).width < 1024
+                                        ? 44
+                                        : 28,
+                                    child: chevron,
+                                  ),
+                                  _id(context),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _title(context)),
+                                  SizedBox(width: 44, child: actions),
+                                ],
                               ),
-                              SizedBox(width: 44, child: _id(context)),
-                              Expanded(child: _title(context)),
-                              SizedBox(
-                                width: desktop ? 100 : 76,
-                                child: PriorityTag(priority: priority),
+                              SizedBox(height: densidade.isCompacta ? 4 : 8),
+                              Row(
+                                children: [
+                                  PriorityTag(priority: priority),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: HoursLabel(
+                                        minutes: hours,
+                                        estimate: estimate,
+                                        compact: true,
+                                      ),
+                                    ),
+                                  ),
+                                  if (box.maxWidth >= 400) ...[
+                                    const SizedBox(width: 4),
+                                    HoursMeter(
+                                      real: hours,
+                                      estimate: estimate,
+                                      width: 32,
+                                    ),
+                                  ],
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 112,
+                                    child: statusWidget(context),
+                                  ),
+                                ],
                               ),
-                              if (desktop) ...[
-                                SizedBox(
-                                  width: 64,
+                              if (sprint != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
                                   child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: HoursLabel(minutes: estimate),
+                                    alignment: Alignment.centerLeft,
+                                    child: sprint,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                              ],
-                              SizedBox(
-                                width: desktop ? 112 : 108,
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: hoursWidget,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 136,
-                                child: statusWidget(context),
-                              ),
-                              SizedBox(
-                                width: MediaQuery.sizeOf(context).width < 1024
-                                    ? 44
-                                    : 32,
-                                child: actions,
-                              ),
                             ],
-                          ),
-                          if (sprint != null)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 72,
-                                bottom: 4,
-                              ),
-                              child: sprint,
+                          )
+                        : ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: densidade.isCompacta ? 40 : 56,
                             ),
-                        ],
-                      ),
-                    ),
-            ),
-          ),
-        ),
-      );
-    },
-  );
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      width:
+                                          MediaQuery.sizeOf(context).width <
+                                              1024
+                                          ? 44
+                                          : 28,
+                                      child: chevron,
+                                    ),
+                                    SizedBox(width: 44, child: _id(context)),
+                                    Expanded(child: _title(context)),
+                                    SizedBox(
+                                      width: desktop ? 100 : 76,
+                                      child: PriorityTag(priority: priority),
+                                    ),
+                                    if (desktop) ...[
+                                      SizedBox(
+                                        width: 64,
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: HoursLabel(minutes: estimate),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                    ],
+                                    SizedBox(
+                                      width: desktop ? 112 : 108,
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: hoursWidget,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: 136,
+                                      child: statusWidget(context),
+                                    ),
+                                    SizedBox(
+                                      width:
+                                          MediaQuery.sizeOf(context).width <
+                                              1024
+                                          ? 44
+                                          : 32,
+                                      child: actions,
+                                    ),
+                                  ],
+                                ),
+                                if (sprint != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 72,
+                                      bottom: 4,
+                                    ),
+                                    child: sprint,
+                                  ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
   // The interactive menu is supplied by the existing card, preserving transitions.
   Widget statusWidget(BuildContext context) =>
       statusControl ?? StatusPill(status: status);
@@ -563,6 +584,7 @@ class DemandCard extends StatelessWidget {
   final bool highlighted;
   @override
   Widget build(BuildContext context) {
+    if (densidade.isCompacta) return _CompactDemandCard(card: this);
     final t = AppTokens.of(context);
     return HoverRegion(
       focusBorderRadius: BorderRadius.circular(AppTokens.cardRadius),

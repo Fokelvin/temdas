@@ -536,7 +536,7 @@ class _DemandaTreeState extends State<DemandaTree> {
       key: ValueKey('demanda-tree-node-${demanda.id ?? demanda.titulo}-$nivel'),
       padding: EdgeInsets.only(
         left: widget.lista ? math.min(nivel * 20.0, 60) : recuo,
-        bottom: widget.lista ? 0 : 8,
+        bottom: widget.lista ? 0 : (_densidade.isCompacta ? 4 : 8),
       ),
       child: KeyedSubtree(
         key: _chaveDoNo(demanda),

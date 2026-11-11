@@ -11,6 +11,7 @@ import 'package:temdas/theme/theme_preference.dart';
 import 'package:temdas/ui/components/demand_components.dart';
 import 'package:temdas/ui/components/app_shell.dart';
 import 'package:temdas/view/demandas_page.dart';
+import 'package:temdas/view_model/demandas_densidade.dart';
 import 'package:temdas/view_model/demandas_visualizacao.dart';
 import 'package:temdas/view_model/demandas_view_model.dart';
 import 'package:temdas/view_model/sprint_view_model.dart';
@@ -23,6 +24,7 @@ Future<FakeDemandaRepository> open(
   double width = 1440,
   bool dark = false,
   String mode = 'kanban',
+  String density = 'compacta',
   double scale = 1,
   List<b.Demanda>? demands,
 }) async {
@@ -32,6 +34,7 @@ Future<FakeDemandaRepository> open(
   addTearDown(tester.view.resetDevicePixelRatio);
   SharedPreferences.setMockInitialValues({
     DemandasVisualizacao.storageKey: mode,
+    DemandasDensidade.storageKey: density,
   });
   final repo = FakeDemandaRepository(
     demandas:
@@ -102,6 +105,51 @@ void main() {
       await loader.load();
     }
   });
+  for (final width in [1440.0, 1280.0, 1024.0, 390.0]) {
+    for (final dark in [false, true]) {
+      for (final density in ['normal', 'compacta']) {
+        testWidgets('toolbar $width escuro=$dark $density', (tester) async {
+          await open(
+            tester,
+            width: width,
+            dark: dark,
+            density: density,
+            demands: List.generate(36, (i) => demandaFixture(id: i + 1)),
+          );
+          final header = find.byType(PageHeader);
+          for (final label in ['Demandas', if (width >= 600) 'Kanban']) {
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.descendant(
+                of: header,
+                matching: find.byWidgetPredicate(
+                  (widget) =>
+                      widget is RichText && widget.text.toPlainText() == label,
+                ),
+              ),
+            );
+            expect(
+              paragraph.size.width + .5,
+              greaterThanOrEqualTo(
+                paragraph.getMaxIntrinsicWidth(double.infinity),
+              ),
+              reason: '$label deve caber sem truncamento ou quebra',
+            );
+            final boxes = paragraph.getBoxesForSelection(
+              TextSelection(baseOffset: 0, extentOffset: label.length),
+            );
+            expect(boxes.map((box) => box.top).toSet(), hasLength(1));
+          }
+          expect(find.byType(SearchField).hitTestable(), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('abrir-filtros-demandas')).hitTestable(),
+            findsOneWidget,
+          );
+          expect(find.byTooltip('Kanban').hitTestable(), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
   test('horas pt-BR sem zeros residuais', () {
     expect(HoursLabel.format(0), '0');
     expect(HoursLabel.format(60), '1');

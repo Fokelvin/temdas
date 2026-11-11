@@ -146,6 +146,7 @@ class _DemandasPageState extends State<DemandasPage> {
       );
     }
     return SprintsDaDemanda(
+      compacta: _densidade.isCompacta,
       sprints: _sprintsPorDemanda[demanda.id] ?? const [],
       demandaId: demanda.id,
       onAbrir: (sprint) async {
@@ -814,7 +815,7 @@ class _DemandasPageState extends State<DemandasPage> {
                   ],
                 ),
                 if (lista && resultadoBusca.demandas.isNotEmpty)
-                  const DemandTableHeader(),
+                  DemandTableHeader(densidade: _densidade),
                 Expanded(
                   child: _viewModel.carregando && _viewModel.demandas.isEmpty
                       ? (lista
@@ -894,6 +895,30 @@ class _DemandasPageState extends State<DemandasPage> {
   Widget _toolbar() {
     final mobile = MediaQuery.sizeOf(context).width < 600;
     final t = AppTokens.of(context);
+    final larguraRotulo = 80 * MediaQuery.textScalerOf(context).scale(12) / 12;
+    ButtonSegment<VisualizacaoDemandas> segmento(
+      VisualizacaoDemandas value,
+      String texto,
+      IconData icon,
+    ) => ButtonSegment(
+      value: value,
+      tooltip: texto,
+      icon: mobile ? Icon(icon, size: 16) : null,
+      label: mobile
+          ? null
+          : ConstrainedBox(
+              constraints: BoxConstraints(minWidth: larguraRotulo),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 16),
+                  const SizedBox(width: 8),
+                  Text(texto, softWrap: false),
+                ],
+              ),
+            ),
+    );
     return PageHeader(
       count: _viewModel.demandas.length,
       search: SearchField(
@@ -927,17 +952,15 @@ class _DemandasPageState extends State<DemandasPage> {
       toggle: SegmentedToggle<VisualizacaoDemandas>(
         value: _visualizacao.value,
         segments: [
-          ButtonSegment(
-            value: VisualizacaoDemandas.kanban,
-            tooltip: 'Kanban',
-            label: mobile ? null : const Text('Kanban'),
-            icon: const Icon(Symbols.view_kanban_rounded, size: 16),
+          segmento(
+            VisualizacaoDemandas.kanban,
+            'Kanban',
+            Symbols.view_kanban_rounded,
           ),
-          ButtonSegment(
-            value: VisualizacaoDemandas.lista,
-            tooltip: 'Lista',
-            label: mobile ? null : const Text('Lista'),
-            icon: const Icon(Symbols.view_list_rounded, size: 16),
+          segmento(
+            VisualizacaoDemandas.lista,
+            'Lista',
+            Symbols.view_list_rounded,
           ),
         ],
         onChanged: (values) async {

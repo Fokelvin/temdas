@@ -248,7 +248,7 @@ class PageHeader extends StatelessWidget {
     builder: (context, box) {
       final mobile = MediaQuery.sizeOf(context).width < 600;
       final scale = MediaQuery.textScalerOf(context).scale(13) / 13;
-      final inline = MediaQuery.sizeOf(context).width >= 1024 && scale <= 1.2;
+      final inline = box.maxWidth >= 960 && scale <= 1.2;
       final title = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -339,7 +339,7 @@ class PageHeader extends StatelessWidget {
                 if (inline)
                   Row(
                     children: [
-                      SizedBox(width: 108, child: title),
+                      title,
                       const SizedBox(width: 8),
                       Expanded(
                         child: Align(
