@@ -167,9 +167,7 @@ de escopo.
 
 ### Enviar para Backlog
 
-- **Estado:** Funcionalidade futura, pendente de definição.
-- Definir em que situações a ação estará disponível e quais efeitos terá sobre
-  vínculos abertos, histórico e hierarquia de Demandas.
+- **Estado:** Direção aprovada e consolidada no item **BACKLOG-P2-01**, ainda dependente de definição das regras de movimentação e seus efeitos sobre Sprint, histórico e hierarquia. Não implementar antes do alinhamento em chat próprio.
 
 ### UX-P1-04 — Painel lateral de Sprint e ações contextuais
 
@@ -417,7 +415,7 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 
 - **Contexto:** o modo Lista força agrupamento por status seguindo o Kanban; a expansão confunde o ícone isolado de concluir com o controle de recolher; filhas não são suficientemente distinguíveis e perdem o contexto da mãe quando aparecem isoladas, especialmente no apontamento e na consulta de horas.
 - **Prioridade:** P2 — melhoria visual e de produtividade, após UX-P1-08.
-- **Estado:** **Publicado em PROD, com homologação visual da Lista confirmada pelo responsável em 11/11/2026; verificação funcional abrangente ainda pendente**. Agrupamento persistido na Lista, conclusão explícita na expansão e referências de hierarquia em Demandas, Log Time, Relatórios e detalhes. [Capturas Flutter e validação](previews/ux-p2-06/revisao-lista/index.html).
+- **Estado:** **Concluído, publicado e homologado funcional e visualmente em PROD pelo responsável em 11/11/2026**. Agrupamento persistido na Lista, conclusão explícita na expansão e referências de hierarquia em Demandas, Log Time, Relatórios e detalhes. [Capturas Flutter e validação](previews/ux-p2-06/revisao-lista/index.html).
 - **Publicação (11/11/2026):** revisão visual aprovada, 777 testes Flutter aprovados e `flutter analyze` sem ocorrências. Commit `b834add77cb332575d57b3642335dfde774c6aad` na `main` com [workflow concluído](https://github.com/Fokelvin/temdas/actions/runs/43011820813). [temdas.com.br](https://temdas.com.br/) retornou HTTP 200 e serviu HTML, `flutter_bootstrap.js` e `main.dart.js` com SHA-256 idênticos aos do [deployment Cloudflare Pages](https://9b85419a.temdas-web.pages.dev/). SHA-256 de `main.dart.js`: `a3a7833c9ed7d75aa6aa7439c6e28dbb2ca66336bd36e85b845f35faa786a5ea`.
 - **Agrupar por (somente Lista):** seletor na toolbar com opções **Demanda (hierarquia)** como padrão, **Status** e **Prioridade** (campo atual correspondente à criticidade: urgente, alta, média, baixa). Salvar preferência no navegador. **Projeto** é opção futura a habilitar somente após a implementação de FUNC-P3-01, sem criar agrupamento vazio/agora. Kanban continua organizado por status e mantém a composição homologada no UX-P1-08.
 - **Coesão da árvore:** manter mães, filhas e demais descendentes juntos em todos os agrupamentos; quando agrupar por Status ou Prioridade, a **raiz/mãe** determina o grupo da árvore, mas cada descendente exibe seus próprios valores de status/prioridade. Não alterar o status nem o vínculo das filhas para adequar agrupamentos. Respeitar busca, filtros, contagem, hierarquia, seleção e abertura dos detalhes.
@@ -430,6 +428,32 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Critérios de aceite:** agrupamentos corretos e persistentes; nenhuma filha duplicada ou perdida; conclusão/expansão visualmente inequívocas; hierarquia visível na árvore e nos contextos isolados; pesquisa, filtros, horas, Sprints e status preservados; testes direcionados nas quatro combinações Kanban/Lista × Normal/Compacto.
 - **Execução:** separada da correção UX-P1-08, com análise dos componentes reais e homologação visual antes de publicação. Não fazer commit, push ou deploy sem autorização.
 
+
+### UX-P2-07 — Lista configurável e avançada
+
+- **Contexto:** a Lista de Demandas, agora homologada com agrupamentos e hierarquia, precisa permitir ao usuário selecionar colunas, ordenar e trabalhar com árvores extensas sem alterar o Kanban.
+- **Prioridade:** P2 — melhoria de produtividade anterior ao Backlog.
+- **Estado:** Escopo funcional aprovado pelo responsável em 11/11/2026; **pendente de detalhamento e implementação em chat próprio**.
+- **Colunas atuais padrão:** ID, Demanda, Prioridade, Estimado, Executado/Real, Sprint e Status. Adicionar ao seletor **Escolher colunas**: **Data de criação** (campo já existente) e **Tipo** (Mãe, Filha ou Independente, derivado da hierarquia). Essas duas colunas começam ocultas por padrão; mostrar/ocultar colunas sem alterar os dados. Persistir preferências no navegador.
+- **Ordenação intuitiva:** clicar no cabeçalho de coluna ordenável alterna crescente/decrescente, sem botão separado. Preservar integridade das árvores e dos agrupamentos: a ordenação não dispersa descendentes de suas raízes.
+- **Expansão de árvores:** ação para expandir/recolher todas as mães e visualizar suas filhas/descendentes, respeitando busca, filtros e performance de listas maiores.
+- **Filtro:** checkbox **Possui filhas**, mostrando Demandas raiz que tenham descendentes e mantendo a árvore necessária ao contexto; validar a semântica em conjunto com filtros e agrupamentos.
+- **Escopo de UX:** somente o modo **Lista**; não modificar a composição nem as ações do Kanban. Preservar as densidades Normal/Compacto, temas claro/escuro e layouts responsivos homologados no UX-P1-08 e UX-P2-06.
+- **Arquitetura:** criar/reutilizar componentes compartilháveis da Lista para serem consumidos pela futura página Backlog, sem duplicar widgets, filtros, ordenação ou preferências. Verificar disponibilidade do campo de criação no frontend antes de decidir qualquer API.
+- **Critérios de aceite:** colunas padrão inalteradas; Data de criação/Tipo opt-in; preferências persistidas; cabeçalhos ordenáveis; expansão em lote; filtro de mães; hierarquia, busca, filtros, agrupamentos, Sprint, status e Log Time sem regressões. Capturas Flutter reais e homologação visual antes de publicar.
+
+### BACKLOG-P2-01 — Página de Backlog de Demandas
+
+- **Contexto:** separar Demandas ainda não priorizadas para execução das Demandas operacionais, sem criar um sexto estado de ciclo de vida.
+- **Prioridade:** P2 — após disponibilizar a Lista compartilhada do UX-P2-07.
+- **Estado:** Direção de produto e UX aprovada pelo responsável em 11/11/2026; **regras de negócio pendentes de alinhamento em chat próprio, sem implementação autorizada**.
+- **Conceito:** **Em Backlog** representa localização/pertencimento da Demanda, **não** um novo valor de Status. Preservar o status atual; permitir enviar ao Backlog e devolver para Demandas.
+- **Interface:** página **Backlog** própria no menu lateral, **somente modo Lista**, sem alternância para Kanban. Reutilizar a formatação do modo Lista de Demandas e componentes de busca, filtros, agrupamentos Demanda/Status/Prioridade, colunas configuráveis, ordenação e expansão. Suportar temas claro/escuro e densidades Normal/Compacto sem duplicação de código.
+- **Visibilidade:** Demandas no Backlog ficam fora da Lista e do Kanban da página Demandas. Manter íntegros os dados e o histórico ao mover entre locais.
+- **Modelo:** indicador próprio de pertencimento ao Backlog, separado de status; modelagem, migração, API e comportamento operacional devem ser decididos antes da implementação.
+- **Pendências de regra:** definir efeitos da movimentação sobre mães/filhas/descendentes, vínculos com Sprints (inclusive planejadas, ativas e históricas), horas lançadas, estados concluídos/cancelados, permissões e busca/filtros.
+- **Critérios de aceite preliminares:** nenhuma Demanda perdida/duplicada entre páginas; hierarquia e histórico preservados; status independente de localização; Lista compartilhada sem regressões. Critérios finais após definição das regras.
+- **Sequenciamento:** discutir em chat separado; não alterar backend, banco ou fluxo de Demandas até aprovação explícita das regras.
 
 ### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
 
