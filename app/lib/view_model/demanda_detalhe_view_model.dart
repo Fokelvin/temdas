@@ -74,9 +74,12 @@ class DemandaDetalheViewModel extends ChangeNotifier {
     carregarSprint(demandaId);
 
     try {
+      final buscaDemanda = _demandaRepository.buscarDemandaPorId(demandaId);
       final resultados = await Future.wait<Object?>([
-        _demandaRepository.buscarDemandaPorId(demandaId),
-        _demandaRepository.listarDemandas(),
+        buscaDemanda,
+        buscaDemanda.then(
+          (d) => _demandaRepository.listarDemandas(localizacao: d?.localizacao),
+        ),
         _registroTempoRepository.listarDaDemanda(demandaId),
       ]);
 
@@ -91,6 +94,8 @@ class DemandaDetalheViewModel extends ChangeNotifier {
         repository: _demandaRepository,
         registroTempoRepository: _registroTempoRepository,
         demandasIniciais: demandas,
+        localizacao:
+            demanda?.localizacao ?? backend.DemandaLocalizacao.demandas,
       );
       _demanda = demanda;
       if (demanda != null) {

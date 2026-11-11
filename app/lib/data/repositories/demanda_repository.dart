@@ -14,9 +14,11 @@ class DemandaRepository {
     int? demandaPaiId,
     String? descricao,
     backend.Prioridade? prioridade,
+    backend.DemandaLocalizacao? localizacao,
   }) {
     final request = backend.DemandaCreateRequest(
       demandaPaiId: demandaPaiId,
+      localizacao: localizacao,
       titulo: titulo,
       descricao: descricao,
       prioridade: prioridade,
@@ -79,9 +81,25 @@ class DemandaRepository {
   Future<backend.Demanda> cancelarDemandaEmCascata(int id, String motivo) =>
       _client.demanda.cancelarDemandaEmCascata(id, motivo);
 
-  Future<List<backend.Demanda>> listarDemandas() {
-    return _client.demanda.listarDemandas();
-  }
+  Future<List<backend.Demanda>> listarDemandas({
+    backend.DemandaLocalizacao? localizacao,
+    bool? incluirBacklog,
+  }) => _client.demanda.listarDemandas(
+    localizacao: localizacao,
+    incluirBacklog: incluirBacklog,
+  );
+
+  Future<backend.BacklogPrevia> preverEnvioAoBacklog(int id) =>
+      _client.demanda.preverEnvioAoBacklog(id);
+
+  Future<void> alterarLocalizacao(
+    int id,
+    backend.DemandaLocalizacao destino,
+    List<int> vinculosConfirmados,
+  ) => _client.demanda.alterarLocalizacao(id, destino, vinculosConfirmados);
+
+  Future<List<backend.Demanda>> buscarDemandasGlobalmente(String consulta) =>
+      _client.demanda.buscarDemandasGlobalmente(consulta);
 
   Future<backend.Demanda?> buscarDemandaPorId(int id) {
     return _client.demanda.buscarDemandaPorId(id);

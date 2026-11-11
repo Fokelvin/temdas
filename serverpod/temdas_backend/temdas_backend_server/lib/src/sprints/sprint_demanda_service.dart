@@ -37,6 +37,7 @@ class SprintDemandaService {
       usuarioId,
     );
     _validarMesmoUsuario(sprint, demandas);
+    _validarForaDoBacklog(demandas);
     final demandaRaiz = demandas.first;
     if (demandaRaiz.demandaPaiId case final demandaPaiId?) {
       final vinculoDaMae = await SprintDemanda.db.findFirstRow(
@@ -120,7 +121,7 @@ class SprintDemandaService {
         SELECT f.id FROM public.demandas f JOIN arvore a ON f."demandaPaiId" = a.id
         WHERE f."usuarioId" = @owner
       )
-      SELECT d.id, d."demandaPaiId" FROM public.demandas d
+      SELECT d.id, d."demandaPaiId", d.localizacao FROM public.demandas d
       JOIN arvore a ON a.id = d.id
       WHERE d."usuarioId" = @owner
       ORDER BY d.id FOR UPDATE OF d
@@ -135,6 +136,9 @@ class SprintDemandaService {
     final ids = pais.keys.toSet();
     if (!ids.containsAll(raizes)) {
       throw SprintException(codigo: SprintErroCodigo.demandaNaoEncontrada);
+    }
+    if (rows.any((row) => row[2] == DemandaLocalizacao.backlog.name)) {
+      throw SprintException(codigo: SprintErroCodigo.demandaNoBacklog);
     }
     final idsComPais = {...ids, ...pais.values.whereType<int>()};
     final vinculos = await SprintDemanda.db.find(
@@ -311,6 +315,12 @@ class SprintDemandaService {
     }
   }
 
+  void _validarForaDoBacklog(List<Demanda> demandas) {
+    if (demandas.any((d) => d.localizacao == DemandaLocalizacao.backlog)) {
+      throw SprintException(codigo: SprintErroCodigo.demandaNoBacklog);
+    }
+  }
+
   Future<void> validarReabertura(
     Session session, {
     required int sprintId,
@@ -337,6 +347,7 @@ class SprintDemandaService {
       lockMode: LockMode.forUpdate,
     );
     _validarMesmoUsuario(sprint, demandas);
+    _validarForaDoBacklog(demandas);
     final filhas = await Demanda.db.find(
       session,
       where: (t) => t.demandaPaiId.inSet(ids),

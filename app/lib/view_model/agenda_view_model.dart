@@ -134,7 +134,7 @@ class AgendaViewModel extends ChangeNotifier {
 
     try {
       final (demandas, registros) = await (
-        _demandaRepository.listarDemandas(),
+        _demandaRepository.listarDemandas(incluirBacklog: true),
         _registroTempoRepository.listarPorPeriodo(inicio: inicio, fim: fim),
       ).wait;
 

@@ -314,7 +314,9 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
           ),
         ] else ...[
           SprintsDaDemanda(sprints: sprints, demandaId: widget.demandaId),
-          if (widget.permitirExclusao)
+          if (widget.permitirExclusao &&
+              _viewModel.demanda?.localizacao !=
+                  backend.DemandaLocalizacao.backlog)
             Wrap(
               spacing: 8,
               children: [

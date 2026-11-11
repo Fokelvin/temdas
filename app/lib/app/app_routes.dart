@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import 'public_home_entry.dart';
 
@@ -13,6 +14,7 @@ import '../view/auth_callback_page.dart';
 abstract final class AppRoutes {
   static const home = '/';
   static const demandas = '/demandas';
+  static const backlog = '/backlog';
   static const authCallback = '/auth/callback';
   static const authConfirm = '/auth/confirm';
   static const demandaDetalhe = '/demandas/detalhe';
@@ -52,6 +54,11 @@ abstract final class AppRoutes {
         final int id when id > 0 => DemandaDetalhePage(demandaId: id),
         _ => const _ArgumentoDetalheInvalidoPage(),
       },
+      demandas => DemandasPage(demandaInicialId: demandaId),
+      backlog => DemandasPage(
+        localizacao: backend.DemandaLocalizacao.backlog,
+        demandaInicialId: demandaId,
+      ),
       sprint => const SprintPage(),
       _ when rotaDetalheSprint => switch (sprintId) {
         final int id when id > 0 => SprintDetalhePage(sprintId: id),

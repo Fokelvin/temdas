@@ -241,7 +241,9 @@ class PageHeader extends StatelessWidget {
     required this.create,
     required this.density,
     this.grouping,
+    this.title = 'Demandas',
   });
+  final String title;
   final int count;
   final Widget? grouping;
   final Widget search, filters, toggle, refresh, create, density;
@@ -267,7 +269,7 @@ class PageHeader extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              'Demandas',
+              this.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

@@ -16,7 +16,8 @@ import 'package:serverpod/serverpod.dart' as _i1;
 enum MovimentacaoDemandaErroCodigo implements _i1.SerializableModel {
   demandaNaoEncontrada,
   demandaFilha,
-  statusTerminal;
+  statusTerminal,
+  vinculosAlterados;
 
   static MovimentacaoDemandaErroCodigo fromJson(String name) {
     switch (name) {
@@ -26,6 +27,8 @@ enum MovimentacaoDemandaErroCodigo implements _i1.SerializableModel {
         return MovimentacaoDemandaErroCodigo.demandaFilha;
       case 'statusTerminal':
         return MovimentacaoDemandaErroCodigo.statusTerminal;
+      case 'vinculosAlterados':
+        return MovimentacaoDemandaErroCodigo.vinculosAlterados;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "MovimentacaoDemandaErroCodigo"',

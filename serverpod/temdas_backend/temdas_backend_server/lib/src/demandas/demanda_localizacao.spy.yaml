@@ -1,0 +1,5 @@
+enum: DemandaLocalizacao
+serialized: byName
+values:
+  - demandas
+  - backlog

@@ -1,5 +1,6 @@
 class: DemandaCreateRequest
 fields:
+  localizacao: DemandaLocalizacao?
   demandaPaiId: int?
   titulo: String
   descricao: String?

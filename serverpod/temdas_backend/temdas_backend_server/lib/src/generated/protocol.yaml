@@ -11,6 +11,9 @@ auth:
   - provisionar:
   - me:
 demanda:
+  - preverEnvioAoBacklog:
+  - alterarLocalizacao:
+  - buscarDemandasGlobalmente:
   - alterarStatusDemanda:
   - concluirDemandaEmCascata:
   - cancelarDemandaEmCascata:

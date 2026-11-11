@@ -25,6 +25,7 @@ import '../view_model/sprint_view_model.dart';
 import 'sprint_page.dart';
 import 'demanda_detalhe_page.dart';
 import 'widgets/demanda_dialog.dart';
+import 'widgets/demanda_busca_global.dart';
 import 'widgets/demanda_status_dialog.dart';
 import 'widgets/demanda_tree.dart';
 import 'widgets/demanda_lista.dart';
@@ -32,7 +33,16 @@ import 'widgets/densidade_demanda.dart';
 import 'widgets/log_time_dialog.dart';
 
 class DemandasPage extends StatefulWidget {
-  const DemandasPage({super.key, this.viewModel, this.sprintViewModel});
+  const DemandasPage({
+    super.key,
+    this.viewModel,
+    this.sprintViewModel,
+    this.localizacao = backend.DemandaLocalizacao.demandas,
+    this.demandaInicialId,
+  });
+
+  final backend.DemandaLocalizacao localizacao;
+  final int? demandaInicialId;
 
   final DemandasViewModel? viewModel;
   final SprintViewModel? sprintViewModel;
@@ -58,7 +68,10 @@ class _DemandasPageState extends State<DemandasPage> {
 
   backend.Prioridade? _filtroPrioridade;
   bool _possuiFilhas = false;
-  bool get _emLista => _visualizacao.value == VisualizacaoDemandas.lista;
+  bool get _backlog => widget.localizacao == backend.DemandaLocalizacao.backlog;
+  bool get _emLista =>
+      _backlog || _visualizacao.value == VisualizacaoDemandas.lista;
+  bool _preparandoMovimentacao = false;
   final _preferenciasLista = DemandaListaPreferencias('demandas');
   ComandoExpansaoLista? _expansaoLista;
   final _agrupamento = DemandasAgrupamento();
@@ -78,11 +91,147 @@ class _DemandasPageState extends State<DemandasPage> {
     unawaited(_preferenciasLista.load());
     unawaited(_preferenciaDensidade.load());
     _possuiViewModel = widget.viewModel == null;
-    _viewModel = widget.viewModel ?? DemandasViewModel();
-    _viewModel.carregarDemandas();
+    _viewModel =
+        widget.viewModel ?? DemandasViewModel(localizacao: widget.localizacao);
+    unawaited(_carregarPagina());
     _sprintViewModel = widget.sprintViewModel ?? SprintViewModel();
     _sprintViewModel.addListener(_consultarSprintsQuandoLivre);
     unawaited(_carregarSprints());
+  }
+
+  Future<void> _carregarPagina() async {
+    await _viewModel.carregarDemandas();
+    final id = widget.demandaInicialId;
+    if (!mounted || id == null) return;
+    final demanda = indexarDemandas(_viewModel.demandas)[id];
+    if (demanda != null) {
+      await _mostrarTudo(demanda);
+    } else {
+      _mostrarFeedback(
+        'A demanda não está disponível nesta página.',
+        erro: true,
+      );
+    }
+  }
+
+  Future<void> _buscarGlobalmente() async {
+    final demanda = await showDialog<backend.Demanda>(
+      context: context,
+      builder: (_) =>
+          DemandaBuscaGlobal(buscar: _viewModel.buscarDemandasGlobalmente),
+    );
+    if (!mounted || demanda?.id == null) return;
+    if (demanda!.localizacao == widget.localizacao &&
+        _viewModel.demandas.any((d) => d.id == demanda.id)) {
+      await _mostrarTudo(demanda);
+      return;
+    }
+    Navigator.of(context).pushReplacementNamed(
+      demanda.localizacao == backend.DemandaLocalizacao.backlog
+          ? AppRoutes.backlog
+          : AppRoutes.demandas,
+      arguments: demanda.id,
+    );
+  }
+
+  Future<void> _alterarLocalizacao(backend.Demanda demanda) async {
+    final id = demanda.id;
+    if (id == null || _preparandoMovimentacao || _viewModel.enviando) return;
+    setState(() => _preparandoMovimentacao = true);
+    try {
+      final destino = _backlog
+          ? backend.DemandaLocalizacao.demandas
+          : backend.DemandaLocalizacao.backlog;
+      final confirmados = <int>[];
+      if (!_backlog) {
+        final previa = await _viewModel.preverEnvioAoBacklog(id);
+        if (!mounted) return;
+        if (previa.vinculos.isNotEmpty) {
+          final demandasPorId = indexarDemandas(_viewModel.demandas);
+          final confirmou = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Enviar para Backlog'),
+              scrollable: true,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Os vínculos desta hierarquia com estas Sprints serão removidos.',
+                  ),
+                  for (final sprint in previa.sprints) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${nomeSprint(sprint.nome)} (${sprint.status == backend.SprintStatus.ativa ? 'ativa' : 'planejada'})',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    for (final vinculo in previa.vinculos.where(
+                      (v) => v.sprintId == sprint.id,
+                    ))
+                      Text(switch (demandasPorId[vinculo.demandaId]) {
+                        final demanda? => formatarIdentificacaoDemanda(demanda),
+                        null => 'Demanda ${vinculo.demandaId}',
+                      }),
+                  ],
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Os vínculos históricos e as horas registradas serão preservados.',
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Enviar para Backlog'),
+                ),
+              ],
+            ),
+          );
+          if (!mounted || confirmou != true) return;
+          confirmados.addAll(previa.vinculos.map((v) => v.id!));
+        }
+      }
+      final moveu = await _viewModel.alterarLocalizacao(
+        demanda,
+        destino,
+        confirmados,
+      );
+      if (!mounted) return;
+      if (moveu) {
+        setState(() {
+          final idsNaPagina = _viewModel.demandas.map((d) => d.id).toSet();
+          _selecionadas.removeWhere((id) => !idsNaPagina.contains(id));
+        });
+        _mostrarFeedback(
+          _backlog
+              ? 'Demanda devolvida para Demandas.'
+              : 'Demanda enviada para Backlog.',
+          erro: false,
+        );
+        await _carregarSprints();
+      } else {
+        _mostrarFeedback(
+          _viewModel.erro ?? 'Não foi possível mover a demanda.',
+          erro: true,
+        );
+      }
+    } on backend.MovimentacaoDemandaException catch (erro) {
+      if (mounted) _mostrarFeedback(erro.mensagem, erro: true);
+    } catch (_) {
+      if (mounted) {
+        _mostrarFeedback(
+          'Não foi possível consultar os vínculos de Sprint.',
+          erro: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _preparandoMovimentacao = false);
+    }
   }
 
   @override
@@ -165,6 +314,7 @@ class _DemandasPageState extends State<DemandasPage> {
       sprints: _sprintsPorDemanda[demanda.id] ?? const [],
       demandaId: demanda.id,
       onAbrir: (sprint) async {
+        if (_backlog && sprint == null) return;
         if (sprint == null) {
           await Navigator.of(context).pushNamed(AppRoutes.sprint);
         } else {
@@ -746,9 +896,12 @@ class _DemandasPageState extends State<DemandasPage> {
           onCriarFilha: _criarDemandaFilha,
           onLancarTempo: _lancarTempo,
           onMostrarTudo: _mostrarTudo,
+          onAlterarLocalizacao: _preparandoMovimentacao
+              ? null
+              : _alterarLocalizacao,
         );
         return AppShell(
-          route: AppRoutes.demandas,
+          route: _backlog ? AppRoutes.backlog : AppRoutes.demandas,
           header: _toolbar(),
           fab: AppFab(
             onPressed: _viewModel.enviando || _demandasEmStatus.isNotEmpty
@@ -868,25 +1021,27 @@ class _DemandasPageState extends State<DemandasPage> {
                               '${selecionadasVisiveis.length} '
                               '${selecionadasVisiveis.length == 1 ? 'selecionada' : 'selecionadas'}',
                             ),
-                            PopupMenuButton<String>(
-                              tooltip: 'Ações',
-                              enabled: !_vinculandoLote && !_carregandoSprints,
-                              onSelected: (acao) {
-                                if (acao == 'sprint') {
-                                  _vincularLote(selecionadasVisiveis);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem<String>(
-                                  value: 'sprint',
-                                  child: Text('Vincular à Sprint'),
+                            if (!_backlog)
+                              PopupMenuButton<String>(
+                                tooltip: 'Ações',
+                                enabled:
+                                    !_vinculandoLote && !_carregandoSprints,
+                                onSelected: (acao) {
+                                  if (acao == 'sprint') {
+                                    _vincularLote(selecionadasVisiveis);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem<String>(
+                                    value: 'sprint',
+                                    child: Text('Vincular à Sprint'),
+                                  ),
+                                ],
+                                child: const Chip(
+                                  label: Text('Ações'),
+                                  avatar: Icon(Symbols.arrow_drop_down_rounded),
                                 ),
-                              ],
-                              child: const Chip(
-                                label: Text('Ações'),
-                                avatar: Icon(Symbols.arrow_drop_down_rounded),
                               ),
-                            ),
                           ],
                           TextButton(
                             onPressed: _vinculandoLote
@@ -1005,7 +1160,8 @@ class _DemandasPageState extends State<DemandasPage> {
             ),
     );
     return PageHeader(
-      grouping: _visualizacao.value == VisualizacaoDemandas.lista
+      title: _backlog ? 'Backlog' : 'Demandas',
+      grouping: _emLista
           ? PopupMenuButton<AgrupamentoDemandas>(
               tooltip: 'Agrupar por',
               initialValue: _agrupamento.value,
@@ -1045,13 +1201,24 @@ class _DemandasPageState extends State<DemandasPage> {
             )
           : null,
       count: _viewModel.demandas.length,
-      search: SearchField(
-        controller: _buscaController,
-        onChanged: _alterarBusca,
-        onClear: () {
-          _buscaController.clear();
-          _alterarBusca('');
-        },
+      search: Row(
+        children: [
+          Expanded(
+            child: SearchField(
+              controller: _buscaController,
+              onChanged: _alterarBusca,
+              onClear: () {
+                _buscaController.clear();
+                _alterarBusca('');
+              },
+            ),
+          ),
+          IconButton(
+            tooltip: 'Buscar em Demandas e Backlog',
+            onPressed: _buscarGlobalmente,
+            icon: const Icon(Symbols.travel_explore_rounded, size: 20),
+          ),
+        ],
       ),
       filters: OutlinedButton.icon(
         key: const ValueKey('abrir-filtros-demandas'),
@@ -1073,30 +1240,32 @@ class _DemandasPageState extends State<DemandasPage> {
           _quantidadeFiltros == 0 ? 'Filtros' : 'Filtros ($_quantidadeFiltros)',
         ),
       ),
-      toggle: SegmentedToggle<VisualizacaoDemandas>(
-        value: _visualizacao.value,
-        segments: [
-          segmento(
-            VisualizacaoDemandas.kanban,
-            'Kanban',
-            Symbols.view_kanban_rounded,
-          ),
-          segmento(
-            VisualizacaoDemandas.lista,
-            'Lista',
-            Symbols.view_list_rounded,
-          ),
-        ],
-        onChanged: (values) async {
-          final saved = await _visualizacao.select(values.single);
-          if (!saved && mounted) {
-            _mostrarFeedback(
-              'Não foi possível salvar a visualização neste dispositivo.',
-              erro: true,
-            );
-          }
-        },
-      ),
+      toggle: _backlog
+          ? const SizedBox.shrink()
+          : SegmentedToggle<VisualizacaoDemandas>(
+              value: _visualizacao.value,
+              segments: [
+                segmento(
+                  VisualizacaoDemandas.kanban,
+                  'Kanban',
+                  Symbols.view_kanban_rounded,
+                ),
+                segmento(
+                  VisualizacaoDemandas.lista,
+                  'Lista',
+                  Symbols.view_list_rounded,
+                ),
+              ],
+              onChanged: (values) async {
+                final saved = await _visualizacao.select(values.single);
+                if (!saved && mounted) {
+                  _mostrarFeedback(
+                    'Não foi possível salvar a visualização neste dispositivo.',
+                    erro: true,
+                  );
+                }
+              },
+            ),
       create: AppButton(
         key: const ValueKey('abrir-criar-demanda'),
         label: 'Criar demanda',

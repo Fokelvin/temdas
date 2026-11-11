@@ -31,6 +31,7 @@ class DemandaTree extends StatefulWidget {
     required this.onAlterarStatus,
     required this.onConcluir,
     this.onReabrir,
+    this.onAlterarLocalizacao,
     this.sprintBuilder,
     this.lista = false,
     this.colunas = ColunaDemanda.padrao,
@@ -67,6 +68,7 @@ class DemandaTree extends StatefulWidget {
   final ScrollController horizontalController;
   final bool acoesHabilitadas;
   final ValueChanged<backend.Demanda> onEditar;
+  final ValueChanged<backend.Demanda>? onAlterarLocalizacao;
   final ValueChanged<backend.Demanda> onExcluir;
   final ValueChanged<backend.Demanda> onCriarFilha;
   final ValueChanged<backend.Demanda> onLancarTempo;
@@ -697,6 +699,9 @@ class _DemandaTreeState extends State<DemandaTree> {
                   ? null
                   : () => widget.onReabrir!(demanda),
               onEditar: () => widget.onEditar(demanda),
+              onAlterarLocalizacao: widget.onAlterarLocalizacao == null
+                  ? null
+                  : () => widget.onAlterarLocalizacao!(demanda),
               onExcluir: () => widget.onExcluir(demanda),
               onCriarFilha: () => widget.onCriarFilha(demanda),
               onLancarTempo: () => widget.onLancarTempo(demanda),

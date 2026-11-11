@@ -50,7 +50,10 @@ class FakeAgendaDemandaRepository extends DemandaRepository {
   int chamadasListar = 0;
 
   @override
-  Future<List<backend.Demanda>> listarDemandas() async {
+  Future<List<backend.Demanda>> listarDemandas({
+    backend.DemandaLocalizacao? localizacao,
+    bool? incluirBacklog,
+  }) async {
     chamadasListar++;
     if (erroAoListar case final erro?) throw erro;
     return List.of(_demandas);

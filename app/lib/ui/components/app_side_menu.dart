@@ -1,3 +1,4 @@
+import '../../app/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -174,6 +175,12 @@ class AppSideMenu extends StatelessWidget {
                         () => go(AppNavigation.routes[i]),
                         selected: ativo == AppNavigation.routes[i],
                       ),
+                    item(
+                      'Backlog',
+                      Icons.inventory_2_outlined,
+                      () => go(AppRoutes.backlog),
+                      selected: ativo == AppRoutes.backlog,
+                    ),
                     const Spacer(),
                     Divider(color: t.border),
                     item(

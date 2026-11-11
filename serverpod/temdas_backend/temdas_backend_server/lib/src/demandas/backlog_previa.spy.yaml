@@ -1,0 +1,4 @@
+class: BacklogPrevia
+fields:
+  sprints: List<Sprint>
+  vinculos: List<SprintDemanda>

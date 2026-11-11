@@ -103,6 +103,7 @@ class FakeDemandaRepository implements DemandaRepository {
     String? descricao,
     backend.Prioridade? prioridade,
     String? observacoes,
+    backend.DemandaLocalizacao? localizacao,
   }) async {
     chamadasCriar++;
     ultimaCriacao = CriacaoDemandaCapturada(
@@ -121,6 +122,7 @@ class FakeDemandaRepository implements DemandaRepository {
     final demanda = backend.Demanda(
       usuarioId: 1,
       id: maiorId + 1,
+      localizacao: localizacao ?? backend.DemandaLocalizacao.demandas,
       demandaPaiId: demandaPaiId,
       titulo: titulo,
       descricao: descricao,
@@ -137,13 +139,60 @@ class FakeDemandaRepository implements DemandaRepository {
   }
 
   @override
-  Future<List<backend.Demanda>> listarDemandas() {
+  Future<backend.BacklogPrevia> preverEnvioAoBacklog(int id) async =>
+      backend.BacklogPrevia(sprints: [], vinculos: []);
+
+  @override
+  Future<void> alterarLocalizacao(
+    int id,
+    backend.DemandaLocalizacao destino,
+    List<int> vinculosConfirmados,
+  ) async {
+    final ids = {id};
+    for (var tamanho = 0; tamanho != ids.length;) {
+      tamanho = ids.length;
+      ids.addAll(
+        _demandas.where((d) => ids.contains(d.demandaPaiId)).map((d) => d.id!),
+      );
+    }
+    for (var i = 0; i < _demandas.length; i++) {
+      if (ids.contains(_demandas[i].id)) {
+        _demandas[i] = _demandas[i].copyWith(localizacao: destino);
+      }
+    }
+  }
+
+  @override
+  Future<List<backend.Demanda>> buscarDemandasGlobalmente(
+    String consulta,
+  ) async => _demandas
+      .where(
+        (d) =>
+            '${d.id}' == consulta ||
+            d.titulo.toLowerCase().contains(consulta.toLowerCase()),
+      )
+      .toList();
+
+  @override
+  Future<List<backend.Demanda>> listarDemandas({
+    backend.DemandaLocalizacao? localizacao,
+    bool? incluirBacklog,
+  }) {
     chamadasListar++;
     if (erroAoListar case final erro?) return Future.error(erro);
     if (respostasListarPendentes.isNotEmpty) {
       return respostasListarPendentes.removeAt(0).future;
     }
-    return Future.value(List.of(_demandas));
+    return Future.value(
+      _demandas
+          .where(
+            (d) =>
+                incluirBacklog == true ||
+                d.localizacao ==
+                    (localizacao ?? backend.DemandaLocalizacao.demandas),
+          )
+          .toList(),
+    );
   }
 
   @override

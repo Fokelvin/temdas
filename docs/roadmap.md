@@ -167,7 +167,7 @@ de escopo.
 
 ### Enviar para Backlog
 
-- **Estado:** Direção aprovada e consolidada no item **BACKLOG-P2-01**, ainda dependente de definição das regras de movimentação e seus efeitos sobre Sprint, histórico e hierarquia. Não implementar antes do alinhamento em chat próprio.
+- **Estado:** Implementado localmente no item **BACKLOG-P2-01**. As regras e validações estão registradas no item.
 
 ### UX-P1-04 — Painel lateral de Sprint e ações contextuais
 
@@ -433,7 +433,7 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 
 - **Contexto:** a Lista de Demandas, agora homologada com agrupamentos e hierarquia, precisa permitir ao usuário selecionar colunas, ordenar e trabalhar com árvores extensas sem alterar o Kanban.
 - **Prioridade:** P2 — melhoria de produtividade anterior ao Backlog.
-- **Estado:** Escopo funcional aprovado pelo responsável em 11/11/2026; **pendente de detalhamento e implementação em chat próprio**.
+- **Estado:** Concluído, publicado e homologado em produção no commit `7ae25c3`, conforme confirmação do responsável.
 - **Colunas atuais padrão:** ID, Demanda, Prioridade, Estimado, Executado/Real, Sprint e Status. Adicionar ao seletor **Escolher colunas**: **Data de criação** (campo já existente) e **Tipo** (Mãe, Filha ou Independente, derivado da hierarquia). Essas duas colunas começam ocultas por padrão; mostrar/ocultar colunas sem alterar os dados. Persistir preferências no navegador.
 - **Ordenação intuitiva:** clicar no cabeçalho de coluna ordenável alterna crescente/decrescente, sem botão separado. Preservar integridade das árvores e dos agrupamentos: a ordenação não dispersa descendentes de suas raízes.
 - **Expansão de árvores:** ação para expandir/recolher todas as mães e visualizar suas filhas/descendentes, respeitando busca, filtros e performance de listas maiores.
@@ -444,16 +444,13 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 
 ### BACKLOG-P2-01 — Página de Backlog de Demandas
 
-- **Contexto:** separar Demandas ainda não priorizadas para execução das Demandas operacionais, sem criar um sexto estado de ciclo de vida.
-- **Prioridade:** P2 — após disponibilizar a Lista compartilhada do UX-P2-07.
-- **Estado:** Direção de produto e UX aprovada pelo responsável em 11/11/2026; **regras de negócio pendentes de alinhamento em chat próprio, sem implementação autorizada**.
-- **Conceito:** **Em Backlog** representa localização/pertencimento da Demanda, **não** um novo valor de Status. Preservar o status atual; permitir enviar ao Backlog e devolver para Demandas.
-- **Interface:** página **Backlog** própria no menu lateral, **somente modo Lista**, sem alternância para Kanban. Reutilizar a formatação do modo Lista de Demandas e componentes de busca, filtros, agrupamentos Demanda/Status/Prioridade, colunas configuráveis, ordenação e expansão. Suportar temas claro/escuro e densidades Normal/Compacto sem duplicação de código.
-- **Visibilidade:** Demandas no Backlog ficam fora da Lista e do Kanban da página Demandas. Manter íntegros os dados e o histórico ao mover entre locais.
-- **Modelo:** indicador próprio de pertencimento ao Backlog, separado de status; modelagem, migração, API e comportamento operacional devem ser decididos antes da implementação.
-- **Pendências de regra:** definir efeitos da movimentação sobre mães/filhas/descendentes, vínculos com Sprints (inclusive planejadas, ativas e históricas), horas lançadas, estados concluídos/cancelados, permissões e busca/filtros.
-- **Critérios de aceite preliminares:** nenhuma Demanda perdida/duplicada entre páginas; hierarquia e histórico preservados; status independente de localização; Lista compartilhada sem regressões. Critérios finais após definição das regras.
-- **Sequenciamento:** discutir em chat separado; não alterar backend, banco ou fluxo de Demandas até aprovação explícita das regras.
+- **Estado:** Implementado localmente sobre o UX-P2-07. Publicação e aplicação da migration em produção aguardam autorização.
+- **Localização.** A coluna `demandas.localizacao` usa o enum Serverpod `demandas`/`backlog`, com padrão `demandas` para registros existentes. A localização é independente do status. As duas listagens são exclusivas e a criação usa a página de origem. Uma filha herda a localização do pai.
+- **Movimentação.** Ações explícitas e idempotentes na raiz movem todos os descendentes em uma transação, preservando IDs, status, relações e registros de tempo. Raízes concluídas permanecem em Demandas e raízes canceladas podem ir ao Backlog. Descendentes concluídos ou cancelados acompanham a raiz. Concluir uma raiz no Backlog devolve a árvore para Demandas na mesma transação.
+- **Sprints.** O envio ao Backlog remove vínculos com Sprints ativas e planejadas após confirmação. O servidor compara os IDs confirmados com os vínculos atuais e recusa uma confirmação desatualizada. Vínculos concluídos e cancelados são preservados. O retorno para Demandas mantém apenas os vínculos existentes. Vincular demandas no Backlog e reabrir Sprints canceladas com demandas no Backlog ficam bloqueados enquanto essas demandas estiverem nessa localização.
+- **Interface e acesso.** O menu lateral abre o Backlog em modo Lista, com os mesmos componentes e preferências do UX-P2-07. A busca global por ID ou título identifica a localização e abre o detalhe na página correspondente. O resultado prioriza o ID exato e exibe até 50 itens. Filtros, agrupamentos e seleção operam sobre a página atual. As consultas e movimentações exigem AAL2 e são isoladas por usuário.
+- **Validação local.** A migration `20261111180305263-backlog-p2-01` foi aplicada a uma base PostgreSQL 17.11 descartável sobre o schema anterior. O registro preexistente manteve ID, status e tempo executado, com localização `demandas`. A criação de uma base vazia pela definição completa também preservou os índices e restrições customizados de Sprint.
+- **Testes e build.** 828 testes Flutter e 137 testes de backend passaram. O benchmark opcional de Sprint ficou desativado. A análise Flutter passou sem ocorrências. A análise Dart reportou dois avisos de estilo preexistentes no serviço de observações de tempo. O build Flutter Web release passou com o aviso preexistente sobre a fonte Cupertino.
 
 ### SPR-P2-01 — Planejamento antecipado e histórico de múltiplas Sprints por Demanda
 

@@ -5,12 +5,67 @@ import '../auth/supabase_auth_service.dart';
 import '../auth/usuario_scope.dart';
 import '../sprints/sprint_demanda_service.dart';
 import 'demanda_status_service.dart';
+import 'demanda_backlog_service.dart';
 import 'demanda_ordem_service.dart';
 
 class DemandaEndpoint extends Endpoint {
   final _statusService = DemandaStatusService();
   final _ordemService = DemandaOrdemService();
   final _sprintDemandaService = SprintDemandaService();
+
+  final _backlogService = DemandaBacklogService();
+
+  Future<BacklogPrevia> preverEnvioAoBacklog(Session session, int id) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    return _backlogService.prever(session, id, usuarioId);
+  }
+
+  Future<void> alterarLocalizacao(
+    Session session,
+    int id,
+    DemandaLocalizacao destino,
+    List<int> vinculosConfirmados,
+  ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    await _backlogService.mover(
+      session,
+      id,
+      usuarioId,
+      destino,
+      vinculosConfirmados,
+    );
+  }
+
+  Future<List<Demanda>> buscarDemandasGlobalmente(
+    Session session,
+    String consulta,
+  ) async {
+    final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
+    final termo = consulta.trim();
+    if (termo.isEmpty) return [];
+    final id = int.tryParse(termo);
+    final correspondenciaPorId = id == null
+        ? null
+        : await UsuarioScope(usuarioId).demanda(session, id);
+    final padrao = termo.replaceAllMapped(
+      RegExp(r'[\\%_]'),
+      (match) => '\\${match[0]}',
+    );
+    final titulos = await Demanda.db.find(
+      session,
+      where: (t) {
+        final filtro =
+            t.usuarioId.equals(usuarioId) & t.titulo.ilike('%$padrao%');
+        return correspondenciaPorId == null
+            ? filtro
+            : filtro & t.id.notEquals(correspondenciaPorId.id);
+      },
+      orderBy: (t) => t.id,
+      orderDescending: true,
+      limit: correspondenciaPorId == null ? 50 : 49,
+    );
+    return [?correspondenciaPorId, ...titulos];
+  }
 
   Future<Demanda> alterarStatusDemanda(
     Session session,
@@ -82,6 +137,7 @@ class DemandaEndpoint extends Endpoint {
     }
 
     final demandaCriada = await session.db.transaction((transaction) async {
+      var localizacao = request.localizacao ?? DemandaLocalizacao.demandas;
       if (request.demandaPaiId case final demandaPaiId?) {
         await _sprintDemandaService.bloquearCicloDeVida(session, transaction);
         final demandaPai = await UsuarioScope(usuarioId).demanda(
@@ -97,15 +153,17 @@ class DemandaEndpoint extends Endpoint {
             mensagem: 'Demanda não encontrada.',
           );
         }
+        localizacao = demandaPai.localizacao;
       }
 
       final agora = DateTime.now().toUtc();
       final ordem = request.demandaPaiId == null
-          ? await _proximaOrdem(session, transaction, usuarioId)
+          ? await _proximaOrdem(session, transaction, usuarioId, localizacao)
           : null;
 
       final demanda = Demanda(
         usuarioId: usuarioId,
+        localizacao: localizacao,
         demandaPaiId: request.demandaPaiId,
         ordem: ordem,
         titulo: titulo,
@@ -124,7 +182,8 @@ class DemandaEndpoint extends Endpoint {
         demanda,
         transaction: transaction,
       );
-      if (request.demandaPaiId case final demandaPaiId?) {
+      if (request.demandaPaiId case final demandaPaiId?
+          when localizacao == DemandaLocalizacao.demandas) {
         await _sprintDemandaService.herdarVinculoAbertoDaDemandaPai(
           session,
           demandaPaiId: demandaPaiId,
@@ -143,11 +202,23 @@ class DemandaEndpoint extends Endpoint {
     return demandaCriada;
   }
 
-  Future<List<Demanda>> listarDemandas(Session session) async {
+  Future<List<Demanda>> listarDemandas(
+    Session session, {
+    DemandaLocalizacao? localizacao,
+    bool? incluirBacklog,
+  }) async {
     final usuarioId = (await requireAal2Usuario(session)).usuario.id!;
     final demandas = await Demanda.db.find(
       session,
-      where: (t) => t.usuarioId.equals(usuarioId),
+      where: (t) {
+        final dono = t.usuarioId.equals(usuarioId);
+        return incluirBacklog == true && localizacao == null
+            ? dono
+            : dono &
+                  t.localizacao.equals(
+                    localizacao ?? DemandaLocalizacao.demandas,
+                  );
+      },
       orderBy: (t) => t.criadoEm,
       orderDescending: true,
     );
@@ -166,12 +237,14 @@ class DemandaEndpoint extends Endpoint {
     Session session,
     Transaction transaction,
     int usuarioId,
+    DemandaLocalizacao localizacao,
   ) async {
     final raizes = await Demanda.db.find(
       session,
       where: (t) =>
           t.usuarioId.equals(usuarioId) &
           t.demandaPaiId.equals(null) &
+          t.localizacao.equals(localizacao) &
           t.status.equals(DemandaStatus.aberta),
       transaction: transaction,
       lockMode: LockMode.forUpdate,

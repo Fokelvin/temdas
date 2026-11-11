@@ -12,10 +12,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
-import '../demandas/prioridade.dart' as _i2;
+import '../demandas/demanda_localizacao.dart' as _i2;
+import '../demandas/prioridade.dart' as _i3;
 
 abstract class DemandaCreateRequest implements _i1.SerializableModel {
   DemandaCreateRequest._({
+    this.localizacao,
     this.demandaPaiId,
     required this.titulo,
     this.descricao,
@@ -25,10 +27,11 @@ abstract class DemandaCreateRequest implements _i1.SerializableModel {
   });
 
   factory DemandaCreateRequest({
+    _i2.DemandaLocalizacao? localizacao,
     int? demandaPaiId,
     required String titulo,
     String? descricao,
-    _i2.Prioridade? prioridade,
+    _i3.Prioridade? prioridade,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) = _DemandaCreateRequestImpl;
@@ -37,12 +40,17 @@ abstract class DemandaCreateRequest implements _i1.SerializableModel {
     Map<String, dynamic> jsonSerialization,
   ) {
     return DemandaCreateRequest(
+      localizacao: jsonSerialization['localizacao'] == null
+          ? null
+          : _i2.DemandaLocalizacao.fromJson(
+              (jsonSerialization['localizacao'] as String),
+            ),
       demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       titulo: jsonSerialization['titulo'] as String,
       descricao: jsonSerialization['descricao'] as String?,
       prioridade: jsonSerialization['prioridade'] == null
           ? null
-          : _i2.Prioridade.fromJson(
+          : _i3.Prioridade.fromJson(
               (jsonSerialization['prioridade'] as String),
             ),
       tempoEstimadoMinutos: jsonSerialization['tempoEstimadoMinutos'] as int,
@@ -50,13 +58,15 @@ abstract class DemandaCreateRequest implements _i1.SerializableModel {
     );
   }
 
+  _i2.DemandaLocalizacao? localizacao;
+
   int? demandaPaiId;
 
   String titulo;
 
   String? descricao;
 
-  _i2.Prioridade? prioridade;
+  _i3.Prioridade? prioridade;
 
   int tempoEstimadoMinutos;
 
@@ -66,10 +76,11 @@ abstract class DemandaCreateRequest implements _i1.SerializableModel {
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
   DemandaCreateRequest copyWith({
+    _i2.DemandaLocalizacao? localizacao,
     int? demandaPaiId,
     String? titulo,
     String? descricao,
-    _i2.Prioridade? prioridade,
+    _i3.Prioridade? prioridade,
     int? tempoEstimadoMinutos,
     String? observacoes,
   });
@@ -77,6 +88,7 @@ abstract class DemandaCreateRequest implements _i1.SerializableModel {
   Map<String, dynamic> toJson() {
     return {
       '__className__': 'DemandaCreateRequest',
+      if (localizacao != null) 'localizacao': localizacao?.toJson(),
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       'titulo': titulo,
       if (descricao != null) 'descricao': descricao,
@@ -96,13 +108,15 @@ class _Undefined {}
 
 class _DemandaCreateRequestImpl extends DemandaCreateRequest {
   _DemandaCreateRequestImpl({
+    _i2.DemandaLocalizacao? localizacao,
     int? demandaPaiId,
     required String titulo,
     String? descricao,
-    _i2.Prioridade? prioridade,
+    _i3.Prioridade? prioridade,
     required int tempoEstimadoMinutos,
     String? observacoes,
   }) : super._(
+         localizacao: localizacao,
          demandaPaiId: demandaPaiId,
          titulo: titulo,
          descricao: descricao,
@@ -116,6 +130,7 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
   @_i1.useResult
   @override
   DemandaCreateRequest copyWith({
+    Object? localizacao = _Undefined,
     Object? demandaPaiId = _Undefined,
     String? titulo,
     Object? descricao = _Undefined,
@@ -124,10 +139,13 @@ class _DemandaCreateRequestImpl extends DemandaCreateRequest {
     Object? observacoes = _Undefined,
   }) {
     return DemandaCreateRequest(
+      localizacao: localizacao is _i2.DemandaLocalizacao?
+          ? localizacao
+          : this.localizacao,
       demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       titulo: titulo ?? this.titulo,
       descricao: descricao is String? ? descricao : this.descricao,
-      prioridade: prioridade is _i2.Prioridade? ? prioridade : this.prioridade,
+      prioridade: prioridade is _i3.Prioridade? ? prioridade : this.prioridade,
       tempoEstimadoMinutos: tempoEstimadoMinutos ?? this.tempoEstimadoMinutos,
       observacoes: observacoes is String? ? observacoes : this.observacoes,
     );

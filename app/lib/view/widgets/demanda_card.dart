@@ -29,6 +29,7 @@ class DemandaCard extends StatelessWidget {
     this.onCriarFilha,
     this.onLancarTempo,
     this.onMostrarTudo,
+    this.onAlterarLocalizacao,
     this.apenasAcoes = false,
     this.redesign = false,
     this.referenciaHierarquica,
@@ -58,6 +59,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onCriarFilha;
   final VoidCallback? onLancarTempo;
   final VoidCallback? onMostrarTudo;
+  final VoidCallback? onAlterarLocalizacao;
   final bool apenasAcoes;
   final bool redesign;
   final String? referenciaHierarquica;
@@ -600,6 +602,8 @@ class DemandaCard extends StatelessWidget {
             onEditar();
           case _AcaoDemanda.mostrarTudo:
             onMostrarTudo?.call();
+          case _AcaoDemanda.alterarLocalizacao:
+            onAlterarLocalizacao?.call();
           case _AcaoDemanda.excluir:
             onExcluir?.call();
           case _AcaoDemanda.reabrir:
@@ -624,6 +628,17 @@ class DemandaCard extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.open_in_new),
               title: const Text('Mostrar tudo'),
+            ),
+          ),
+        if (onAlterarLocalizacao != null &&
+            demanda.demandaPaiId == null &&
+            demanda.status != backend.DemandaStatus.concluida)
+          PopupMenuItem(
+            value: _AcaoDemanda.alterarLocalizacao,
+            child: Text(
+              demanda.localizacao == backend.DemandaLocalizacao.backlog
+                  ? 'Voltar para Demandas'
+                  : 'Enviar para Backlog',
             ),
           ),
         if (onReabrir != null && _statusTerminal)
@@ -725,6 +740,7 @@ class DemandaCard extends StatelessWidget {
 enum _AcaoDemanda {
   editar,
   mostrarTudo,
+  alterarLocalizacao,
   reabrir,
   excluir,
   concluir,

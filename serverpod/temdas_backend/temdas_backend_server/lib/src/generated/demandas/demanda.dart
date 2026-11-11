@@ -12,13 +12,15 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod/serverpod.dart' as _i1;
-import '../demandas/demanda_status.dart' as _i2;
-import '../demandas/prioridade.dart' as _i3;
+import '../demandas/demanda_localizacao.dart' as _i2;
+import '../demandas/demanda_status.dart' as _i3;
+import '../demandas/prioridade.dart' as _i4;
 
 abstract class Demanda
     implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   Demanda._({
     this.id,
+    _i2.DemandaLocalizacao? localizacao,
     required this.usuarioId,
     this.demandaPaiId,
     this.ordem,
@@ -33,18 +35,19 @@ abstract class Demanda
     required this.criadoEm,
     required this.atualizadoEm,
     this.concluidoEm,
-  });
+  }) : localizacao = localizacao ?? _i2.DemandaLocalizacao.demandas;
 
   factory Demanda({
     int? id,
+    _i2.DemandaLocalizacao? localizacao,
     required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
     String? descricao,
-    required _i2.DemandaStatus status,
+    required _i3.DemandaStatus status,
     String? motivoCancelamento,
-    required _i3.Prioridade prioridade,
+    required _i4.Prioridade prioridade,
     required int tempoEstimadoMinutos,
     required int tempoExecutadoMinutos,
     String? observacoes,
@@ -56,16 +59,21 @@ abstract class Demanda
   factory Demanda.fromJson(Map<String, dynamic> jsonSerialization) {
     return Demanda(
       id: jsonSerialization['id'] as int?,
+      localizacao: jsonSerialization['localizacao'] == null
+          ? null
+          : _i2.DemandaLocalizacao.fromJson(
+              (jsonSerialization['localizacao'] as String),
+            ),
       usuarioId: jsonSerialization['usuarioId'] as int,
       demandaPaiId: jsonSerialization['demandaPaiId'] as int?,
       ordem: jsonSerialization['ordem'] as int?,
       titulo: jsonSerialization['titulo'] as String,
       descricao: jsonSerialization['descricao'] as String?,
-      status: _i2.DemandaStatus.fromJson(
+      status: _i3.DemandaStatus.fromJson(
         (jsonSerialization['status'] as String),
       ),
       motivoCancelamento: jsonSerialization['motivoCancelamento'] as String?,
-      prioridade: _i3.Prioridade.fromJson(
+      prioridade: _i4.Prioridade.fromJson(
         (jsonSerialization['prioridade'] as String),
       ),
       tempoEstimadoMinutos: jsonSerialization['tempoEstimadoMinutos'] as int,
@@ -92,6 +100,8 @@ abstract class Demanda
   @override
   int? id;
 
+  _i2.DemandaLocalizacao localizacao;
+
   int usuarioId;
 
   int? demandaPaiId;
@@ -102,11 +112,11 @@ abstract class Demanda
 
   String? descricao;
 
-  _i2.DemandaStatus status;
+  _i3.DemandaStatus status;
 
   String? motivoCancelamento;
 
-  _i3.Prioridade prioridade;
+  _i4.Prioridade prioridade;
 
   int tempoEstimadoMinutos;
 
@@ -128,14 +138,15 @@ abstract class Demanda
   @_i1.useResult
   Demanda copyWith({
     int? id,
+    _i2.DemandaLocalizacao? localizacao,
     int? usuarioId,
     int? demandaPaiId,
     int? ordem,
     String? titulo,
     String? descricao,
-    _i2.DemandaStatus? status,
+    _i3.DemandaStatus? status,
     String? motivoCancelamento,
-    _i3.Prioridade? prioridade,
+    _i4.Prioridade? prioridade,
     int? tempoEstimadoMinutos,
     int? tempoExecutadoMinutos,
     String? observacoes,
@@ -148,6 +159,7 @@ abstract class Demanda
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
+      'localizacao': localizacao.toJson(),
       'usuarioId': usuarioId,
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       if (ordem != null) 'ordem': ordem,
@@ -170,6 +182,7 @@ abstract class Demanda
     return {
       '__className__': 'Demanda',
       if (id != null) 'id': id,
+      'localizacao': localizacao.toJson(),
       'usuarioId': usuarioId,
       if (demandaPaiId != null) 'demandaPaiId': demandaPaiId,
       if (ordem != null) 'ordem': ordem,
@@ -222,14 +235,15 @@ class _Undefined {}
 class _DemandaImpl extends Demanda {
   _DemandaImpl({
     int? id,
+    _i2.DemandaLocalizacao? localizacao,
     required int usuarioId,
     int? demandaPaiId,
     int? ordem,
     required String titulo,
     String? descricao,
-    required _i2.DemandaStatus status,
+    required _i3.DemandaStatus status,
     String? motivoCancelamento,
-    required _i3.Prioridade prioridade,
+    required _i4.Prioridade prioridade,
     required int tempoEstimadoMinutos,
     required int tempoExecutadoMinutos,
     String? observacoes,
@@ -238,6 +252,7 @@ class _DemandaImpl extends Demanda {
     DateTime? concluidoEm,
   }) : super._(
          id: id,
+         localizacao: localizacao,
          usuarioId: usuarioId,
          demandaPaiId: demandaPaiId,
          ordem: ordem,
@@ -260,14 +275,15 @@ class _DemandaImpl extends Demanda {
   @override
   Demanda copyWith({
     Object? id = _Undefined,
+    _i2.DemandaLocalizacao? localizacao,
     int? usuarioId,
     Object? demandaPaiId = _Undefined,
     Object? ordem = _Undefined,
     String? titulo,
     Object? descricao = _Undefined,
-    _i2.DemandaStatus? status,
+    _i3.DemandaStatus? status,
     Object? motivoCancelamento = _Undefined,
-    _i3.Prioridade? prioridade,
+    _i4.Prioridade? prioridade,
     int? tempoEstimadoMinutos,
     int? tempoExecutadoMinutos,
     Object? observacoes = _Undefined,
@@ -277,6 +293,7 @@ class _DemandaImpl extends Demanda {
   }) {
     return Demanda(
       id: id is int? ? id : this.id,
+      localizacao: localizacao ?? this.localizacao,
       usuarioId: usuarioId ?? this.usuarioId,
       demandaPaiId: demandaPaiId is int? ? demandaPaiId : this.demandaPaiId,
       ordem: ordem is int? ? ordem : this.ordem,
@@ -300,6 +317,13 @@ class _DemandaImpl extends Demanda {
 
 class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
   DemandaUpdateTable(super.table);
+
+  _i1.ColumnValue<_i2.DemandaLocalizacao, _i2.DemandaLocalizacao> localizacao(
+    _i2.DemandaLocalizacao value,
+  ) => _i1.ColumnValue(
+    table.localizacao,
+    value,
+  );
 
   _i1.ColumnValue<int, int> usuarioId(int value) => _i1.ColumnValue(
     table.usuarioId,
@@ -326,8 +350,8 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
     value,
   );
 
-  _i1.ColumnValue<_i2.DemandaStatus, _i2.DemandaStatus> status(
-    _i2.DemandaStatus value,
+  _i1.ColumnValue<_i3.DemandaStatus, _i3.DemandaStatus> status(
+    _i3.DemandaStatus value,
   ) => _i1.ColumnValue(
     table.status,
     value,
@@ -339,8 +363,8 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
         value,
       );
 
-  _i1.ColumnValue<_i3.Prioridade, _i3.Prioridade> prioridade(
-    _i3.Prioridade value,
+  _i1.ColumnValue<_i4.Prioridade, _i4.Prioridade> prioridade(
+    _i4.Prioridade value,
   ) => _i1.ColumnValue(
     table.prioridade,
     value,
@@ -383,6 +407,12 @@ class DemandaUpdateTable extends _i1.UpdateTable<DemandaTable> {
 class DemandaTable extends _i1.Table<int?> {
   DemandaTable({super.tableRelation}) : super(tableName: 'demandas') {
     updateTable = DemandaUpdateTable(this);
+    localizacao = _i1.ColumnEnum(
+      'localizacao',
+      this,
+      _i1.EnumSerialization.byName,
+      hasDefault: true,
+    );
     usuarioId = _i1.ColumnInt(
       'usuarioId',
       this,
@@ -445,6 +475,8 @@ class DemandaTable extends _i1.Table<int?> {
 
   late final DemandaUpdateTable updateTable;
 
+  late final _i1.ColumnEnum<_i2.DemandaLocalizacao> localizacao;
+
   late final _i1.ColumnInt usuarioId;
 
   late final _i1.ColumnInt demandaPaiId;
@@ -455,11 +487,11 @@ class DemandaTable extends _i1.Table<int?> {
 
   late final _i1.ColumnString descricao;
 
-  late final _i1.ColumnEnum<_i2.DemandaStatus> status;
+  late final _i1.ColumnEnum<_i3.DemandaStatus> status;
 
   late final _i1.ColumnString motivoCancelamento;
 
-  late final _i1.ColumnEnum<_i3.Prioridade> prioridade;
+  late final _i1.ColumnEnum<_i4.Prioridade> prioridade;
 
   late final _i1.ColumnInt tempoEstimadoMinutos;
 
@@ -476,6 +508,7 @@ class DemandaTable extends _i1.Table<int?> {
   @override
   List<_i1.Column> get columns => [
     id,
+    localizacao,
     usuarioId,
     demandaPaiId,
     ordem,

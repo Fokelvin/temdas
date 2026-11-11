@@ -76,6 +76,17 @@ class DemandaStatusService {
         );
       }
     }
+    if (status == DemandaStatus.concluida &&
+        raiz.demandaPaiId == null &&
+        raiz.localizacao == DemandaLocalizacao.backlog) {
+      final ids = {raiz.id!, ...descendentes.map((d) => d.id!)};
+      await Demanda.db.updateWhere(
+        session,
+        where: (t) => t.id.inSet(ids),
+        columnValues: (t) => [t.localizacao(DemandaLocalizacao.demandas)],
+        transaction: transaction,
+      );
+    }
     return _persistirTransicao(
       session,
       raiz,

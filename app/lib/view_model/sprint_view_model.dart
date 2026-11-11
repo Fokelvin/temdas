@@ -464,6 +464,8 @@ class SprintViewModel extends ChangeNotifier {
           'A hierarquia das Demandas mudou. Revise os vínculos antes de reabrir a Sprint.',
         backend.SprintErroCodigo.demandaOutraSprintAberta =>
           'Esta Demanda já pertence a outra Sprint em aberto.',
+        backend.SprintErroCodigo.demandaNoBacklog =>
+          'Volte as demandas do Backlog para Demandas antes de vinculá-las à Sprint.',
         backend.SprintErroCodigo.vinculoStatusProibido =>
           'A Sprint não permite alterações de vínculo neste status.',
         backend.SprintErroCodigo.demandaFilhaSemMae =>

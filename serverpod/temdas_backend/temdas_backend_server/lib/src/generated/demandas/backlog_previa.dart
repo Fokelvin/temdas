@@ -1,0 +1,99 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+
+import 'package:serverpod/serverpod.dart' as _i1;
+import '../sprints/sprint.dart' as _i2;
+import '../sprints/sprint_demanda.dart' as _i3;
+import 'package:temdas_backend_server/src/generated/protocol.dart' as _i4;
+
+abstract class BacklogPrevia
+    implements _i1.SerializableModel, _i1.ProtocolSerialization {
+  BacklogPrevia._({
+    required this.sprints,
+    required this.vinculos,
+  });
+
+  factory BacklogPrevia({
+    required List<_i2.Sprint> sprints,
+    required List<_i3.SprintDemanda> vinculos,
+  }) = _BacklogPreviaImpl;
+
+  factory BacklogPrevia.fromJson(Map<String, dynamic> jsonSerialization) {
+    return BacklogPrevia(
+      sprints: _i4.Protocol().deserialize<List<_i2.Sprint>>(
+        jsonSerialization['sprints'],
+      ),
+      vinculos: _i4.Protocol().deserialize<List<_i3.SprintDemanda>>(
+        jsonSerialization['vinculos'],
+      ),
+    );
+  }
+
+  List<_i2.Sprint> sprints;
+
+  List<_i3.SprintDemanda> vinculos;
+
+  /// Returns a shallow copy of this [BacklogPrevia]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  BacklogPrevia copyWith({
+    List<_i2.Sprint>? sprints,
+    List<_i3.SprintDemanda>? vinculos,
+  });
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      '__className__': 'BacklogPrevia',
+      'sprints': sprints.toJson(valueToJson: (v) => v.toJson()),
+      'vinculos': vinculos.toJson(valueToJson: (v) => v.toJson()),
+    };
+  }
+
+  @override
+  Map<String, dynamic> toJsonForProtocol() {
+    return {
+      '__className__': 'BacklogPrevia',
+      'sprints': sprints.toJson(valueToJson: (v) => v.toJsonForProtocol()),
+      'vinculos': vinculos.toJson(valueToJson: (v) => v.toJsonForProtocol()),
+    };
+  }
+
+  @override
+  String toString() {
+    return _i1.SerializationManager.encode(this);
+  }
+}
+
+class _BacklogPreviaImpl extends BacklogPrevia {
+  _BacklogPreviaImpl({
+    required List<_i2.Sprint> sprints,
+    required List<_i3.SprintDemanda> vinculos,
+  }) : super._(
+         sprints: sprints,
+         vinculos: vinculos,
+       );
+
+  /// Returns a shallow copy of this [BacklogPrevia]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  @override
+  BacklogPrevia copyWith({
+    List<_i2.Sprint>? sprints,
+    List<_i3.SprintDemanda>? vinculos,
+  }) {
+    return BacklogPrevia(
+      sprints: sprints ?? this.sprints.map((e0) => e0.copyWith()).toList(),
+      vinculos: vinculos ?? this.vinculos.map((e0) => e0.copyWith()).toList(),
+    );
+  }
+}

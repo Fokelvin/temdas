@@ -8,12 +8,14 @@ class DemandasViewModel extends ChangeNotifier {
   DemandasViewModel({
     List<backend.Demanda> demandasIniciais = const [],
     DemandaRepository? repository,
+    this.localizacao = backend.DemandaLocalizacao.demandas,
     RegistroTempoRepository? registroTempoRepository,
   }) : _demandas = List.of(demandasIniciais),
        _repository = repository ?? DemandaRepository(),
        _registroTempoRepository =
            registroTempoRepository ?? RegistroTempoRepository();
 
+  final backend.DemandaLocalizacao localizacao;
   final DemandaRepository _repository;
   final RegistroTempoRepository _registroTempoRepository;
 
@@ -126,12 +128,15 @@ class DemandasViewModel extends ChangeNotifier {
         demandaPaiId: demandaPaiId,
         descricao: descricao,
         prioridade: prioridade,
+        localizacao: localizacao,
       );
 
       if (!_descartado) {
         _invalidarCarregamentoPendente();
         _demandaCriada = demandaCriada;
-        _inserirDemanda(demandaCriada);
+        if (demandaCriada.localizacao == localizacao) {
+          _inserirDemanda(demandaCriada);
+        }
       }
       return true;
     } catch (error, stackTrace) {
@@ -454,8 +459,56 @@ class DemandasViewModel extends ChangeNotifier {
 
   void _substituirDemanda(backend.Demanda atualizada) {
     final index = _indiceDemanda(atualizada.id);
-    if (index != -1) _demandas[index] = atualizada;
+    if (index != -1) {
+      if (atualizada.localizacao != localizacao) {
+        _removerHierarquia(_demandas[index]);
+      } else {
+        _demandas[index] = atualizada;
+      }
+    }
     if (_demandaCriada?.id == atualizada.id) _demandaCriada = atualizada;
+  }
+
+  void _removerHierarquia(backend.Demanda demanda) {
+    final ids = {demanda.id, ...descendentesDe(demanda).map((d) => d.id)};
+    _demandas.removeWhere((d) => ids.contains(d.id));
+  }
+
+  Future<backend.BacklogPrevia> preverEnvioAoBacklog(int id) =>
+      _repository.preverEnvioAoBacklog(id);
+
+  Future<List<backend.Demanda>> buscarDemandasGlobalmente(String consulta) =>
+      _repository.buscarDemandasGlobalmente(consulta);
+
+  Future<bool> alterarLocalizacao(
+    backend.Demanda demanda,
+    backend.DemandaLocalizacao destino,
+    List<int> vinculosConfirmados,
+  ) async {
+    final id = demanda.id;
+    if (id == null || !_podeIniciarMutacao(id, global: true)) return false;
+    _iniciarEnvio();
+    try {
+      await _repository.alterarLocalizacao(id, destino, vinculosConfirmados);
+      if (!_descartado) {
+        _invalidarCarregamentoPendente();
+        _removerHierarquia(demanda);
+      }
+      return true;
+    } on backend.MovimentacaoDemandaException catch (erro) {
+      _erro = erro.mensagem;
+      return false;
+    } catch (error, stackTrace) {
+      _registrarFalha(
+        'alterar a localização da demanda $id',
+        error,
+        stackTrace,
+      );
+      _erro = 'Não foi possível mover a demanda. Tente novamente.';
+      return false;
+    } finally {
+      _finalizarEnvio();
+    }
   }
 
   void _aplicarMovimentacaoLocal(
@@ -563,7 +616,9 @@ class DemandasViewModel extends ChangeNotifier {
     _notificar();
 
     try {
-      final demandas = await _repository.listarDemandas();
+      final demandas = await _repository.listarDemandas(
+        localizacao: localizacao,
+      );
       if (!_carregamentoAtual(versao)) return false;
 
       _demandas = List.of(demandas);

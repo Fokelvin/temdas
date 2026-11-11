@@ -39,7 +39,9 @@ class DemandaOrdemService {
       final raizes = await Demanda.db.find(
         session,
         where: (t) =>
-            t.usuarioId.equals(usuarioId) & t.demandaPaiId.equals(null),
+            t.usuarioId.equals(usuarioId) &
+            t.demandaPaiId.equals(null) &
+            t.localizacao.equals(DemandaLocalizacao.demandas),
         orderBy: (t) => t.id,
         transaction: transaction,
         lockMode: LockMode.forUpdate,

@@ -18,3 +18,4 @@ values:
   - usuarioDiferenteDaSprint
   - historicoSprintConcluida
   - hierarquiaSprintInvalida
+  - demandaNoBacklog
