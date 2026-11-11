@@ -1,4 +1,9 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temdas/ui/components/demand_components.dart';
@@ -36,6 +41,21 @@ final demandas = [
 
 Finder linha(int id) => find.byKey(ValueKey('demanda-card-$id'));
 
+Future<void> capturar(WidgetTester tester, String nome) async {
+  final diretorio = Platform.environment['TEMDAS_SELECTION_SCREENSHOTS'];
+  if (diretorio == null) return;
+  await tester.runAsync(() async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('capture')),
+    );
+    final imagem = await boundary.toImage();
+    final bytes = await imagem.toByteData(format: ui.ImageByteFormat.png);
+    Directory(diretorio).createSync(recursive: true);
+    File('$diretorio/$nome.png').writeAsBytesSync(bytes!.buffer.asUint8List());
+    imagem.dispose();
+  });
+}
+
 Future<void> fecharDialogo(WidgetTester tester) async {
   await tester.tap(
     find.descendant(
@@ -47,6 +67,17 @@ Future<void> fecharDialogo(WidgetTester tester) async {
 }
 
 void main() {
+  setUpAll(() async {
+    final loader =
+        FontLoader(
+          'packages/material_symbols_icons/MaterialSymbolsRounded',
+        )..addFont(
+          rootBundle.load(
+            'packages/material_symbols_icons/lib/fonts/MaterialSymbolsRounded.ttf',
+          ),
+        );
+    await loader.load();
+  });
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   test('Tipo usa a árvore completa e Filha prevalece sobre Mãe', () {
@@ -229,6 +260,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Expandir todas'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Recolher todas'));
       await tester.pumpAndSettle();
       expect(linha(1), findsNothing);
@@ -301,13 +334,87 @@ void main() {
       expect(find.textContaining('Tipo: Mãe'), findsOneWidget);
       expect(find.textContaining('Data de criação:'), findsWidgets);
       expect(find.text('Sem Sprint'), findsNothing);
-      await tester.tap(find.text('Selecionar Demandas'));
+      await tester.tap(
+        find.byKey(const ValueKey('alternar-modo-selecao-lista')),
+      );
       await tester.pumpAndSettle();
       expect(
         find.descendant(of: linha(1), matching: find.byType(Checkbox)),
         findsOneWidget,
       );
+      expect(find.text('Ações'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final width in [390.0, 1440.0]) {
+    for (final dark in [false, true]) {
+      for (final density in ['normal', 'compacta']) {
+        testWidgets('seleção em lote alinhada $width escuro=$dark $density', (
+          tester,
+        ) async {
+          await open(
+            tester,
+            mode: 'lista',
+            width: width,
+            dark: dark,
+            density: density,
+            demands: demandas,
+          );
+          final alternar = find.byKey(
+            const ValueKey('alternar-modo-selecao-lista'),
+          );
+          expect(find.byType(Checkbox), findsNothing);
+          await tester.tap(alternar);
+          await tester.pumpAndSettle();
+
+          final checkbox = find.byKey(const ValueKey('selecionar-demanda-1'));
+          expect(tester.widget<Checkbox>(checkbox).value, isFalse);
+          expect(
+            (tester.getCenter(alternar).dx - tester.getCenter(checkbox).dx)
+                .abs(),
+            lessThan(2),
+          );
+          expect(
+            find.byKey(const ValueKey('selecionar-demanda-sprint-1')),
+            findsNothing,
+          );
+          expect(find.text('Ações'), findsNothing);
+
+          await tester.tap(checkbox);
+          await tester.pumpAndSettle();
+          expect(find.text('1 selecionada'), findsOneWidget);
+          expect(find.byTooltip('Ações'), findsOneWidget);
+          await capturar(
+            tester,
+            'selection_${width.toInt()}_${dark ? 'dark' : 'light'}_$density',
+          );
+          await tester.tap(find.byTooltip('Ações'));
+          await tester.pumpAndSettle();
+          expect(find.text('Vincular à Sprint'), findsOneWidget);
+          await tester.tapAt(const Offset(4, 4));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('expandir-demanda-1')));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('selecionar-demanda-1')),
+            findsOneWidget,
+          );
+          expect(find.text('1 selecionada'), findsOneWidget);
+          await capturar(
+            tester,
+            'selection_details_${width.toInt()}_${dark ? 'dark' : 'light'}_$density',
+          );
+          await tester.tap(find.text('Cancelar seleção'));
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('selecionar-demanda-1')),
+            findsNothing,
+          );
+          expect(find.byType(Checkbox), findsNothing);
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
 }

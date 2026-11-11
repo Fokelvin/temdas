@@ -37,6 +37,7 @@ class DemandaCard extends StatelessWidget {
     this.ramoExpandidoLista,
     this.tipoLista,
     this.selecaoEmLote = false,
+    this.selection,
     this.onAlternarDetalhes,
     this.expansionController,
     this.dragHandle,
@@ -65,6 +66,7 @@ class DemandaCard extends StatelessWidget {
   final bool? ramoExpandidoLista;
   final TipoDemanda? tipoLista;
   final bool selecaoEmLote;
+  final Widget? selection;
   final ValueChanged<bool>? onAlternarDetalhes;
   final ExpansibleController? expansionController;
   final Widget? dragHandle;
@@ -138,6 +140,7 @@ class DemandaCard extends StatelessWidget {
                 tipo: tipoLista?.rotulo,
                 criadoEm: demanda.criadoEm,
                 selecaoEmLote: selecaoEmLote,
+                selection: selection,
                 id: demanda.id,
                 title: demanda.titulo,
                 priority: demanda.prioridade,

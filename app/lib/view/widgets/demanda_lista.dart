@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../../ui/components/demand_components.dart';
@@ -91,19 +92,36 @@ class DemandaListaControles extends StatelessWidget {
     required this.colunas,
     required this.onAlternarColuna,
     this.onExpandir,
+    this.expandido = false,
   });
 
   final Set<ColunaDemanda> colunas;
   final ValueChanged<ColunaDemanda> onAlternarColuna;
   final ValueChanged<bool>? onExpandir;
+  final bool expandido;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 4,
-    crossAxisAlignment: WrapCrossAlignment.center,
+  Widget build(BuildContext context) => Row(
     children: [
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onExpandir == null
+                ? null
+                : () => onExpandir!(!expandido),
+            icon: Icon(
+              expandido
+                  ? Symbols.unfold_less_rounded
+                  : Symbols.unfold_more_rounded,
+              size: 18,
+            ),
+            label: Text(expandido ? 'Recolher todas' : 'Expandir todas'),
+          ),
+        ),
+      ),
       TextButton.icon(
-        icon: const Icon(Icons.view_column_outlined, size: 18),
+        icon: const Icon(Symbols.view_column_rounded, size: 18),
         label: const Text('Escolher colunas'),
         onPressed: () => showDialog<void>(
           context: context,
@@ -150,27 +168,6 @@ class DemandaListaControles extends StatelessWidget {
           },
         ),
       ),
-      if (MediaQuery.sizeOf(context).width < 600) ...[
-        IconButton(
-          onPressed: onExpandir == null ? null : () => onExpandir!(true),
-          tooltip: 'Expandir todas',
-          icon: const Icon(Icons.unfold_more),
-        ),
-        IconButton(
-          onPressed: onExpandir == null ? null : () => onExpandir!(false),
-          tooltip: 'Recolher todas',
-          icon: const Icon(Icons.unfold_less),
-        ),
-      ] else ...[
-        TextButton(
-          onPressed: onExpandir == null ? null : () => onExpandir!(true),
-          child: const Text('Expandir todas'),
-        ),
-        TextButton(
-          onPressed: onExpandir == null ? null : () => onExpandir!(false),
-          child: const Text('Recolher todas'),
-        ),
-      ],
     ],
   );
 }

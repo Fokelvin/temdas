@@ -88,6 +88,8 @@ class _CompactHeadline extends StatelessWidget {
     required this.title,
     required this.status,
     required this.chevron,
+    this.selection,
+    this.reserveSelectionColumn = false,
     required this.actions,
     this.dragHandle,
     this.onTap,
@@ -98,6 +100,8 @@ class _CompactHeadline extends StatelessWidget {
   final bool mostrarId;
   final b.DemandaStatus status;
   final Widget chevron, actions;
+  final Widget? selection;
+  final bool reserveSelectionColumn;
   final Widget? dragHandle;
   final VoidCallback? onTap;
 
@@ -109,6 +113,8 @@ class _CompactHeadline extends StatelessWidget {
       children: [
         if (dragHandle != null) SizedBox(width: 24, child: dragHandle),
         SizedBox(width: mobile ? 44 : 28, child: chevron),
+        if (reserveSelectionColumn || selection != null)
+          SizedBox(width: 40, child: selection ?? const SizedBox.shrink()),
         if (mostrarId)
           Text(
             '#${id ?? '–'}',
@@ -151,6 +157,7 @@ class _CompactHeadline extends StatelessWidget {
 class _CompactColumns extends StatelessWidget {
   const _CompactColumns({
     required this.chevron,
+    this.selection,
     required this.id,
     required this.title,
     required this.priority,
@@ -163,6 +170,7 @@ class _CompactColumns extends StatelessWidget {
     required this.actions,
   });
   final Widget chevron, title, actions;
+  final Widget? selection;
   final Widget? id, priority, estimate, real, sprint, status, criadoEm, tipo;
 
   @override
@@ -171,6 +179,7 @@ class _CompactColumns extends StatelessWidget {
     return Row(
       children: [
         SizedBox(width: 28, child: chevron),
+        SizedBox(width: 40, child: selection ?? const SizedBox.shrink()),
         if (id != null) SizedBox(width: 44, child: id),
         Expanded(child: title),
         if (priority != null) ...[
@@ -240,6 +249,8 @@ class _CompactDemandRow extends StatelessWidget {
               title: row.title,
               status: row.status,
               chevron: row.chevron,
+              selection: row.selection,
+              reserveSelectionColumn: true,
               actions: row.actions,
               onTap: row.onTap,
             ),
@@ -283,6 +294,7 @@ class _CompactDemandRow extends StatelessWidget {
             children: [
               _CompactColumns(
                 chevron: row.chevron,
+                selection: row.selection ?? const SizedBox.shrink(),
                 id: row._visivel(ColunaDemanda.id) ? row._id(context) : null,
                 title: Tooltip(message: row.title, child: row._title(context)),
                 priority: prioridade,
@@ -302,9 +314,7 @@ class _CompactDemandRow extends StatelessWidget {
                         ],
                       )
                     : null,
-                sprint: row._visivel(ColunaDemanda.sprint) || row.selecaoEmLote
-                    ? row._sprintVisivel ?? const SizedBox.shrink()
-                    : null,
+                sprint: row._sprintVisivel,
                 status: status,
                 criadoEm: extrasNaLinha && row._visivel(ColunaDemanda.criadoEm)
                     ? row._metadado(

@@ -291,24 +291,20 @@ void main() {
       await tocar(t, find.byType(DropdownButtonFormField<int?>));
       await tocar(t, find.text('Sem Sprint').last);
       await tocar(t, find.widgetWithText(FilledButton, 'Concluir'));
-      await tocar(t, find.text('Selecionar Demandas'));
-      await tocar(
-        t,
-        find.byKey(const ValueKey('selecionar-demanda-sprint-10')),
-      );
-      await tocar(
-        t,
-        find.byKey(const ValueKey('selecionar-demanda-sprint-11')),
-      );
+      await tocar(t, find.byKey(const ValueKey('alternar-modo-selecao-lista')));
+      await tocar(t, find.byKey(const ValueKey('selecionar-demanda-10')));
+      await tocar(t, find.byKey(const ValueKey('selecionar-demanda-11')));
       repo.erroVinculo = b.SprintException(
         codigo: b.SprintErroCodigo.periodoSobreposto,
       );
-      await tocar(t, find.text('Vincular à Sprint (2)'));
+      await tocar(t, find.text('Ações'));
+      await tocar(t, find.text('Vincular à Sprint'));
       await escolher(t, 1);
-      expect(find.text('Vincular à Sprint (2)'), findsOneWidget);
+      expect(find.text('2 selecionadas'), findsOneWidget);
       expect(repo.vinculosPorSprint, isEmpty);
       repo.erroVinculo = null;
-      await tocar(t, find.text('Vincular à Sprint (2)'));
+      await tocar(t, find.text('Ações'));
+      await tocar(t, find.text('Vincular à Sprint'));
       await escolher(t, 1);
       expect(repo.chamadasVinculoLote, 2);
       expect(repo.demandaIdsVinculadas, unorderedEquals([10, 11]));

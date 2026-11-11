@@ -52,6 +52,7 @@ class _DemandasPageState extends State<DemandasPage> {
   String? _erroSprints;
   bool _aguardandoConsultaSprint = false;
   bool _selecionando = false;
+  bool _listaExpandida = false;
   bool _vinculandoLote = false;
   final _selecionadas = <int>{};
 
@@ -137,7 +138,7 @@ class _DemandasPageState extends State<DemandasPage> {
 
   Widget _vinculoSprint(backend.Demanda demanda) {
     final id = demanda.id;
-    if (_selecionando && id != null) {
+    if (_selecionando && !_emLista && id != null) {
       return Checkbox(
         key: ValueKey('selecionar-demanda-sprint-$id'),
         semanticLabel: 'Selecionar ${formatarIdentificacaoDemanda(demanda)}',
@@ -178,6 +179,21 @@ class _DemandasPageState extends State<DemandasPage> {
       },
     );
   }
+
+  Widget _selecaoDemanda(backend.Demanda demanda) => Checkbox(
+    key: ValueKey('selecionar-demanda-${demanda.id}'),
+    semanticLabel: 'Selecionar ${formatarIdentificacaoDemanda(demanda)}',
+    value: _selecionadas.contains(demanda.id),
+    onChanged: _vinculandoLote || demanda.id == null
+        ? null
+        : (marcada) => setState(() {
+            if (marcada == true) {
+              _selecionadas.add(demanda.id!);
+            } else {
+              _selecionadas.remove(demanda.id);
+            }
+          }),
+  );
 
   bool get _filtrosAtivos =>
       _buscaController.text.trim().isNotEmpty || _quantidadeFiltros > 0;
@@ -695,6 +711,12 @@ class _DemandasPageState extends State<DemandasPage> {
           comandoExpansaoLista: _expansaoLista,
           revelarGruposLista: _filtrosAtivos,
           selecaoEmLote: _selecionando,
+          selectionBuilder: _selecionando ? _selecaoDemanda : null,
+          onEstadoExpansaoLista: (expandido) {
+            if (_listaExpandida != expandido && mounted) {
+              setState(() => _listaExpandida = expandido);
+            }
+          },
           sprintBuilder: _vinculoSprint,
           demandas: lista
               ? hierarquia.ordenar(
@@ -769,38 +791,41 @@ class _DemandasPageState extends State<DemandasPage> {
                       icon: const Icon(Symbols.refresh_rounded),
                     ),
                   ),
-                Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    TextButton.icon(
-                      onPressed: _vinculandoLote
-                          ? null
-                          : () => setState(() {
-                              _selecionando = !_selecionando;
-                              _selecionadas.clear();
-                            }),
-                      icon: Icon(_selecionando ? Icons.close : Icons.checklist),
-                      label: Text(
-                        _selecionando
-                            ? 'Cancelar seleção'
-                            : 'Selecionar Demandas',
-                      ),
-                    ),
-                    if (_selecionando)
-                      FilledButton(
-                        onPressed:
-                            _vinculandoLote ||
-                                _carregandoSprints ||
-                                selecionadasVisiveis.isEmpty
+                if (!lista)
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _vinculandoLote
                             ? null
-                            : () => _vincularLote(selecionadasVisiveis),
-                        child: Text(
-                          'Vincular à Sprint (${selecionadasVisiveis.length})',
+                            : () => setState(() {
+                                _selecionando = !_selecionando;
+                                _selecionadas.clear();
+                              }),
+                        icon: Icon(
+                          _selecionando ? Icons.close : Icons.checklist,
+                        ),
+                        label: Text(
+                          _selecionando
+                              ? 'Cancelar seleção'
+                              : 'Selecionar Demandas',
                         ),
                       ),
-                  ],
-                ),
+                      if (_selecionando)
+                        FilledButton(
+                          onPressed:
+                              _vinculandoLote ||
+                                  _carregandoSprints ||
+                                  selecionadasVisiveis.isEmpty
+                              ? null
+                              : () => _vincularLote(selecionadasVisiveis),
+                          child: Text(
+                            'Vincular à Sprint (${selecionadasVisiveis.length})',
+                          ),
+                        ),
+                    ],
+                  ),
                 if (lista) ...[
                   DemandaListaControles(
                     colunas: _preferenciasLista.colunas,
@@ -810,8 +835,10 @@ class _DemandasPageState extends State<DemandasPage> {
                     onExpandir: resultadoBusca.demandas.isEmpty
                         ? null
                         : (expandir) => setState(() {
+                            _listaExpandida = expandir;
                             _expansaoLista = ComandoExpansaoLista(expandir);
                           }),
+                    expandido: _listaExpandida,
                   ),
                   if (resultadoBusca.demandas.isNotEmpty)
                     DemandTableHeader(
@@ -820,6 +847,57 @@ class _DemandasPageState extends State<DemandasPage> {
                       ordem: _preferenciasLista.ordem,
                       onOrdenar: (coluna) => _salvarPreferenciaLista(
                         _preferenciasLista.ordenar(coluna),
+                      ),
+                      modoSelecao: _selecionando,
+                      onAlternarSelecao: _vinculandoLote
+                          ? null
+                          : () => setState(() {
+                              _selecionando = !_selecionando;
+                              _selecionadas.clear();
+                            }),
+                    ),
+                  if (_selecionando)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Wrap(
+                        spacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (selecionadasVisiveis.isNotEmpty) ...[
+                            Text(
+                              '${selecionadasVisiveis.length} '
+                              '${selecionadasVisiveis.length == 1 ? 'selecionada' : 'selecionadas'}',
+                            ),
+                            PopupMenuButton<String>(
+                              tooltip: 'Ações',
+                              enabled: !_vinculandoLote && !_carregandoSprints,
+                              onSelected: (acao) {
+                                if (acao == 'sprint') {
+                                  _vincularLote(selecionadasVisiveis);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem<String>(
+                                  value: 'sprint',
+                                  child: Text('Vincular à Sprint'),
+                                ),
+                              ],
+                              child: const Chip(
+                                label: Text('Ações'),
+                                avatar: Icon(Symbols.arrow_drop_down_rounded),
+                              ),
+                            ),
+                          ],
+                          TextButton(
+                            onPressed: _vinculandoLote
+                                ? null
+                                : () => setState(() {
+                                    _selecionando = false;
+                                    _selecionadas.clear();
+                                  }),
+                            child: const Text('Cancelar seleção'),
+                          ),
+                        ],
                       ),
                     ),
                 ],

@@ -38,6 +38,8 @@ class DemandaTree extends StatefulWidget {
     this.comandoExpansaoLista,
     this.revelarGruposLista = false,
     this.selecaoEmLote = false,
+    this.selectionBuilder,
+    this.onEstadoExpansaoLista,
     this.agrupamento = AgrupamentoDemandas.demanda,
     this.referenciaHierarquica,
     this.temposExecutadosTotais,
@@ -56,6 +58,8 @@ class DemandaTree extends StatefulWidget {
   final ComandoExpansaoLista? comandoExpansaoLista;
   final bool revelarGruposLista;
   final bool selecaoEmLote;
+  final Widget Function(backend.Demanda)? selectionBuilder;
+  final ValueChanged<bool>? onEstadoExpansaoLista;
   final AgrupamentoDemandas agrupamento;
   final String? Function(backend.Demanda)? referenciaHierarquica;
   final Map<int, int>? temposExecutadosTotais;
@@ -107,6 +111,48 @@ class _DemandaTreeState extends State<DemandaTree> {
       _gruposRecolhidos.addAll(backend.DemandaStatus.values);
       _gruposRecolhidos.addAll(backend.Prioridade.values);
     }
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _notificarEstadoExpansao(),
+    );
+  }
+
+  void _notificarEstadoExpansao() {
+    final filhosPorPai = <int, List<backend.Demanda>>{};
+    for (final demanda in widget.demandas) {
+      final pai = demanda.demandaPaiId;
+      if (pai != null) filhosPorPai.putIfAbsent(pai, () => []).add(demanda);
+    }
+    final ramos = widget.demandas.where(
+      (demanda) => demanda.id != null && filhosPorPai.containsKey(demanda.id),
+    );
+    final gruposRecolhidosAtivos = switch (widget.agrupamento) {
+      AgrupamentoDemandas.demanda => false,
+      AgrupamentoDemandas.status => backend.DemandaStatus.values.any(
+        _gruposRecolhidos.contains,
+      ),
+      AgrupamentoDemandas.prioridade => backend.Prioridade.values.any(
+        _gruposRecolhidos.contains,
+      ),
+    };
+    final gruposExpandidos =
+        widget.agrupamento == AgrupamentoDemandas.demanda ||
+        widget.revelarGruposLista ||
+        !gruposRecolhidosAtivos;
+    final possuiGrupo =
+        widget.agrupamento != AgrupamentoDemandas.demanda &&
+        widget.demandas.isNotEmpty;
+    final possuiRamo = ramos.isNotEmpty;
+    final todosExpandidos =
+        (possuiRamo || possuiGrupo) &&
+        gruposExpandidos &&
+        ramos.every((demanda) {
+          final id = demanda.id!;
+          return widget.autoExpandIds.contains(id) ||
+              (_ramosLista[_chaveExpansao(demanda)] ??
+                  _expansaoColetiva ??
+                  _expansaoDe(demanda).isExpanded);
+        });
+    widget.onEstadoExpansaoLista?.call(todosExpandidos);
   }
 
   backend.DemandaStatus? _abaAtiva;
@@ -167,6 +213,11 @@ class _DemandaTreeState extends State<DemandaTree> {
         oldWidget.focoVersao != widget.focoVersao ||
         oldWidget.focoDemandaId != widget.focoDemandaId) {
       _agendarFoco();
+    }
+    if (widget.lista) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _notificarEstadoExpansao(),
+      );
     }
   }
 
@@ -326,6 +377,9 @@ class _DemandaTreeState extends State<DemandaTree> {
           if (!_gruposRecolhidos.remove(grupo)) {
             _gruposRecolhidos.add(grupo);
           }
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _notificarEstadoExpansao(),
+          );
         }),
         construirLinha: construir,
       );
@@ -614,10 +668,16 @@ class _DemandaTreeState extends State<DemandaTree> {
                   : null,
               tipoLista: widget.lista ? widget.tipoLista?.call(demanda) : null,
               selecaoEmLote: widget.lista && widget.selecaoEmLote,
+              selection: widget.lista
+                  ? widget.selectionBuilder?.call(demanda)
+                  : null,
               onAlternarDetalhes: widget.lista
                   ? (aberto) {
                       _ramosLista[_chaveExpansao(demanda)] = aberto;
                       _atualizarVisibilidade();
+                      WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => _notificarEstadoExpansao(),
+                      );
                     }
                   : null,
               demanda: demanda,

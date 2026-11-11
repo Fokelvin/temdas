@@ -299,12 +299,30 @@ class DemandTableHeader extends StatelessWidget {
     this.colunas = ColunaDemanda.padrao,
     this.ordem,
     this.onOrdenar,
+    this.modoSelecao = false,
+    this.onAlternarSelecao,
   });
 
   final DensidadeDemanda densidade;
   final Set<ColunaDemanda> colunas;
   final OrdemListaDemanda? ordem;
   final ValueChanged<ColunaDemanda>? onOrdenar;
+  final bool modoSelecao;
+  final VoidCallback? onAlternarSelecao;
+
+  Widget _controleSelecao() => SizedBox(
+    width: 40,
+    child: IconButton(
+      key: const ValueKey('alternar-modo-selecao-lista'),
+      tooltip: modoSelecao
+          ? 'Encerrar seleção múltipla'
+          : 'Ativar seleção múltipla',
+      onPressed: onAlternarSelecao,
+      icon: Icon(
+        modoSelecao ? Symbols.checklist_rtl_rounded : Symbols.checklist_rounded,
+      ),
+    ),
+  );
 
   Widget? _rotulo(ColunaDemanda coluna, {String? texto, bool direita = false}) {
     if (!colunas.contains(coluna)) return null;
@@ -413,13 +431,31 @@ class DemandTableHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (estreito)
-                  _rotulosEmFaixa(ColunaDemanda.values)
+                  Wrap(
+                    spacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: (box.maxWidth < 1024 ? 44 : 28) + 40,
+                        child: Row(
+                          children: [
+                            SizedBox(width: box.maxWidth < 1024 ? 44 : 28),
+                            _controleSelecao(),
+                          ],
+                        ),
+                      ),
+                      ...ColunaDemanda.values
+                          .where(colunas.contains)
+                          .map((coluna) => _rotulo(coluna)!),
+                    ],
+                  )
                 else
                   SizedBox(
                     height: 36,
                     child: compacta
                         ? _CompactColumns(
                             chevron: const SizedBox(),
+                            selection: _controleSelecao(),
                             id: id,
                             title: demanda,
                             priority: prioridade,
@@ -443,6 +479,7 @@ class DemandTableHeader extends StatelessWidget {
                         : Row(
                             children: [
                               const SizedBox(width: 28),
+                              _controleSelecao(),
                               if (id != null) SizedBox(width: 44, child: id),
                               Expanded(child: demanda),
                               if (prioridade != null)
@@ -516,6 +553,7 @@ class DemandRow extends StatelessWidget {
     this.tipo,
     this.criadoEm,
     this.selecaoEmLote = false,
+    this.selection,
   });
   final DensidadeDemanda densidade;
   final int? id;
@@ -531,12 +569,12 @@ class DemandRow extends StatelessWidget {
   final String? tipo;
   final DateTime? criadoEm;
   final bool selecaoEmLote;
+  final Widget? selection;
 
   bool _visivel(ColunaDemanda coluna) => colunas.contains(coluna);
   bool get _mostraHoras =>
       _visivel(ColunaDemanda.executado) || _visivel(ColunaDemanda.estimado);
-  Widget? get _sprintVisivel =>
-      _visivel(ColunaDemanda.sprint) || selecaoEmLote ? sprint : null;
+  Widget? get _sprintVisivel => _visivel(ColunaDemanda.sprint) ? sprint : null;
 
   Widget _horas({required bool separarEstimativa, bool compacta = false}) {
     final real = _visivel(ColunaDemanda.executado);
@@ -671,6 +709,10 @@ class DemandRow extends StatelessWidget {
                                         : 28,
                                     child: chevron,
                                   ),
+                                  SizedBox(
+                                    width: 40,
+                                    child: selection ?? const SizedBox.shrink(),
+                                  ),
                                   if (_visivel(ColunaDemanda.id)) ...[
                                     _id(context),
                                     const SizedBox(width: 8),
@@ -743,6 +785,11 @@ class DemandRow extends StatelessWidget {
                                           ? 44
                                           : 28,
                                       child: chevron,
+                                    ),
+                                    SizedBox(
+                                      width: 40,
+                                      child:
+                                          selection ?? const SizedBox.shrink(),
                                     ),
                                     if (_visivel(ColunaDemanda.id))
                                       SizedBox(width: 44, child: _id(context)),

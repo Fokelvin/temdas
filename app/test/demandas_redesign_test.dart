@@ -168,41 +168,49 @@ void main() {
   ]) {
     for (final dark in [false, true]) {
       for (final mode in ['lista', 'kanban']) {
-        testWidgets(
-          '$mode $width escuro=$dark: títulos longos, horas e navegação',
-          (tester) async {
-            await open(tester, width: width, dark: dark, mode: mode);
-            expect(tester.takeException(), isNull);
-            expect(find.byType(AppShell), findsOneWidget);
-            final search = tester.getRect(find.byType(SearchField));
-            expect(search.left, greaterThanOrEqualTo(0));
-            expect(search.right, lessThanOrEqualTo(width));
-            final shell = tester.getRect(find.byType(AppShell));
-            expect(shell.width, width);
-            if (width < 600) expect(find.byType(AppFab), findsOneWidget);
-            expect(
-              find.byType(mode == 'lista' ? DemandRow : DemandCard),
-              findsWidgets,
-            );
-            final dir = Platform.environment['TEMDAS_SCREENSHOTS'];
-            if (dir != null) {
-              await tester.runAsync(() async {
-                final boundary = tester.renderObject<RenderRepaintBoundary>(
-                  find.byKey(const ValueKey('capture')),
-                );
-                final capture = await boundary.toImage();
-                final bytes = await capture.toByteData(
-                  format: ui.ImageByteFormat.png,
-                );
-                Directory(dir).createSync(recursive: true);
-                File(
-                  '$dir/${mode}_${width.toInt()}_${dark ? 'dark' : 'light'}.png',
-                ).writeAsBytesSync(bytes!.buffer.asUint8List());
-                capture.dispose();
-              });
-            }
-          },
-        );
+        for (final density in ['normal', 'compacta']) {
+          testWidgets(
+            '$mode $width escuro=$dark $density: títulos longos, horas e navegação',
+            (tester) async {
+              await open(
+                tester,
+                width: width,
+                dark: dark,
+                mode: mode,
+                density: density,
+              );
+              expect(tester.takeException(), isNull);
+              expect(find.byType(AppShell), findsOneWidget);
+              final search = tester.getRect(find.byType(SearchField));
+              expect(search.left, greaterThanOrEqualTo(0));
+              expect(search.right, lessThanOrEqualTo(width));
+              final shell = tester.getRect(find.byType(AppShell));
+              expect(shell.width, width);
+              if (width < 600) expect(find.byType(AppFab), findsOneWidget);
+              expect(
+                find.byType(mode == 'lista' ? DemandRow : DemandCard),
+                findsWidgets,
+              );
+              final dir = Platform.environment['TEMDAS_SCREENSHOTS'];
+              if (dir != null) {
+                await tester.runAsync(() async {
+                  final boundary = tester.renderObject<RenderRepaintBoundary>(
+                    find.byKey(const ValueKey('capture')),
+                  );
+                  final capture = await boundary.toImage();
+                  final bytes = await capture.toByteData(
+                    format: ui.ImageByteFormat.png,
+                  );
+                  Directory(dir).createSync(recursive: true);
+                  File(
+                    '$dir/${mode}_${density}_${width.toInt()}_${dark ? 'dark' : 'light'}.png',
+                  ).writeAsBytesSync(bytes!.buffer.asUint8List());
+                  capture.dispose();
+                });
+              }
+            },
+          );
+        }
       }
     }
   }
