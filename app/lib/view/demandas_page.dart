@@ -1,3 +1,5 @@
+import '../view_model/demanda_hierarquia_lista.dart';
+import '../view_model/demanda_lista_preferencias.dart';
 import '../view_model/demandas_agrupamento.dart';
 import 'formatters/demanda_hierarquia.dart';
 import '../ui/theme/tokens.dart';
@@ -25,6 +27,7 @@ import 'demanda_detalhe_page.dart';
 import 'widgets/demanda_dialog.dart';
 import 'widgets/demanda_status_dialog.dart';
 import 'widgets/demanda_tree.dart';
+import 'widgets/demanda_lista.dart';
 import 'widgets/densidade_demanda.dart';
 import 'widgets/log_time_dialog.dart';
 
@@ -53,6 +56,10 @@ class _DemandasPageState extends State<DemandasPage> {
   final _selecionadas = <int>{};
 
   backend.Prioridade? _filtroPrioridade;
+  bool _possuiFilhas = false;
+  bool get _emLista => _visualizacao.value == VisualizacaoDemandas.lista;
+  final _preferenciasLista = DemandaListaPreferencias('demandas');
+  ComandoExpansaoLista? _expansaoLista;
   final _agrupamento = DemandasAgrupamento();
   final _preferenciaDensidade = DemandasDensidade();
   DensidadeDemanda get _densidade => _preferenciaDensidade.value;
@@ -67,6 +74,7 @@ class _DemandasPageState extends State<DemandasPage> {
     super.initState();
     unawaited(_visualizacao.load());
     unawaited(_agrupamento.load());
+    unawaited(_preferenciasLista.load());
     unawaited(_preferenciaDensidade.load());
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? DemandasViewModel();
@@ -82,6 +90,7 @@ class _DemandasPageState extends State<DemandasPage> {
     if (widget.sprintViewModel == null) _sprintViewModel.dispose();
     _visualizacao.dispose();
     _agrupamento.dispose();
+    _preferenciasLista.dispose();
     _preferenciaDensidade.dispose();
     _buscaController.dispose();
     _quadroHorizontalController.dispose();
@@ -174,7 +183,9 @@ class _DemandasPageState extends State<DemandasPage> {
       _buscaController.text.trim().isNotEmpty || _quantidadeFiltros > 0;
 
   int get _quantidadeFiltros =>
-      (_filtroPrioridade == null ? 0 : 1) + (_filtroSprint == null ? 0 : 1);
+      (_filtroPrioridade == null ? 0 : 1) +
+      (_filtroSprint == null ? 0 : 1) +
+      (_emLista && _possuiFilhas ? 1 : 0);
 
   void _alterarBusca(String valor) {
     setState(() => _filtroVersao++);
@@ -191,86 +202,36 @@ class _DemandasPageState extends State<DemandasPage> {
     setState(() {
       _filtroPrioridade = null;
       _filtroSprint = null;
+      if (_emLista) _possuiFilhas = false;
       _filtroVersao++;
     });
   }
 
-  _ResultadoBusca _resultadoBusca() {
-    final busca = normalizarTextoBusca(_buscaController.text.trim());
-    final idBuscado = int.tryParse(busca.replaceFirst(RegExp(r'^#'), ''));
-    final demandasComPrioridade = _viewModel.demandas.where(
-      (demanda) =>
-          (_filtroPrioridade == null ||
-              demanda.prioridade == _filtroPrioridade) &&
-          (_filtroSprint == null ||
-              (_filtroSprint == -1
-                  ? !(_sprintsPorDemanda[demanda.id] ??
-                            const <backend.Sprint>[])
-                        .any(sprintAberta)
-                  : (_sprintsPorDemanda[demanda.id] ?? const <backend.Sprint>[])
-                        .any((s) => sprintAberta(s) && s.id == _filtroSprint))),
-    );
-    final candidatas = demandasComPrioridade.toList();
-    List<backend.Demanda> correspondentes;
-    if (busca.isEmpty) {
-      correspondentes = candidatas;
-    } else if (idBuscado != null &&
-        candidatas.any((demanda) => demanda.id == idBuscado)) {
-      correspondentes = candidatas
-          .where((demanda) => demanda.id == idBuscado)
-          .toList();
-    } else {
-      correspondentes = candidatas
-          .where(
-            (demanda) =>
-                normalizarTextoBusca(demanda.titulo).contains(busca) ||
-                (demanda.id?.toString().contains(busca.replaceFirst('#', '')) ??
-                    false),
-          )
-          .toList();
-    }
+  ResultadoBuscaDemanda _resultadoBusca(
+    DemandaHierarquiaLista hierarquia,
+  ) => hierarquia.buscar(
+    texto: _buscaController.text,
+    filtrosAtivos: _quantidadeFiltros > 0,
+    possuiFilhas: _emLista && _possuiFilhas,
+    incluirSemId: _emLista,
+    atendeFiltros: (demanda) =>
+        (_filtroPrioridade == null ||
+            demanda.prioridade == _filtroPrioridade) &&
+        (_filtroSprint == null ||
+            (_filtroSprint == -1
+                ? !(_sprintsPorDemanda[demanda.id] ?? const <backend.Sprint>[])
+                      .any(sprintAberta)
+                : (_sprintsPorDemanda[demanda.id] ?? const <backend.Sprint>[])
+                      .any((s) => sprintAberta(s) && s.id == _filtroSprint))),
+  );
 
-    if (!_filtrosAtivos) {
-      return _ResultadoBusca(
-        demandas: _viewModel.demandas,
-        autoExpandIds: const {},
-        focoDemandaId: null,
+  Future<void> _salvarPreferenciaLista(Future<bool> gravacao) async {
+    if (!await gravacao && mounted) {
+      _mostrarFeedback(
+        'Não foi possível salvar a configuração da Lista.',
+        erro: true,
       );
     }
-
-    final porId = <int, backend.Demanda>{
-      for (final demanda in _viewModel.demandas)
-        if (demanda.id != null) demanda.id!: demanda,
-    };
-    final idsVisiveis = <int>{};
-    final idsExpandir = <int>{};
-    for (final correspondente in correspondentes) {
-      var atual = correspondente;
-      final visitados = <int>{};
-      while (true) {
-        if (atual.id != null && !visitados.add(atual.id!)) break;
-        final id = atual.id;
-        if (id != null) idsVisiveis.add(id);
-        final paiId = atual.demandaPaiId;
-        if (paiId == null) break;
-        idsVisiveis.add(paiId);
-        idsExpandir.add(paiId);
-        final pai = porId[paiId];
-        if (pai == null) break;
-        atual = pai;
-      }
-    }
-
-    final demandasVisiveis = _viewModel.demandas
-        .where((demanda) => idsVisiveis.contains(demanda.id))
-        .toList();
-    return _ResultadoBusca(
-      demandas: demandasVisiveis,
-      autoExpandIds: idsExpandir,
-      focoDemandaId: correspondentes.length == 1
-          ? correspondentes.single.id
-          : null,
-    );
   }
 
   Future<void> _abrirFormulario() async {
@@ -707,31 +668,42 @@ class _DemandasPageState extends State<DemandasPage> {
         _visualizacao,
         _preferenciaDensidade,
         _agrupamento,
+        _preferenciasLista,
       ]),
       builder: (context, _) {
-        final resultadoBusca = _resultadoBusca();
+        final hierarquia = DemandaHierarquiaLista(_viewModel.demandas);
+        final resultadoBusca = _resultadoBusca(hierarquia);
         final selecionadasVisiveis = resultadoBusca.demandas
             .map((d) => d.id)
             .whereType<int>()
             .where(_selecionadas.contains)
             .toList();
-        final lista = _visualizacao.value == VisualizacaoDemandas.lista;
+        final lista = _emLista;
         final mobile = MediaQuery.sizeOf(context).width < 600;
-        final todasPorId = indexarDemandas(_viewModel.demandas);
+        final tempos = calcularTemposExecutadosTotais(_viewModel.demandas);
         final tree = DemandaTree(
           agrupamento: _agrupamento.value,
           referenciaHierarquica: (d) =>
-              caminhoAncestral(d, (id) => todasPorId[id]),
+              caminhoAncestral(d, (id) => hierarquia.porId[id]),
           // Preserva o quadro quando o aviso de erro muda os índices da lista.
           key: const ValueKey('demandas-arvore'),
           horizontalController: _quadroHorizontalController,
           densidade: _densidade,
-          lista: _visualizacao.value == VisualizacaoDemandas.lista,
+          lista: lista,
+          colunas: _preferenciasLista.colunas,
+          tipoLista: hierarquia.tipo,
+          comandoExpansaoLista: _expansaoLista,
+          revelarGruposLista: _filtrosAtivos,
+          selecaoEmLote: _selecionando,
           sprintBuilder: _vinculoSprint,
-          demandas: resultadoBusca.demandas,
-          temposExecutadosTotais: calcularTemposExecutadosTotais(
-            _viewModel.demandas,
-          ),
+          demandas: lista
+              ? hierarquia.ordenar(
+                  resultadoBusca.demandas,
+                  _preferenciasLista.ordem,
+                  tempos,
+                )
+              : resultadoBusca.demandas,
+          temposExecutadosTotais: tempos,
           autoExpandIds: resultadoBusca.autoExpandIds,
           focoDemandaId: resultadoBusca.focoDemandaId,
           focoVersao: _filtroVersao,
@@ -829,8 +801,28 @@ class _DemandasPageState extends State<DemandasPage> {
                       ),
                   ],
                 ),
-                if (lista && resultadoBusca.demandas.isNotEmpty)
-                  DemandTableHeader(densidade: _densidade),
+                if (lista) ...[
+                  DemandaListaControles(
+                    colunas: _preferenciasLista.colunas,
+                    onAlternarColuna: (coluna) => _salvarPreferenciaLista(
+                      _preferenciasLista.alternarColuna(coluna),
+                    ),
+                    onExpandir: resultadoBusca.demandas.isEmpty
+                        ? null
+                        : (expandir) => setState(() {
+                            _expansaoLista = ComandoExpansaoLista(expandir);
+                          }),
+                  ),
+                  if (resultadoBusca.demandas.isNotEmpty)
+                    DemandTableHeader(
+                      densidade: _densidade,
+                      colunas: _preferenciasLista.colunas,
+                      ordem: _preferenciasLista.ordem,
+                      onOrdenar: (coluna) => _salvarPreferenciaLista(
+                        _preferenciasLista.ordenar(coluna),
+                      ),
+                    ),
+                ],
                 Expanded(
                   child: _viewModel.carregando && _viewModel.demandas.isEmpty
                       ? (lista
@@ -1089,6 +1081,19 @@ class _DemandasPageState extends State<DemandasPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (_emLista)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Possui filhas'),
+                      value: _possuiFilhas,
+                      onChanged: (valor) {
+                        setState(() {
+                          _possuiFilhas = valor ?? false;
+                          _filtroVersao++;
+                        });
+                        updateDialog(() {});
+                      },
+                    ),
                   DropdownButtonFormField<backend.Prioridade?>(
                     dropdownColor: AppTokens.of(context).dropdownSurface,
                     key: ValueKey('filtro-prioridade-$_filtroPrioridade'),
@@ -1213,16 +1218,4 @@ String _prioridadeLabel(backend.Prioridade prioridade) {
     backend.Prioridade.alta => 'Alta',
     backend.Prioridade.urgente => 'Urgente',
   };
-}
-
-class _ResultadoBusca {
-  const _ResultadoBusca({
-    required this.demandas,
-    required this.autoExpandIds,
-    required this.focoDemandaId,
-  });
-
-  final List<backend.Demanda> demandas;
-  final Set<int> autoExpandIds;
-  final int? focoDemandaId;
 }

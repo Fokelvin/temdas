@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as b;
 import '../theme/tokens.dart';
 import '../../view/widgets/densidade_demanda.dart';
+import '../../view_model/demanda_lista_preferencias.dart';
 
 part 'compact_demand_components.dart';
 
@@ -191,16 +192,18 @@ class GroupHeader extends StatelessWidget {
     required this.count,
     this.collapsed = false,
     this.onTap,
+    this.bloqueado = false,
   }) : assert(status != null || prioridade != null);
   final DensidadeDemanda densidade;
   final b.DemandaStatus? status;
   final b.Prioridade? prioridade;
   final int count;
   final bool collapsed;
+  final bool bloqueado;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: bloqueado ? null : onTap,
     child: SizedBox(
       height: densidade.isCompacta ? 44 : 52,
       child: Padding(
@@ -293,57 +296,205 @@ class DemandTableHeader extends StatelessWidget {
   const DemandTableHeader({
     super.key,
     this.densidade = DensidadeDemanda.normal,
+    this.colunas = ColunaDemanda.padrao,
+    this.ordem,
+    this.onOrdenar,
   });
+
   final DensidadeDemanda densidade;
+  final Set<ColunaDemanda> colunas;
+  final OrdemListaDemanda? ordem;
+  final ValueChanged<ColunaDemanda>? onOrdenar;
+
+  Widget? _rotulo(ColunaDemanda coluna, {String? texto, bool direita = false}) {
+    if (!colunas.contains(coluna)) return null;
+    final selecionada = ordem?.coluna == coluna;
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: direita
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      children: [
+        Flexible(
+          child: Text(
+            texto ?? coluna.rotulo,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (selecionada)
+          Icon(
+            ordem!.crescente ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 12,
+          ),
+      ],
+    );
+    if (!coluna.ordenavel || onOrdenar == null) return child;
+    final direcao = selecionada
+        ? (ordem!.crescente ? 'crescente' : 'decrescente')
+        : null;
+    return Tooltip(
+      message: direcao == null
+          ? 'Ordenar por ${coluna.rotulo}'
+          : 'Ordenar por ${coluna.rotulo} ($direcao)',
+      child: Semantics(
+        selected: selecionada,
+        child: InkWell(
+          key: ValueKey('ordenar-lista-${coluna.name}'),
+          onTap: () => onOrdenar!(coluna),
+          child: SizedBox(
+            height: 36,
+            child: Align(
+              alignment: direita ? Alignment.centerRight : Alignment.centerLeft,
+              widthFactor: 1,
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _rotulosEmFaixa(Iterable<ColunaDemanda> candidatas) => Wrap(
+    spacing: 12,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      for (final coluna in candidatas.where(colunas.contains)) _rotulo(coluna)!,
+    ],
+  );
+
   @override
-  Widget build(BuildContext context) => densidade.isCompacta
-      ? const _CompactDemandHeader()
-      : LayoutBuilder(
-          builder: (context, box) {
-            if (MediaQuery.sizeOf(context).width < 600) {
-              return const SizedBox.shrink();
-            }
-            final desktop = box.maxWidth >= 960;
-            Widget cell(String s, double w, [bool right = false]) => SizedBox(
-              width: w,
-              child: Text(
-                s,
-                textAlign: right ? TextAlign.right : TextAlign.left,
-              ),
-            );
-            return Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              color: AppTokens.of(context).bg,
-              child: DefaultTextStyle.merge(
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppTokens.of(context).secondaryLabel,
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 28),
-                    cell('ID', 44),
-                    const Expanded(child: Text('Demanda')),
-                    cell('Prioridade', desktop ? 100 : 76),
-                    if (desktop) ...[
-                      cell('Sprint', 84),
-                      cell('Est.', 64, true),
-                      const SizedBox(width: 12),
-                      cell('Real', 112, true),
-                    ] else
-                      cell('Real / Est.', 108, true),
-                    const SizedBox(width: 12),
-                    cell('Status', 136),
-                    const SizedBox(width: 32),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final compacta = densidade.isCompacta;
+      final larguraTela = MediaQuery.sizeOf(context).width;
+      final estreito = compacta
+          ? box.maxWidth < 680
+          : larguraTela < 600 || box.maxWidth < 560;
+      if (estreito && onOrdenar == null) return const SizedBox.shrink();
+      final desktop = box.maxWidth >= 960;
+      final extrasNaLinha = compacta ? box.maxWidth >= 900 : desktop;
+      final extras = [ColunaDemanda.criadoEm, ColunaDemanda.tipo];
+      final estimado = _rotulo(
+        ColunaDemanda.estimado,
+        texto: 'Est.',
+        direita: true,
+      );
+      final executado = _rotulo(
+        ColunaDemanda.executado,
+        texto: 'Real',
+        direita: true,
+      );
+      Widget combinado() => Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (executado != null) Flexible(child: executado),
+          if (executado != null && estimado != null) const Text(' / '),
+          if (estimado != null) Flexible(child: estimado),
+        ],
+      );
+      final horasVisiveis = estimado != null || executado != null;
+      final status = _rotulo(ColunaDemanda.status);
+      final sprint = _rotulo(ColunaDemanda.sprint);
+      final prioridade = _rotulo(ColunaDemanda.prioridade);
+      final id = _rotulo(ColunaDemanda.id);
+      final demanda = _rotulo(ColunaDemanda.demanda)!;
+      return ColoredBox(
+        color: AppTokens.of(context).bg,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: DefaultTextStyle.merge(
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: AppTokens.of(context).secondaryLabel,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (estreito)
+                  _rotulosEmFaixa(ColunaDemanda.values)
+                else
+                  SizedBox(
+                    height: 36,
+                    child: compacta
+                        ? _CompactColumns(
+                            chevron: const SizedBox(),
+                            id: id,
+                            title: demanda,
+                            priority: prioridade,
+                            estimate: estimado,
+                            real: larguraTela >= 1100
+                                ? executado
+                                : (horasVisiveis ? combinado() : null),
+                            sprint: sprint,
+                            status: status,
+                            criadoEm: extrasNaLinha
+                                ? _rotulo(
+                                    ColunaDemanda.criadoEm,
+                                    texto: 'Criação',
+                                  )
+                                : null,
+                            tipo: extrasNaLinha
+                                ? _rotulo(ColunaDemanda.tipo)
+                                : null,
+                            actions: const SizedBox(),
+                          )
+                        : Row(
+                            children: [
+                              const SizedBox(width: 28),
+                              if (id != null) SizedBox(width: 44, child: id),
+                              Expanded(child: demanda),
+                              if (prioridade != null)
+                                SizedBox(
+                                  width: desktop ? 100 : 76,
+                                  child: prioridade,
+                                ),
+                              if (desktop) ...[
+                                if (sprint != null)
+                                  SizedBox(width: 84, child: sprint),
+                                if (estimado != null)
+                                  SizedBox(width: 64, child: estimado),
+                                if (estimado != null && executado != null)
+                                  const SizedBox(width: 12),
+                                if (executado != null)
+                                  SizedBox(width: 112, child: executado),
+                              ] else if (horasVisiveis)
+                                SizedBox(width: 108, child: combinado()),
+                              if (status != null) ...[
+                                const SizedBox(width: 12),
+                                SizedBox(width: 136, child: status),
+                              ],
+                              if (extrasNaLinha)
+                                for (final coluna in extras.where(
+                                  colunas.contains,
+                                ))
+                                  SizedBox(
+                                    width: _larguraExtra(coluna),
+                                    child: _rotulo(
+                                      coluna,
+                                      texto: coluna == ColunaDemanda.criadoEm
+                                          ? 'Criação'
+                                          : null,
+                                    ),
+                                  ),
+                              const SizedBox(width: 32),
+                            ],
+                          ),
+                  ),
+                if (!estreito && !extrasNaLinha && extras.any(colunas.contains))
+                  _rotulosEmFaixa(extras),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
+
+double _larguraExtra(ColunaDemanda coluna) =>
+    coluna == ColunaDemanda.criadoEm ? 84 : 96;
 
 class DemandRow extends StatelessWidget {
   const DemandRow({
@@ -361,6 +512,10 @@ class DemandRow extends StatelessWidget {
     this.sprint,
     this.statusControl,
     this.mostrarMedidor = true,
+    this.colunas = ColunaDemanda.padrao,
+    this.tipo,
+    this.criadoEm,
+    this.selecaoEmLote = false,
   });
   final DensidadeDemanda densidade;
   final int? id;
@@ -372,8 +527,70 @@ class DemandRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? sprint;
   final bool mostrarMedidor;
+  final Set<ColunaDemanda> colunas;
+  final String? tipo;
+  final DateTime? criadoEm;
+  final bool selecaoEmLote;
 
-  Widget _medidor({double width = 44}) => mostrarMedidor
+  bool _visivel(ColunaDemanda coluna) => colunas.contains(coluna);
+  bool get _mostraHoras =>
+      _visivel(ColunaDemanda.executado) || _visivel(ColunaDemanda.estimado);
+  Widget? get _sprintVisivel =>
+      _visivel(ColunaDemanda.sprint) || selecaoEmLote ? sprint : null;
+
+  Widget _horas({required bool separarEstimativa, bool compacta = false}) {
+    final real = _visivel(ColunaDemanda.executado);
+    return HoursLabel(
+      minutes: real ? hours : estimate,
+      estimate: real && !separarEstimativa && _visivel(ColunaDemanda.estimado)
+          ? estimate
+          : null,
+      compact: compacta,
+    );
+  }
+
+  List<Widget> _metadadosExtras({required bool emColunas}) => [
+    if (_visivel(ColunaDemanda.criadoEm))
+      _metadado(ColunaDemanda.criadoEm, _dataCriacao, emColunas),
+    if (_visivel(ColunaDemanda.tipo))
+      _metadado(ColunaDemanda.tipo, tipo ?? '—', emColunas),
+  ];
+
+  String get _dataCriacao {
+    final local = criadoEm?.toLocal();
+    if (local == null) return '—';
+    final dia = local.day.toString().padLeft(2, '0');
+    final mes = local.month.toString().padLeft(2, '0');
+    return '$dia/$mes/${local.year}';
+  }
+
+  Widget _metadado(
+    ColunaDemanda coluna,
+    String valor,
+    bool emColunas, {
+    bool larguraFixa = true,
+  }) {
+    final texto = Text(
+      emColunas ? valor : '${coluna.rotulo}: $valor',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12),
+    );
+    return emColunas && larguraFixa
+        ? SizedBox(width: _larguraExtra(coluna), child: texto)
+        : texto;
+  }
+
+  Widget _extrasEmpilhados() => Wrap(
+    spacing: 12,
+    runSpacing: 2,
+    children: _metadadosExtras(emColunas: false),
+  );
+
+  Widget _medidor({double width = 44}) =>
+      !_visivel(ColunaDemanda.executado) || !_visivel(ColunaDemanda.estimado)
+      ? const SizedBox.shrink()
+      : mostrarMedidor
       ? HoursMeter(real: hours, estimate: estimate, width: width)
       : estimate > 0
       ? SizedBox(width: width, height: 3)
@@ -420,7 +637,7 @@ class DemandRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                HoursLabel(minutes: hours, estimate: desktop ? null : estimate),
+                _horas(separarEstimativa: desktop),
                 SizedBox(height: densidade.isCompacta ? 4 : 8),
                 _medidor(),
               ],
@@ -454,46 +671,59 @@ class DemandRow extends StatelessWidget {
                                         : 28,
                                     child: chevron,
                                   ),
-                                  _id(context),
-                                  const SizedBox(width: 8),
+                                  if (_visivel(ColunaDemanda.id)) ...[
+                                    _id(context),
+                                    const SizedBox(width: 8),
+                                  ],
                                   Expanded(child: _title(context)),
                                   SizedBox(width: 44, child: actions),
                                 ],
                               ),
-                              SizedBox(height: densidade.isCompacta ? 4 : 8),
-                              Row(
-                                children: [
-                                  PriorityTag(priority: priority),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: HoursLabel(
-                                        minutes: hours,
-                                        estimate: estimate,
-                                        compact: true,
+                              if (_visivel(ColunaDemanda.prioridade) ||
+                                  _mostraHoras ||
+                                  _visivel(ColunaDemanda.status)) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    if (_visivel(ColunaDemanda.prioridade)) ...[
+                                      PriorityTag(priority: priority),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: _mostraHoras
+                                            ? _horas(
+                                                separarEstimativa: false,
+                                                compacta: true,
+                                              )
+                                            : null,
                                       ),
                                     ),
-                                  ),
-                                  if (box.maxWidth >= 400) ...[
-                                    const SizedBox(width: 4),
-                                    _medidor(width: 32),
+                                    if (box.maxWidth >= 400 &&
+                                        _mostraHoras) ...[
+                                      const SizedBox(width: 4),
+                                      _medidor(width: 32),
+                                    ],
+                                    if (_visivel(ColunaDemanda.status)) ...[
+                                      const SizedBox(width: 8),
+                                      SizedBox(
+                                        width: 112,
+                                        child: statusWidget(context),
+                                      ),
+                                    ],
                                   ],
-                                  const SizedBox(width: 8),
-                                  SizedBox(
-                                    width: 112,
-                                    child: statusWidget(context),
-                                  ),
-                                ],
-                              ),
-                              if (sprint != null)
+                                ),
+                              ],
+                              if (_sprintVisivel != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Align(
                                     alignment: Alignment.centerLeft,
-                                    child: sprint,
+                                    child: _sprintVisivel,
                                   ),
                                 ),
+                              _extrasEmpilhados(),
                             ],
                           )
                         : ConstrainedBox(
@@ -514,13 +744,16 @@ class DemandRow extends StatelessWidget {
                                           : 28,
                                       child: chevron,
                                     ),
-                                    SizedBox(width: 44, child: _id(context)),
+                                    if (_visivel(ColunaDemanda.id))
+                                      SizedBox(width: 44, child: _id(context)),
                                     Expanded(child: _title(context)),
-                                    SizedBox(
-                                      width: desktop ? 100 : 76,
-                                      child: PriorityTag(priority: priority),
-                                    ),
-                                    if (desktop) ...[
+                                    if (_visivel(ColunaDemanda.prioridade))
+                                      SizedBox(
+                                        width: desktop ? 100 : 76,
+                                        child: PriorityTag(priority: priority),
+                                      ),
+                                    if (desktop &&
+                                        _visivel(ColunaDemanda.estimado)) ...[
                                       SizedBox(
                                         width: 64,
                                         child: Align(
@@ -528,20 +761,28 @@ class DemandRow extends StatelessWidget {
                                           child: HoursLabel(minutes: estimate),
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
+                                      if (_visivel(ColunaDemanda.executado))
+                                        const SizedBox(width: 12),
                                     ],
-                                    SizedBox(
-                                      width: desktop ? 112 : 108,
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: hoursWidget,
+                                    if (desktop
+                                        ? _visivel(ColunaDemanda.executado)
+                                        : _mostraHoras)
+                                      SizedBox(
+                                        width: desktop ? 112 : 108,
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: hoursWidget,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    SizedBox(
-                                      width: 136,
-                                      child: statusWidget(context),
-                                    ),
+                                    if (_visivel(ColunaDemanda.status)) ...[
+                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: 136,
+                                        child: statusWidget(context),
+                                      ),
+                                    ],
+                                    if (desktop)
+                                      ..._metadadosExtras(emColunas: true),
                                     SizedBox(
                                       width:
                                           MediaQuery.sizeOf(context).width <
@@ -552,14 +793,15 @@ class DemandRow extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                if (sprint != null)
+                                if (_sprintVisivel != null)
                                   Padding(
                                     padding: const EdgeInsets.only(
                                       left: 72,
                                       bottom: 4,
                                     ),
-                                    child: sprint,
+                                    child: _sprintVisivel,
                                   ),
+                                if (!desktop) _extrasEmpilhados(),
                               ],
                             ),
                           ),

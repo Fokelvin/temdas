@@ -1,3 +1,5 @@
+import '../../view_model/demanda_hierarquia_lista.dart';
+import '../../view_model/demanda_lista_preferencias.dart';
 import '../../view_model/demandas_agrupamento.dart';
 import '../../ui/components/demand_components.dart';
 import '../../ui/theme/tokens.dart';
@@ -12,6 +14,7 @@ import '../../theme/app_theme.dart';
 import '../../view_model/tempo_executado_total.dart';
 import '../formatters/demanda_identificacao.dart';
 import 'demanda_card.dart';
+import 'demanda_lista.dart';
 import 'densidade_demanda.dart';
 
 class DemandaTree extends StatefulWidget {
@@ -30,6 +33,11 @@ class DemandaTree extends StatefulWidget {
     this.onReabrir,
     this.sprintBuilder,
     this.lista = false,
+    this.colunas = ColunaDemanda.padrao,
+    this.tipoLista,
+    this.comandoExpansaoLista,
+    this.revelarGruposLista = false,
+    this.selecaoEmLote = false,
     this.agrupamento = AgrupamentoDemandas.demanda,
     this.referenciaHierarquica,
     this.temposExecutadosTotais,
@@ -43,6 +51,11 @@ class DemandaTree extends StatefulWidget {
   });
 
   final bool lista;
+  final Set<ColunaDemanda> colunas;
+  final TipoDemanda Function(backend.Demanda)? tipoLista;
+  final ComandoExpansaoLista? comandoExpansaoLista;
+  final bool revelarGruposLista;
+  final bool selecaoEmLote;
   final AgrupamentoDemandas agrupamento;
   final String? Function(backend.Demanda)? referenciaHierarquica;
   final Map<int, int>? temposExecutadosTotais;
@@ -72,7 +85,8 @@ class DemandaTree extends StatefulWidget {
 }
 
 class _DemandaTreeState extends State<DemandaTree> {
-  // O mesmo controller governa os detalhes do card e a visibilidade das filhas.
+  // Controla os detalhes e a expansão individual. Na Lista, o estado
+  // coletivo dos ramos é mantido separadamente.
   final _expansoes = <String, ExpansibleController>{};
   final _chavesNos = <String, GlobalKey>{};
   Timer? _destaqueTimer;
@@ -80,6 +94,21 @@ class _DemandaTreeState extends State<DemandaTree> {
   bool _atualizacaoAgendada = false;
   bool _dragAtivo = false;
   final _gruposRecolhidos = <Object>{};
+  final _ramosLista = <String, bool>{};
+  bool? _expansaoColetiva;
+
+  void _aplicarExpansaoLista() {
+    final comando = widget.comandoExpansaoLista;
+    if (comando == null) return;
+    _expansaoColetiva = comando.expandir;
+    _ramosLista.clear();
+    _gruposRecolhidos.clear();
+    if (!comando.expandir) {
+      _gruposRecolhidos.addAll(backend.DemandaStatus.values);
+      _gruposRecolhidos.addAll(backend.Prioridade.values);
+    }
+  }
+
   backend.DemandaStatus? _abaAtiva;
   final _tabKeys = {
     for (final s in backend.DemandaStatus.values) s: GlobalKey(),
@@ -123,12 +152,16 @@ class _DemandaTreeState extends State<DemandaTree> {
   @override
   void initState() {
     super.initState();
+    _aplicarExpansaoLista();
     WidgetsBinding.instance.addPostFrameCallback((_) => _agendarFoco());
   }
 
   @override
   void didUpdateWidget(covariant DemandaTree oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.comandoExpansaoLista != widget.comandoExpansaoLista) {
+      _aplicarExpansaoLista();
+    }
     if (oldWidget.focoVersao != widget.focoVersao) _abaAtiva = null;
     if (oldWidget.lista != widget.lista ||
         oldWidget.focoVersao != widget.focoVersao ||
@@ -227,15 +260,15 @@ class _DemandaTreeState extends State<DemandaTree> {
     final idsVisitados = <int>{};
     final porStatus = {
       for (final status in backend.DemandaStatus.values)
-        status: <_DemandaNivel>[],
+        status: <DemandaNivel>[],
     };
 
     final porPrioridade = {
       for (final prioridade in backend.Prioridade.values.reversed)
-        prioridade: <_DemandaNivel>[],
+        prioridade: <DemandaNivel>[],
     };
-    final hierarquia = <_DemandaNivel>[];
-    List<_DemandaNivel> grupo(backend.Demanda raiz) => switch (widget.lista
+    final hierarquia = <DemandaNivel>[];
+    List<DemandaNivel> grupo(backend.Demanda raiz) => switch (widget.lista
         ? widget.agrupamento
         : AgrupamentoDemandas.status) {
       AgrupamentoDemandas.demanda => hierarquia,
@@ -261,6 +294,7 @@ class _DemandaTreeState extends State<DemandaTree> {
     for (final demanda in demandas) {
       final id = demanda.id;
       if (id != null && idsVisitados.contains(id)) continue;
+      if (widget.lista && id == null) continue;
       _visitar(
         demanda,
         nivel: 0,
@@ -273,51 +307,27 @@ class _DemandaTreeState extends State<DemandaTree> {
     }
 
     if (widget.lista) {
-      Widget construir(_DemandaNivel no) => _construirNo(
+      Widget construir(DemandaNivel no) => _construirNo(
         no,
         temposTotais[no.demanda.id] ?? no.demanda.tempoExecutadoMinutos,
+        temRamo: porPai[no.demanda.id]?.isNotEmpty ?? false,
       );
-      final Map<Object, List<_DemandaNivel>> grupos =
-          switch (widget.agrupamento) {
-            AgrupamentoDemandas.demanda => const {},
-            AgrupamentoDemandas.status => porStatus,
-            AgrupamentoDemandas.prioridade => porPrioridade,
-          };
-      return Column(
-        key: ValueKey('demandas-lista-${widget.agrupamento.name}'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ...hierarquia.map(construir),
-          for (final grupo in grupos.entries.where(
-            (g) => g.value.isNotEmpty,
-          )) ...[
-            GroupHeader(
-              densidade: _densidade,
-              status: grupo.key is backend.DemandaStatus
-                  ? grupo.key as backend.DemandaStatus
-                  : null,
-              prioridade: grupo.key is backend.Prioridade
-                  ? grupo.key as backend.Prioridade
-                  : null,
-              count: grupo.value.where((no) => no.nivel == 0).length,
-              collapsed: _gruposRecolhidos.contains(grupo.key),
-              onTap: () => setState(() {
-                if (!_gruposRecolhidos.remove(grupo.key)) {
-                  _gruposRecolhidos.add(grupo.key);
-                }
-              }),
-            ),
-            if (!_gruposRecolhidos.contains(grupo.key))
-              ...grupo.value.map(construir),
-          ],
-          if (widget.agrupamento == AgrupamentoDemandas.status)
-            EmptyStatusesLine(
-              statuses: porStatus.entries
-                  .where((g) => g.value.isEmpty)
-                  .map((g) => g.key)
-                  .toList(),
-            ),
-        ],
+      return DemandaLista(
+        densidade: _densidade,
+        agrupamento: widget.agrupamento,
+        hierarquia: hierarquia,
+        porStatus: porStatus,
+        porPrioridade: porPrioridade,
+        gruposRecolhidos: widget.revelarGruposLista
+            ? const {}
+            : _gruposRecolhidos,
+        gruposEmBusca: widget.revelarGruposLista,
+        onAlternarGrupo: (grupo) => setState(() {
+          if (!_gruposRecolhidos.remove(grupo)) {
+            _gruposRecolhidos.add(grupo);
+          }
+        }),
+        construirLinha: construir,
       );
     }
     return LayoutBuilder(
@@ -473,7 +483,7 @@ class _DemandaTreeState extends State<DemandaTree> {
 
   Widget _colunaDoQuadro(
     backend.DemandaStatus status,
-    List<_DemandaNivel> nos,
+    List<DemandaNivel> nos,
     Map<int?, int> tempos,
     double width,
   ) {
@@ -516,20 +526,24 @@ class _DemandaTreeState extends State<DemandaTree> {
     required Map<int, List<backend.Demanda>> porPai,
     required Set<int> caminho,
     required Set<int> idsVisitados,
-    required List<_DemandaNivel> nos,
+    required List<DemandaNivel> nos,
   }) {
     final id = demanda.id;
     final proximoCaminho = {...caminho};
     if (id != null) {
       if (!proximoCaminho.add(id)) return;
+      if (widget.lista && idsVisitados.contains(id)) return;
       idsVisitados.add(id);
     }
 
-    if (visivel) nos.add(_DemandaNivel(demanda: demanda, nivel: nivel));
+    if (visivel) nos.add(DemandaNivel(demanda: demanda, nivel: nivel));
+    final manual = visivel && _expansaoDe(demanda).isExpanded;
+    final ramoExpandido = widget.lista
+        ? _ramosLista[_chaveExpansao(demanda)] ?? _expansaoColetiva ?? manual
+        : manual;
     final filhasVisiveis =
         visivel &&
-        (_expansaoDe(demanda).isExpanded ||
-            (id != null && widget.autoExpandIds.contains(id)));
+        (ramoExpandido || (id != null && widget.autoExpandIds.contains(id)));
     final filhas = id == null
         ? const <backend.Demanda>[]
         : porPai[id] ?? const [];
@@ -550,9 +564,10 @@ class _DemandaTreeState extends State<DemandaTree> {
   }
 
   Widget _construirNo(
-    _DemandaNivel no,
+    DemandaNivel no,
     int tempoExecutadoTotalMinutos, {
     Widget? dragHandle,
+    bool temRamo = false,
   }) {
     final demanda = no.demanda;
     final emProcessamento = widget.demandasEmProcessamento.contains(demanda.id);
@@ -592,6 +607,19 @@ class _DemandaTreeState extends State<DemandaTree> {
               expansionController: _expansaoDe(demanda),
               densidade: _densidade,
               emLista: widget.lista,
+              colunasLista: widget.colunas,
+              ramoExpandidoLista:
+                  temRamo && !widget.autoExpandIds.contains(demanda.id)
+                  ? _ramosLista[_chaveExpansao(demanda)] ?? _expansaoColetiva
+                  : null,
+              tipoLista: widget.lista ? widget.tipoLista?.call(demanda) : null,
+              selecaoEmLote: widget.lista && widget.selecaoEmLote,
+              onAlternarDetalhes: widget.lista
+                  ? (aberto) {
+                      _ramosLista[_chaveExpansao(demanda)] = aberto;
+                      _atualizarVisibilidade();
+                    }
+                  : null,
               demanda: demanda,
               referenciaHierarquica: widget.lista && nivel == 0
                   ? widget.referenciaHierarquica?.call(demanda)
@@ -622,7 +650,7 @@ class _DemandaTreeState extends State<DemandaTree> {
 
   List<Widget> _construirUnidades(
     backend.DemandaStatus status,
-    List<_DemandaNivel> nos,
+    List<DemandaNivel> nos,
     Map<int?, int> temposTotais,
     double larguraColuna,
   ) {
@@ -654,7 +682,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   );
 
   Widget _unidadeArrastavel(
-    List<_DemandaNivel> unidade,
+    List<DemandaNivel> unidade,
     Map<int?, int> temposTotais,
     double larguraColuna,
   ) {
@@ -684,7 +712,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   }
 
   Widget _construirConteudo(
-    List<_DemandaNivel> unidade,
+    List<DemandaNivel> unidade,
     Map<int?, int> temposTotais,
     double larguraColuna,
   ) => Column(
@@ -960,13 +988,6 @@ class _DemandaTreeState extends State<DemandaTree> {
       ],
     ),
   );
-}
-
-class _DemandaNivel {
-  const _DemandaNivel({required this.demanda, required this.nivel});
-
-  final backend.Demanda demanda;
-  final int nivel;
 }
 
 class _DemandaDragData {

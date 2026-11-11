@@ -1,3 +1,5 @@
+import '../../view_model/demanda_hierarquia_lista.dart';
+import '../../view_model/demanda_lista_preferencias.dart';
 import 'app_selection.dart';
 import '../../ui/components/demand_components.dart';
 import '../../ui/theme/tokens.dart';
@@ -31,6 +33,11 @@ class DemandaCard extends StatelessWidget {
     this.redesign = false,
     this.referenciaHierarquica,
     this.emLista = false,
+    this.colunasLista = ColunaDemanda.padrao,
+    this.ramoExpandidoLista,
+    this.tipoLista,
+    this.selecaoEmLote = false,
+    this.onAlternarDetalhes,
     this.expansionController,
     this.dragHandle,
     this.destacado = false,
@@ -54,6 +61,11 @@ class DemandaCard extends StatelessWidget {
   final bool redesign;
   final String? referenciaHierarquica;
   final bool emLista;
+  final Set<ColunaDemanda> colunasLista;
+  final bool? ramoExpandidoLista;
+  final TipoDemanda? tipoLista;
+  final bool selecaoEmLote;
+  final ValueChanged<bool>? onAlternarDetalhes;
   final ExpansibleController? expansionController;
   final Widget? dragHandle;
   final bool destacado;
@@ -91,22 +103,29 @@ class DemandaCard extends StatelessWidget {
     return _RedesignExpansion(
       controller: expansionController,
       builder: (context, controller) {
+        final expandido = ramoExpandidoLista ?? controller.isExpanded;
         final chevron = IconButton(
           key: ValueKey('expandir-demanda-${demanda.id}'),
           style: t.darkContrast
               ? IconButton.styleFrom(foregroundColor: t.secondaryLabel)
               : null,
-          tooltip: controller.isExpanded
-              ? 'Recolher demanda'
-              : 'Expandir demanda',
+          tooltip: expandido ? 'Recolher demanda' : 'Expandir demanda',
           padding: EdgeInsets.zero,
           constraints: BoxConstraints(
             minWidth: MediaQuery.sizeOf(context).width < 1024 ? 44 : 28,
             minHeight: MediaQuery.sizeOf(context).width < 1024 ? 44 : 40,
           ),
-          onPressed: controller.toggle,
+          onPressed: () {
+            final abrir = !expandido;
+            if (abrir) {
+              controller.expand();
+            } else {
+              controller.collapse();
+            }
+            onAlternarDetalhes?.call(abrir);
+          },
           icon: AnimatedRotation(
-            turns: controller.isExpanded ? .25 : 0,
+            turns: expandido ? .25 : 0,
             duration: AppTokens.motion(context),
             curve: AppTokens.curve,
             child: const Icon(Symbols.chevron_right_rounded, size: 16),
@@ -115,6 +134,10 @@ class DemandaCard extends StatelessWidget {
         final summary = emLista
             ? DemandRow(
                 densidade: densidade,
+                colunas: colunasLista,
+                tipo: tipoLista?.rotulo,
+                criadoEm: demanda.criadoEm,
+                selecaoEmLote: selecaoEmLote,
                 id: demanda.id,
                 title: demanda.titulo,
                 priority: demanda.prioridade,

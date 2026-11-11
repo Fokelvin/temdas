@@ -91,9 +91,11 @@ class _CompactHeadline extends StatelessWidget {
     required this.actions,
     this.dragHandle,
     this.onTap,
+    this.mostrarId = true,
   });
   final int? id;
   final String title;
+  final bool mostrarId;
   final b.DemandaStatus status;
   final Widget chevron, actions;
   final Widget? dragHandle;
@@ -107,15 +109,16 @@ class _CompactHeadline extends StatelessWidget {
       children: [
         if (dragHandle != null) SizedBox(width: 24, child: dragHandle),
         SizedBox(width: mobile ? 44 : 28, child: chevron),
-        Text(
-          '#${id ?? '–'}',
-          style: TextStyle(
-            fontFamily: 'Roboto Mono',
-            fontSize: 12,
-            color: t.metadata,
+        if (mostrarId)
+          Text(
+            '#${id ?? '–'}',
+            style: TextStyle(
+              fontFamily: 'Roboto Mono',
+              fontSize: 12,
+              color: t.metadata,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
+        if (mostrarId) const SizedBox(width: 8),
         Expanded(
           child: Tooltip(
             message: title,
@@ -155,17 +158,12 @@ class _CompactColumns extends StatelessWidget {
     required this.real,
     required this.sprint,
     required this.status,
+    required this.criadoEm,
+    required this.tipo,
     required this.actions,
   });
-  final Widget chevron,
-      id,
-      title,
-      priority,
-      estimate,
-      real,
-      sprint,
-      status,
-      actions;
+  final Widget chevron, title, actions;
+  final Widget? id, priority, estimate, real, sprint, status, criadoEm, tipo;
 
   @override
   Widget build(BuildContext context) {
@@ -173,61 +171,43 @@ class _CompactColumns extends StatelessWidget {
     return Row(
       children: [
         SizedBox(width: 28, child: chevron),
-        SizedBox(width: 44, child: id),
+        if (id != null) SizedBox(width: 44, child: id),
         Expanded(child: title),
-        const SizedBox(width: 8),
-        SizedBox(width: wide ? 76 : 84, child: priority),
-        if (wide)
+        if (priority != null) ...[
+          const SizedBox(width: 8),
+          SizedBox(width: wide ? 76 : 84, child: priority),
+        ],
+        if (wide && estimate != null)
           SizedBox(
             width: 56,
             child: Align(alignment: Alignment.centerRight, child: estimate),
           ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 100,
-          child: Align(alignment: Alignment.centerRight, child: real),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(width: wide ? 112 : 84, child: sprint),
-        const SizedBox(width: 8),
-        SizedBox(width: 112, child: status),
+        if (real != null) ...[
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 100,
+            child: Align(alignment: Alignment.centerRight, child: real),
+          ),
+        ],
+        if (sprint != null) ...[
+          const SizedBox(width: 8),
+          SizedBox(width: wide ? 112 : 84, child: sprint),
+        ],
+        if (status != null) ...[
+          const SizedBox(width: 8),
+          SizedBox(width: 112, child: status),
+        ],
+        if (criadoEm != null)
+          SizedBox(
+            width: _larguraExtra(ColunaDemanda.criadoEm),
+            child: criadoEm,
+          ),
+        if (tipo != null)
+          SizedBox(width: _larguraExtra(ColunaDemanda.tipo), child: tipo),
         SizedBox(width: 32, child: actions),
       ],
     );
   }
-}
-
-class _CompactDemandHeader extends StatelessWidget {
-  const _CompactDemandHeader();
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      if (box.maxWidth < 680) return const SizedBox.shrink();
-      return Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: AppTokens.of(context).bg,
-        child: DefaultTextStyle.merge(
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w500,
-            color: AppTokens.of(context).secondaryLabel,
-          ),
-          child: const _CompactColumns(
-            chevron: SizedBox(),
-            id: Text('ID'),
-            title: Text('Demanda'),
-            priority: Text('Prioridade'),
-            estimate: Text('Est.'),
-            real: Text('Real'),
-            sprint: Text('Sprint'),
-            status: Text('Status'),
-            actions: SizedBox(),
-          ),
-        ),
-      );
-    },
-  );
 }
 
 class _CompactDemandRow extends StatelessWidget {
@@ -238,6 +218,16 @@ class _CompactDemandRow extends StatelessWidget {
     builder: (context, box) {
       final t = AppTokens.of(context);
       final mobile = box.maxWidth < 680;
+      final wide = MediaQuery.sizeOf(context).width >= 1100;
+      final extrasNaLinha = box.maxWidth >= 900;
+      final sprintEmLinhaPropria = mobile && box.maxWidth < 280;
+      final sprint = row._sprintVisivel;
+      final prioridade = row._visivel(ColunaDemanda.prioridade)
+          ? PriorityTag(priority: row.priority)
+          : null;
+      final status = row._visivel(ColunaDemanda.status)
+          ? row.statusWidget(context)
+          : null;
       final Widget content;
       if (mobile) {
         content = Column(
@@ -246,57 +236,96 @@ class _CompactDemandRow extends StatelessWidget {
           children: [
             _CompactHeadline(
               id: row.id,
+              mostrarId: row._visivel(ColunaDemanda.id),
               title: row.title,
               status: row.status,
               chevron: row.chevron,
               actions: row.actions,
               onTap: row.onTap,
             ),
-            Row(
-              children: [
-                PriorityTag(priority: row.priority),
-                const SizedBox(width: 4),
-                if (row.sprint != null) SizedBox(width: 76, child: row.sprint!),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: HoursLabel(minutes: row.hours, estimate: row.estimate),
-                ),
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: box.maxWidth < 400 ? 92 : 112,
-                  child: row.statusWidget(context),
-                ),
-              ],
-            ),
+            if (prioridade != null ||
+                (!sprintEmLinhaPropria && sprint != null) ||
+                row._mostraHoras ||
+                status != null)
+              Row(
+                children: [
+                  ?prioridade,
+                  if (!sprintEmLinhaPropria && sprint != null) ...[
+                    const SizedBox(width: 4),
+                    SizedBox(width: 76, child: sprint),
+                  ],
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: row._mostraHoras
+                        ? row._horas(separarEstimativa: false)
+                        : const SizedBox.shrink(),
+                  ),
+                  if (status != null) ...[
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      width: box.maxWidth < 400 ? 92 : 112,
+                      child: status,
+                    ),
+                  ],
+                ],
+              ),
+            if (sprintEmLinhaPropria && sprint != null)
+              Align(alignment: Alignment.centerLeft, child: sprint),
+            row._extrasEmpilhados(),
           ],
         );
       } else {
         content = ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 48),
-          child: _CompactColumns(
-            chevron: row.chevron,
-            id: row._id(context),
-            title: Tooltip(message: row.title, child: row._title(context)),
-            priority: PriorityTag(priority: row.priority),
-            estimate: HoursLabel(minutes: row.estimate),
-            real: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: HoursLabel(
-                    minutes: row.hours,
-                    estimate: MediaQuery.sizeOf(context).width < 1100
-                        ? row.estimate
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                row._medidor(width: 24),
-              ],
-            ),
-            sprint: row.sprint ?? const SizedBox.shrink(),
-            status: row.statusWidget(context),
-            actions: row.actions,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CompactColumns(
+                chevron: row.chevron,
+                id: row._visivel(ColunaDemanda.id) ? row._id(context) : null,
+                title: Tooltip(message: row.title, child: row._title(context)),
+                priority: prioridade,
+                estimate: row._visivel(ColunaDemanda.estimado)
+                    ? HoursLabel(minutes: row.estimate)
+                    : null,
+                real:
+                    (wide
+                        ? row._visivel(ColunaDemanda.executado)
+                        : row._mostraHoras)
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: row._horas(separarEstimativa: wide)),
+                          const SizedBox(width: 6),
+                          row._medidor(width: 24),
+                        ],
+                      )
+                    : null,
+                sprint: row._visivel(ColunaDemanda.sprint) || row.selecaoEmLote
+                    ? row._sprintVisivel ?? const SizedBox.shrink()
+                    : null,
+                status: status,
+                criadoEm: extrasNaLinha && row._visivel(ColunaDemanda.criadoEm)
+                    ? row._metadado(
+                        ColunaDemanda.criadoEm,
+                        row._dataCriacao,
+                        true,
+                        larguraFixa: false,
+                      )
+                    : null,
+                tipo: extrasNaLinha && row._visivel(ColunaDemanda.tipo)
+                    ? row._metadado(
+                        ColunaDemanda.tipo,
+                        row.tipo ?? '—',
+                        true,
+                        larguraFixa: false,
+                      )
+                    : null,
+                actions: row.actions,
+              ),
+              if (!extrasNaLinha) row._extrasEmpilhados(),
+            ],
           ),
         );
       }
