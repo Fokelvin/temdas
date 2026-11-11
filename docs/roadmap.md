@@ -229,7 +229,7 @@ de escopo.
 
 - **Contexto:** o redesign recente reduziu o efeito do modo compacto: a Lista força densidade compacta, e os componentes redesenhados de Lista/Kanban não recebem integralmente as regras de densidade já definidas. O seletor de densidade não aparece na Lista.
 - **Prioridade:** P1 — correção de regressão de UX, antes do novo redesign de agrupamentos/hierarquia.
-- **Estado:** **publicado, aguardando homologação manual em PROD**. Redesign e ajuste final da toolbar no commit `ce6359f`, publicados em 10/11/2026 pelo [workflow 42935979962](https://github.com/Fokelvin/temdas/actions/runs/42935979962).
+- **Estado:** **Concluído, publicado e homologado manualmente em PROD pelo responsável em 10/11/2026**. Redesign compacto e ajuste final da toolbar no commit `ce6359f`, publicados pelo [workflow 42935979962](https://github.com/Fokelvin/temdas/actions/runs/42935979962).
 - **Histórico de publicação:** a primeira versão, commit `5e13223`, foi publicada em 10/11/2026 pelo [workflow 42882171648](https://github.com/Fokelvin/temdas/actions/runs/42882171648) e reprovada na homologação visual por alterar principalmente espaçamentos.
 - **Escopo:** oferecer **Normal** e **Compacto** tanto no Kanban quanto na Lista, com preferência compartilhada e persistida no navegador. Propagar a densidade aos componentes atuais da árvore, cabeçalhos, linhas, cards e detalhes expandidos; aplicar diferenças reais de altura, padding, margens, espaçamentos e hierarquia visual, não apenas tamanho de fonte.
 - **Acessibilidade:** manter informações essenciais, clareza dos controles, contraste e alvos de toque adequados nas duas densidades; layouts responsivos para desktop, tablet e celular; não comprometer gesto de expandir, arrastar, selecionar, editar ou alterar status.
@@ -240,7 +240,7 @@ de escopo.
 - **Validação do redesign local:** `flutter analyze` sem ocorrências; 10 arquivos Dart formatados; 125 testes direcionados distintos aprovados (116 dos componentes e 9 de busca/contexto de Sprint), com repetição somente dos 31 casos de Lista afetados pelo último refinamento. Sem suíte completa nesta etapa. Capturas da implementação Flutter Web real: 32 cenários e 8 menus de múltiplas Sprints, em desktop/mobile e claro/escuro. Em área rolável de 600 px: Kanban desktop **4 → 7**, Kanban mobile **4 → 6**, Lista desktop **6 → 11**, Lista mobile **3 → 6**. Evidências em `docs/previews/ux-p1-08/flutter/`. Normal preservado; títulos longos, filhas, expansão e vínculos adicionais exibidos nas capturas.
 - **Validação final da toolbar:** título com largura natural, rótulos de visualização em uma linha e busca flexível. 16 capturas Flutter Web aprovadas em 1440, 1280, 1024 e 390 px, Normal/Compacto e claro/escuro. `flutter analyze` sem ocorrências, 771 testes na suíte completa e 86 testes direcionados na revisão final do seletor.
 - **Verificação de PROD:** [temdas.com.br](https://temdas.com.br/) retornou HTTP 200 e serviu HTML, `flutter_bootstrap.js` e `main.dart.js` com os mesmos SHA-256 do [deployment Cloudflare Pages](https://77d3df7d.temdas-web.pages.dev/). SHA-256 do JavaScript da aplicação: `f024c53a3ad8177efef35d5b68a942728dbaffd8773dfae2ab49ce8f5c2357c3`.
-- **Sequenciamento:** a revisão permanece isolada de UX-P2-06. Registrar homologação funcional após confirmação manual em PROD.
+- **Sequenciamento:** UX-P1-08 encerrado após confirmação da homologação em PROD; UX-P2-06 permanece como próximo pacote de UX, com execução e publicação independentes.
 
 
 ## P2 — Refinamentos de autenticação e interface
