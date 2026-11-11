@@ -1,7 +1,7 @@
 # Roadmap oficial do TEMDAS
 
-Este documento consolida o estado funcional conhecido, melhorias aprovadas e
-ideias ainda em avaliação. Ele complementa as regras de domínio e arquitetura;
+Este documento consolida o estado funcional conhecido, itens concluídos e
+melhorias aprovadas ainda pendentes. Ele complementa as regras de domínio e arquitetura;
 não as substitui. Quando houver conflito, prevalecem as regras descritas em
 `arquitetura.md`, `escopo_temdas_v1_atualizado.md`, `transicoes-status.md` e na
 documentação específica de autenticação e Sprint.
@@ -11,11 +11,45 @@ documentação específica de autenticação e Sprint.
 - **Concluído**: implementado no produto ou na infraestrutura documentada.
 - **Parcial**: há suporte atual, mas a melhoria descrita ainda não está completa.
 - **Aprovado / pendente**: faz parte da evolução desejada, ainda sem entrega.
-- **Em avaliação**: possibilidade documentada, sem compromisso de escopo ou prazo.
 - **Recorrente**: verificação exigida quando ocorrer a atividade indicada.
 
 As prioridades P1, P2 e P3 seguem a ordem de produto solicitada. Infraestrutura
 usa prioridade operacional, conforme sua relação com homologação e produção.
+
+## Situação consolidada
+
+### Concluídos e homologados
+
+Os itens abaixo estão encerrados no roadmap ativo. Os detalhes e evidências
+permanecem nas respectivas seções e documentos históricos.
+
+- **P1 / UX:** UX-P1-01, UX-P1-02, UX-P1-03, UX-P1-04, UX-P1-05,
+  UX-P1-06, UX-P1-07 e UX-P1-08.
+- **UX contínua / Log Time:** UX-CONT-01, UX-CONT-02, UX-CONT-03,
+  UX-CONT-04, UX-CONT-05, UX-CONT-06, UX-CONT-07, LOG-P2-01 e LOG-P2-02.
+- **P2 / Demandas e Backlog:** UX-P2-06, UX-P2-07 e BACKLOG-P2-01.
+- **P2 / Sprints:** SPR-P2-01 e gerenciamento de vínculos de Sprint em
+  Demandas.
+- **P2 / Autenticação e interface:** UX-AUTH-03, UX-AUTH-04, AUTH-P2-01,
+  AUTH-P2-02, UI-P2-04 e UI-P2-05.
+- **Pacotes visuais:** Pacote 4, Pacote 5 e Pacote 6.
+- **Infraestrutura / produção:** INF-01, INF-02, INF-04, INF-05, INF-07,
+  PROD-01, PROD-02, PROD-03 e PROD-04.
+- **Produto base:** CRUD e hierarquia de Demandas, status, Log Time,
+  agendas diária/semanal, comparação estimado x executado, Sprints,
+  autenticação Supabase/AAL2/MFA e publicação em produção.
+
+### Pendentes ativos
+
+- **EMAIL-P2-01 — Identidade visual dos e-mails de autenticação.**
+- **UX-FUT-06 — Aviso de Privacidade público e versão/SHA do build.**
+- **FUNC-P3-01 — Projeto vinculado à Demanda.**
+- **ORG-P3-02 — Organizações e equipes.**
+- **ORG-P3-03 — Membros e permissões por organização.**
+- **AUTH-P3-04 — Recuperação controlada de MFA e evolução do perfil.**
+- **FUNC-P3-06 — To-do e Lembretes rápidos.**
+- **INF-03 — comprovação de `verify-full` pelo cliente Serverpod.**
+- **PROD-05 — monitoramento, custos e segurança operacional.**
 
 ## Pacote de refinamento UX — novembro de 2026
 
@@ -82,17 +116,9 @@ e sujeitos a acompanhamento de regressões em dispositivos reais.
 
 ### Melhorias aprovadas
 
-As seções P1, P2, P3 e Infraestrutura registram o trabalho ainda desejado e seu
-estado atual. “Aprovado” indica direção de produto, não uma alteração das regras
-de domínio existentes.
-
-### Ideias em avaliação
-
-Timer automático, etiquetas, anexos, notificações, integrações com calendário
-ou n8n, dashboard avançado, histórico persistente de alterações e promoção de
-demanda filha a raiz constam como fora da V1 ou possibilidades futuras na
-documentação de escopo. Continuam sem compromisso de implementação até decisão
-de escopo.
+As seções de itens pendentes registram o trabalho ainda desejado e seu estado
+atual. “Aprovado” indica direção de produto, não uma alteração das regras de
+domínio existentes.
 
 ## P1 — UX/UI e produtividade
 
@@ -215,7 +241,7 @@ de escopo.
 - **Descrição:** concluir as validações funcionais e visuais que a documentação
   da V1 ainda registra como pendentes.
 - **Prioridade:** P1.
-- **Estado:** Aprovado / pendente de validação documentada.
+- **Estado:** Concluído e homologado pelo responsável em 11/11/2026.
 - **Dependências:** disponibilidade dos ambientes e fluxos de homologação.
 - **Critérios de aceite:** validar fluxos V1 de ponta a ponta, regressões de
   status e hierarquia, drag-and-drop em colunas vazias e preenchidas,
@@ -244,8 +270,8 @@ de escopo.
 ## P2 — Refinamentos de autenticação e interface
 
 Esta seção reúne refinamentos frontend concluídos e aprovados. A navegação
-unificada (UI-P2-04) está publicada e homologada; o contraste do modo escuro
-(UI-P2-05) está publicado, aguardando homologação visual em PROD. Preservar
+unificada (UI-P2-04) e o contraste do modo escuro (UI-P2-05) estão publicados
+e homologados em PROD. Preservar
 login, MFA obrigatório e interações do Flutter Web.
 AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04.
 
@@ -459,14 +485,12 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   impede seu vínculo à Sprint futura planejada enquanto ela participa de
   outra Sprint ativa ou planejada, mesmo com períodos não sobrepostos.
 - **Prioridade:** P2 — melhoria funcional aprovada em 30/10/2026.
-- **Estado:** Publicado em PROD em 03/11/2026, API liberada para homologação manual.
+- **Estado:** Concluído, publicado e homologado pelo responsável em PROD em 11/11/2026.
   Migration original aplicada com ensaios aprovados e dados preservados.
   Otimização de vinculação em lote, timeout de 60 s e reconciliação por leitura
   publicados em `9d5b3af`: Railway `2fab0925` e Cloudflare `c68e8427` em sucesso.
   Saúde HTTPS 200, novo frontend renderizado, rejeição sem token e CORS conferidos;
   API permanece na porta 8080, sem nova migration ou alteração de infraestrutura.
-  A vinculação dessa versão e seu desempenho real aguardam homologação manual;
-  8,55 s/8 consultas é medição descartável com atraso artificial, não SLA de PROD.
   Histórico em [SPR-P2-01](spr-p2-01-multiplas-sprints.md) e publicação/medição
   em [vinculação em lote](spr-p2-01-vinculacao-lote.md).
 - **Regra de vínculo:** permitir uma Demanda vinculada à Sprint ativa e
@@ -559,17 +583,6 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Estado:** Aprovado / pendente de política e fluxo.
 - **Dependências:** definir verificação de identidade, autorização e efeitos
   sobre sessões e fatores MFA; manter as exigências AAL2 existentes.
-
-### FUT-P3-05 — Funcionalidades futuras em avaliação
-
-- **Descrição:** timer automático e pausa/retomada; etiquetas; anexos;
-  notificações; integrações com calendário e n8n; dashboard avançado; histórico
-  persistente de alterações; promoção explícita de Demanda filha a raiz.
-- **Prioridade:** P3 — avaliação, sem compromisso de entrega.
-- **Estado:** Em avaliação; documentadas como fora da V1 ou futuras.
-- **Dependências:** decisão individual de escopo antes de definir modelo,
-  regras e critérios de aceite.
-
 
 ### FUNC-P3-06 — To-do e Lembretes rápidos
 
@@ -674,17 +687,6 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   teste controlados.
 - **Critérios de aceite:** provisionamento autorizado e consulta de perfil
   funcionam com AAL2; falhas de configuração não concedem acesso.
-
-### INF-08 — Rate limit distribuído para convites
-
-- **Descrição:** substituir ou complementar o limite em memória do fluxo de
-  convites antes de operar com múltiplas instâncias ou ampliar sua exposição.
-- **Prioridade:** Antes de escala horizontal ou exposição ampliada.
-- **Estado:** Pendente condicional, registrado em `convites-admin.md`.
-- **Dependências:** decisão de operar múltiplas instâncias e mecanismo
-  compartilhado de rate limit.
-- **Critérios de aceite:** limites são consistentes entre instâncias e não
-  dependem da memória de um único processo.
 
 ## Referências de decisão
 
@@ -1147,20 +1149,6 @@ dentro do orçamento inicial; nenhum item pendente foi iniciado neste encerramen
 - **Critérios de aceite:** saúde e gastos são verificáveis; configurações de
   segurança e eventuais exceções ficam documentadas.
 
-### PROD-06 — Documentação e manutenção da publicação
-
-- **Prioridade:** P3 — manutenção.
-- **Estado:** Parcial — estado de autenticação, hospedagem, backups e migrations
-  atualizado neste encerramento. Diretórios locais `.wrangler/` e `supabase/`,
-  eventual domínio `api.temdas.com.br` e aviso não bloqueante de Insights seguem
-  somente registrados, sem implementação ou limpeza automática.
-- **Descrição:** documentar o estado real de Cloudflare Pages, Railway,
-  Supabase PROD e Resend; revisar os diretórios locais não rastreados
-  .wrangler/ e supabase/ antes de versionar ou excluir; avaliar o subdomínio
-  api.temdas.com.br e o aviso não bloqueante de Serverpod Insights.
-- **Critérios de aceite:** documentação reproduz a implantação real sem
-  divulgar credenciais, e pendências não bloqueantes têm decisão registrada.
-
 ## P2 — Pacote de autenticação com antecipação aprovada
 
 Validação local do pacote em 05/11/2026: testes direcionados aprovados,
@@ -1170,14 +1158,14 @@ Publicação autorizada pelo responsável pelo workflow existente do Cloudflare
 Pages na `main`, com um único build release no pipeline, sem repetir a suíte
 validada nem executar build local. Backend, banco, migrations, secrets, SMTP,
 configuração e templates de e-mail Supabase preservados. Homologação funcional
-em PROD pelo responsável, pelo celular, permanece pendente.
+em PROD confirmada pelo responsável em 11/11/2026.
 
 ### AUTH-P2-01 — Simplificar o fluxo MFA/TOTP
 
 - **Descrição:** remover da interface a ação explícita “Iniciar challenge” e
   simplificar a apresentação do fluxo TOTP.
 - **Prioridade:** P2 — antecipação aprovada pelo responsável em conjunto com UX-AUTH-04, substituindo o adiamento anterior.
-- **Estado:** Implementado e publicado em PROD em 05/11/2026; **aguardando homologação funcional do responsável**, pelo celular.
+- **Estado:** Concluído, publicado e homologado funcionalmente pelo responsável em PROD em 11/11/2026.
 - **Implementação:** instruções, QR Code e chave manual, código de seis dígitos e
   confirmação com challenge + verify internos por `SupabaseSession.verifyTotp()`.
   Cadastro pendente pode ser confirmado ou reiniciado explicitamente após
@@ -1192,7 +1180,7 @@ em PROD pelo responsável, pelo celular, permanece pendente.
 ### UX-AUTH-04 — Retomada da ativação após convite interrompido
 
 - **Prioridade:** P2 — melhoria aprovada pelo responsável no pacote com AUTH-P2-01.
-- **Estado:** Implementado e publicado em PROD em 05/11/2026; **aguardando homologação funcional do responsável**, pelo celular.
+- **Estado:** Concluído, publicado e homologado funcionalmente pelo responsável em PROD em 11/11/2026.
 - **Implementação:** links inválidos/expirados oferecem e-mail e **Enviar link
   para continuar**; o login oferece **Problemas para ativar sua conta?**.
   Ambos reutilizam o mesmo formulário, validação, envio de recuperação de senha,
@@ -1205,5 +1193,5 @@ em PROD pelo responsável, pelo celular, permanece pendente.
   de senha, com identidade e contexto revalidados; links novos continuam exigindo
   confirmação explícita e consumo único. Login, MFA/AAL2 e provisioning preservados.
 - **Publicação e homologação:** publicado em `https://temdas.com.br` pelo pipeline
-  Cloudflare Pages; aguardando homologação funcional do responsável em PROD,
-  pelo celular. Não declarar homologado antes dessa confirmação.
+  Cloudflare Pages e homologado funcionalmente pelo responsável em PROD em
+  11/11/2026.
