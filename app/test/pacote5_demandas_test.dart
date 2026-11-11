@@ -198,7 +198,7 @@ void main() {
       await tester.tap(find.text('Lista'));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('demandas-lista-status')),
+        find.byKey(const ValueKey('demandas-lista-demanda')),
         findsOneWidget,
       );
       expect(find.byWidgetPredicate((w) => w is Draggable), findsNothing);
@@ -281,7 +281,7 @@ void main() {
       });
       final repo = await open(tester, demandas: [demandaFixture(id: 1)]);
       expect(
-        find.byKey(const ValueKey('demandas-lista-status')),
+        find.byKey(const ValueKey('demandas-lista-demanda')),
         findsOneWidget,
       );
       await tester.tap(find.byKey(const ValueKey('status-demanda-1')));

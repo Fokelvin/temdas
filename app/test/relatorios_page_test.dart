@@ -73,6 +73,7 @@ void main() {
     expect(find.text('Tempo realizado total'), findsOneWidget);
     expect(find.text('1h30'), findsAtLeastNWidgets(1));
     expect(find.text('3 - Filha'), findsOneWidget);
+    expect(find.text('↳ Mãe'), findsOneWidget);
     expect(find.text('1 - Mãe'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('relatorio-lista-responsiva')),

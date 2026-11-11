@@ -291,7 +291,7 @@ class _CompactDemandRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                HoursMeter(real: row.hours, estimate: row.estimate, width: 24),
+                row._medidor(width: 24),
               ],
             ),
             sprint: row.sprint ?? const SizedBox.shrink(),

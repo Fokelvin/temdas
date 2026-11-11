@@ -1,3 +1,5 @@
+import '../view_model/demandas_agrupamento.dart';
+import 'formatters/demanda_hierarquia.dart';
 import '../ui/theme/tokens.dart';
 import 'widgets/sprint_vinculos_editor.dart';
 import 'widgets/sprints_da_demanda.dart';
@@ -51,6 +53,7 @@ class _DemandasPageState extends State<DemandasPage> {
   final _selecionadas = <int>{};
 
   backend.Prioridade? _filtroPrioridade;
+  final _agrupamento = DemandasAgrupamento();
   final _preferenciaDensidade = DemandasDensidade();
   DensidadeDemanda get _densidade => _preferenciaDensidade.value;
   int?
@@ -63,6 +66,7 @@ class _DemandasPageState extends State<DemandasPage> {
   void initState() {
     super.initState();
     unawaited(_visualizacao.load());
+    unawaited(_agrupamento.load());
     unawaited(_preferenciaDensidade.load());
     _possuiViewModel = widget.viewModel == null;
     _viewModel = widget.viewModel ?? DemandasViewModel();
@@ -77,6 +81,7 @@ class _DemandasPageState extends State<DemandasPage> {
     _sprintViewModel.removeListener(_consultarSprintsQuandoLivre);
     if (widget.sprintViewModel == null) _sprintViewModel.dispose();
     _visualizacao.dispose();
+    _agrupamento.dispose();
     _preferenciaDensidade.dispose();
     _buscaController.dispose();
     _quadroHorizontalController.dispose();
@@ -554,12 +559,16 @@ class _DemandasPageState extends State<DemandasPage> {
       return;
     }
 
+    final porId = indexarDemandas(_viewModel.demandas);
     final dados = await showDialog<LogTimeFormData>(
       context: context,
       barrierDismissible: false,
       builder: (_) => LogTimeDialog(
         demandaId: demanda.id,
-        demandaTitulo: formatarIdentificacaoDemanda(demanda),
+        demandaTitulo: tituloComHierarquia(
+          formatarIdentificacaoDemanda(demanda),
+          caminhoAncestral(demanda, (id) => porId[id]),
+        ),
         dataInicial: DateTime.now(),
         onSalvar: (dados) async {
           final registrado = await _viewModel.registrarTempo(
@@ -594,6 +603,7 @@ class _DemandasPageState extends State<DemandasPage> {
       context,
       id,
       onVinculosAlterados: _carregarSprints,
+      demandasPorId: indexarDemandas(_viewModel.demandas),
     );
     if (!mounted) return;
     await _viewModel.carregarDemandas();
@@ -696,6 +706,7 @@ class _DemandasPageState extends State<DemandasPage> {
         _viewModel,
         _visualizacao,
         _preferenciaDensidade,
+        _agrupamento,
       ]),
       builder: (context, _) {
         final resultadoBusca = _resultadoBusca();
@@ -706,7 +717,11 @@ class _DemandasPageState extends State<DemandasPage> {
             .toList();
         final lista = _visualizacao.value == VisualizacaoDemandas.lista;
         final mobile = MediaQuery.sizeOf(context).width < 600;
+        final todasPorId = indexarDemandas(_viewModel.demandas);
         final tree = DemandaTree(
+          agrupamento: _agrupamento.value,
+          referenciaHierarquica: (d) =>
+              caminhoAncestral(d, (id) => todasPorId[id]),
           // Preserva o quadro quando o aviso de erro muda os índices da lista.
           key: const ValueKey('demandas-arvore'),
           horizontalController: _quadroHorizontalController,
@@ -920,6 +935,45 @@ class _DemandasPageState extends State<DemandasPage> {
             ),
     );
     return PageHeader(
+      grouping: _visualizacao.value == VisualizacaoDemandas.lista
+          ? PopupMenuButton<AgrupamentoDemandas>(
+              tooltip: 'Agrupar por',
+              initialValue: _agrupamento.value,
+              onSelected: (opcao) async {
+                final salvo = await _agrupamento.select(opcao);
+                if (!salvo && mounted) {
+                  _mostrarFeedback(
+                    'Não foi possível salvar o agrupamento.',
+                    erro: true,
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                for (final opcao in AgrupamentoDemandas.values)
+                  CheckedPopupMenuItem(
+                    value: opcao,
+                    checked: opcao == _agrupamento.value,
+                    child: Text(opcao.rotulo),
+                  ),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Agrupar por',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+              ),
+            )
+          : null,
       count: _viewModel.demandas.length,
       search: SearchField(
         controller: _buscaController,

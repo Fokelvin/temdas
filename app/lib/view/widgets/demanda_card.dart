@@ -29,6 +29,7 @@ class DemandaCard extends StatelessWidget {
     this.onMostrarTudo,
     this.apenasAcoes = false,
     this.redesign = false,
+    this.referenciaHierarquica,
     this.emLista = false,
     this.expansionController,
     this.dragHandle,
@@ -51,6 +52,7 @@ class DemandaCard extends StatelessWidget {
   final VoidCallback? onMostrarTudo;
   final bool apenasAcoes;
   final bool redesign;
+  final String? referenciaHierarquica;
   final bool emLista;
   final ExpansibleController? expansionController;
   final Widget? dragHandle;
@@ -124,6 +126,7 @@ class DemandaCard extends StatelessWidget {
                 onTap: onMostrarTudo,
                 sprint: sprintContexto,
                 statusControl: _menuStatus(context),
+                mostrarMedidor: !controller.isExpanded,
               )
             : DemandCard(
                 densidade: densidade,
@@ -141,43 +144,69 @@ class DemandaCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             summary,
+            if (emLista && referenciaHierarquica != null)
+              Padding(
+                padding: densidade.paddingCabecalho,
+                child: Tooltip(
+                  message: referenciaHierarquica!,
+                  child: Text(
+                    '↳ $referenciaHierarquica',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ),
             if (controller.isExpanded)
               Padding(
                 padding: densidade.paddingConteudo,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        if (!emLista) Expanded(child: _menuStatus(context)),
-                        IconButton(
-                          key: ValueKey('concluir-demanda-${demanda.id}'),
-                          tooltip: 'Concluir demanda',
-                          onPressed: acoesHabilitadas ? onConcluir : null,
-                          icon: emProcessamento
-                              ? const SizedBox.square(
-                                  dimension: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Symbols.check_rounded),
-                        ),
+                    if (emLista) ...[
+                      if (demanda.descricao?.trim().isNotEmpty ?? false) ...[
+                        Text(demanda.descricao!),
+                        SizedBox(height: densidade.espacamentoEntreCampos),
                       ],
-                    ),
-                    if (densidade.isCompacta)
-                      Text(
-                        'Título: ${demanda.titulo}',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      TempoComparacao(
+                        estimadoMinutos: demanda.tempoEstimadoMinutos,
+                        executadoMinutos: tempoExecutadoTotalMinutos,
                       ),
-                    if (demanda.descricao?.isNotEmpty ?? false)
-                      Text('Descrição: ${demanda.descricao}'),
-                    SizedBox(height: densidade.espacamentoEntreSecoes),
-                    TempoComparacao(
-                      estimadoMinutos: demanda.tempoEstimadoMinutos,
-                      executadoMinutos: tempoExecutadoTotalMinutos,
-                    ),
-                    _botoesAcoes(),
+                      const SizedBox(height: 12),
+                      _botoesAcoes(incluirConclusao: true),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(child: _menuStatus(context)),
+                          IconButton(
+                            key: ValueKey('concluir-demanda-${demanda.id}'),
+                            tooltip: 'Concluir demanda',
+                            onPressed: acoesHabilitadas ? onConcluir : null,
+                            icon: emProcessamento
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Symbols.check_rounded),
+                          ),
+                        ],
+                      ),
+                      if (densidade.isCompacta)
+                        Text(
+                          'Título: ${demanda.titulo}',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      if (demanda.descricao?.isNotEmpty ?? false)
+                        Text('Descrição: ${demanda.descricao}'),
+                      SizedBox(height: densidade.espacamentoEntreSecoes),
+                      TempoComparacao(
+                        estimadoMinutos: demanda.tempoEstimadoMinutos,
+                        executadoMinutos: tempoExecutadoTotalMinutos,
+                      ),
+                      _botoesAcoes(),
+                    ],
                   ],
                 ),
               ),
@@ -402,8 +431,21 @@ class DemandaCard extends StatelessWidget {
     };
   }
 
-  Widget _botoesAcoes() {
+  Widget _botoesAcoes({bool incluirConclusao = false}) {
     final botoes = [
+      if (incluirConclusao)
+        TextButton.icon(
+          key: ValueKey('concluir-demanda-${demanda.id}'),
+          label: const Text('Concluir demanda'),
+          onPressed: acoesHabilitadas ? onConcluir : null,
+          style: densidade.estiloBotaoRedesign,
+          icon: emProcessamento
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Symbols.check_rounded),
+        ),
       if (onCriarFilha != null)
         TextButton.icon(
           key: ValueKey('criar-filha-${demanda.id}'),
@@ -425,7 +467,7 @@ class DemandaCard extends StatelessWidget {
           label: const Text('Lançar tempo'),
         ),
     ];
-    if (densidade.isCompacta) {
+    if (densidade.isCompacta || incluirConclusao) {
       return Wrap(spacing: 4, runSpacing: 2, children: botoes);
     }
     return Row(children: [for (final botao in botoes) Expanded(child: botao)]);

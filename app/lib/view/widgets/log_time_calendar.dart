@@ -1,3 +1,4 @@
+import '../formatters/demanda_hierarquia.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -422,6 +423,7 @@ class _DayColumn extends StatelessWidget {
               (registro) => _CalendarBlock(
                 registro: registro,
                 demanda: demandaPorId(registro.demandaId),
+                demandaPorId: demandaPorId,
                 onEditar: onEditar,
                 onExcluir: onExcluir,
                 onDragStarted: onDragStarted,
@@ -579,6 +581,7 @@ class _CalendarBlock extends StatelessWidget {
   const _CalendarBlock({
     required this.registro,
     required this.demanda,
+    required this.demandaPorId,
     required this.onEditar,
     required this.onExcluir,
     required this.onDragStarted,
@@ -589,6 +592,7 @@ class _CalendarBlock extends StatelessWidget {
 
   final backend.RegistroTempo registro;
   final backend.Demanda? demanda;
+  final backend.Demanda? Function(int) demandaPorId;
   final LogTimeCalendarAction onEditar;
   final LogTimeCalendarAction onExcluir;
   final ValueChanged<backend.RegistroTempo> onDragStarted;
@@ -613,6 +617,10 @@ class _CalendarBlock extends StatelessWidget {
     final title = demanda == null
         ? 'Demanda #${registro.demandaId}'
         : formatarIdentificacaoDemanda(demanda!);
+    final ancestrais = demanda == null
+        ? null
+        : caminhoAncestral(demanda!, demandaPorId);
+    final tituloVisivel = ancestrais == null ? title : '$title ↳ $ancestrais';
     final horario =
         '${_calendarTwoDigits(inicio.hour)}:${_calendarTwoDigits(inicio.minute)} – '
         '${_calendarTwoDigits((inicioMinutos + registro.duracaoMinutos) ~/ 60 % 24)}:'
@@ -626,7 +634,7 @@ class _CalendarBlock extends StatelessWidget {
       child: IgnorePointer(
         ignoring: arrastando,
         child: Tooltip(
-          message: '$title\n$horario',
+          message: '${tituloComHierarquia(title, ancestrais)}\n$horario',
           child: Material(
             color: TemdasTokens.cardSurface(
               context,
@@ -681,7 +689,7 @@ class _CalendarBlock extends StatelessWidget {
                             children: [
                               Flexible(
                                 child: Text(
-                                  title,
+                                  tituloVisivel,
                                   style: estiloTitulo,
                                   maxLines: linhasTitulo,
                                   overflow: TextOverflow.ellipsis,

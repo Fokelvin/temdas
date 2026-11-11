@@ -240,15 +240,28 @@ class PageHeader extends StatelessWidget {
     required this.refresh,
     required this.create,
     required this.density,
+    this.grouping,
   });
   final int count;
+  final Widget? grouping;
   final Widget search, filters, toggle, refresh, create, density;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
       final mobile = MediaQuery.sizeOf(context).width < 600;
       final scale = MediaQuery.textScalerOf(context).scale(13) / 13;
-      final inline = box.maxWidth >= 960 && scale <= 1.2;
+      final inline =
+          box.maxWidth >= (grouping == null ? 960 : 960 * scale) &&
+          scale <= 1.2;
+      final searchRow = grouping == null
+          ? search
+          : Row(
+              children: [
+                Expanded(child: search),
+                const SizedBox(width: 8),
+                grouping!,
+              ],
+            );
       final title = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -332,7 +345,7 @@ class PageHeader extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                search,
+                searchRow,
                 const SizedBox(height: 8),
                 Row(children: [filters, const Spacer(), density, toggle]),
               ] else ...[
@@ -352,6 +365,7 @@ class PageHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       filters,
+                      ?grouping,
                       const SizedBox(width: 8),
                       toggle,
                       density,
@@ -380,7 +394,7 @@ class PageHeader extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  search,
+                  searchRow,
                   if (box.maxWidth < 900 * scale) ...[
                     const SizedBox(height: 8),
                     Row(children: [filters, const Spacer(), density, toggle]),

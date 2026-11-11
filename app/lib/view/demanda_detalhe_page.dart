@@ -1,3 +1,4 @@
+import 'formatters/demanda_hierarquia.dart';
 import 'formatters/sprint_apresentacao.dart';
 import 'widgets/sprint_vinculos_editor.dart';
 import 'widgets/app_selection.dart';
@@ -55,6 +56,7 @@ Future<void> mostrarDetalhesDemandaDialog(
   int demandaId, {
   DemandaDetalheViewModel? viewModel,
   bool permitirExclusao = true,
+  Map<int, backend.Demanda> demandasPorId = const {},
   Future<void> Function()? onVinculosAlterados,
 }) => showGeneralDialog<void>(
   context: context,
@@ -77,6 +79,7 @@ Future<void> mostrarDetalhesDemandaDialog(
       demandaId: demandaId,
       viewModel: viewModel,
       painel: true,
+      demandasPorId: demandasPorId,
       onVinculosAlterados: onVinculosAlterados,
       permitirExclusao: permitirExclusao,
       onVoltar: () => Navigator.pop(dialogContext),
@@ -86,6 +89,7 @@ Future<void> mostrarDetalhesDemandaDialog(
             dialogContext,
             id,
             permitirExclusao: permitirExclusao,
+            demandasPorId: demandasPorId,
             onVinculosAlterados: onVinculosAlterados,
           );
         }
@@ -102,11 +106,13 @@ class _DemandaDetalheConteudo extends StatefulWidget {
     required this.onAbrirDemanda,
     this.viewModel,
     this.painel = false,
+    this.demandasPorId = const {},
     this.onVinculosAlterados,
     this.permitirExclusao = true,
   });
 
   final bool painel;
+  final Map<int, backend.Demanda> demandasPorId;
   final Future<void> Function()? onVinculosAlterados;
   final bool permitirExclusao;
   final int demandaId;
@@ -269,6 +275,12 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
           child: _DemandaMae(
             demanda: demanda,
             demandaMae: _viewModel.demandaMae,
+            caminho: caminhoAncestral(
+              demanda,
+              (id) => _viewModel.demandaMae?.id == id
+                  ? _viewModel.demandaMae
+                  : widget.demandasPorId[id],
+            ),
             onAbrir: widget.onAbrirDemanda,
           ),
         ),
@@ -631,11 +643,13 @@ class _DemandaMae extends StatelessWidget {
   const _DemandaMae({
     required this.demanda,
     required this.demandaMae,
+    this.caminho,
     required this.onAbrir,
   });
 
   final backend.Demanda demanda;
   final backend.Demanda? demandaMae;
+  final String? caminho;
   final ValueChanged<int?> onAbrir;
 
   @override
@@ -650,9 +664,11 @@ class _DemandaMae extends StatelessWidget {
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.account_tree_outlined),
+      leading: const Icon(Icons.subdirectory_arrow_right),
       title: Text(
-        formatarIdentificacaoDemanda(demandaMae!),
+        caminho?.contains(' › ') == true
+            ? caminho!
+            : formatarIdentificacaoDemanda(demandaMae!),
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: Text(

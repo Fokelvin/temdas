@@ -1,3 +1,4 @@
+import '../../view_model/demandas_agrupamento.dart';
 import '../../ui/components/demand_components.dart';
 import '../../ui/theme/tokens.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -29,6 +30,8 @@ class DemandaTree extends StatefulWidget {
     this.onReabrir,
     this.sprintBuilder,
     this.lista = false,
+    this.agrupamento = AgrupamentoDemandas.demanda,
+    this.referenciaHierarquica,
     this.temposExecutadosTotais,
     this.onMover,
     this.demandasEmProcessamento = const {},
@@ -40,6 +43,8 @@ class DemandaTree extends StatefulWidget {
   });
 
   final bool lista;
+  final AgrupamentoDemandas agrupamento;
+  final String? Function(backend.Demanda)? referenciaHierarquica;
   final Map<int, int>? temposExecutadosTotais;
   final List<backend.Demanda> demandas;
   final ScrollController horizontalController;
@@ -74,7 +79,7 @@ class _DemandaTreeState extends State<DemandaTree> {
   int? _demandaDestacadaId;
   bool _atualizacaoAgendada = false;
   bool _dragAtivo = false;
-  final _gruposRecolhidos = <backend.DemandaStatus>{};
+  final _gruposRecolhidos = <Object>{};
   backend.DemandaStatus? _abaAtiva;
   final _tabKeys = {
     for (final s in backend.DemandaStatus.values) s: GlobalKey(),
@@ -225,6 +230,19 @@ class _DemandaTreeState extends State<DemandaTree> {
         status: <_DemandaNivel>[],
     };
 
+    final porPrioridade = {
+      for (final prioridade in backend.Prioridade.values.reversed)
+        prioridade: <_DemandaNivel>[],
+    };
+    final hierarquia = <_DemandaNivel>[];
+    List<_DemandaNivel> grupo(backend.Demanda raiz) => switch (widget.lista
+        ? widget.agrupamento
+        : AgrupamentoDemandas.status) {
+      AgrupamentoDemandas.demanda => hierarquia,
+      AgrupamentoDemandas.status => porStatus[raiz.status]!,
+      AgrupamentoDemandas.prioridade => porPrioridade[raiz.prioridade]!,
+    };
+
     // A raiz define a coluna de toda a árvore; a visita mantém a ordem,
     // os níveis e o status próprio de cada descendente.
     for (final raiz in raizes) {
@@ -235,7 +253,7 @@ class _DemandaTreeState extends State<DemandaTree> {
         porPai: porPai,
         caminho: const {},
         idsVisitados: idsVisitados,
-        nos: porStatus[raiz.status]!,
+        nos: grupo(raiz),
       );
     }
 
@@ -250,21 +268,37 @@ class _DemandaTreeState extends State<DemandaTree> {
         porPai: porPai,
         caminho: const {},
         idsVisitados: idsVisitados,
-        nos: porStatus[demanda.status]!,
+        nos: grupo(demanda),
       );
     }
 
     if (widget.lista) {
+      Widget construir(_DemandaNivel no) => _construirNo(
+        no,
+        temposTotais[no.demanda.id] ?? no.demanda.tempoExecutadoMinutos,
+      );
+      final Map<Object, List<_DemandaNivel>> grupos =
+          switch (widget.agrupamento) {
+            AgrupamentoDemandas.demanda => const {},
+            AgrupamentoDemandas.status => porStatus,
+            AgrupamentoDemandas.prioridade => porPrioridade,
+          };
       return Column(
-        key: const ValueKey('demandas-lista-status'),
+        key: ValueKey('demandas-lista-${widget.agrupamento.name}'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final grupo in porStatus.entries.where(
+          ...hierarquia.map(construir),
+          for (final grupo in grupos.entries.where(
             (g) => g.value.isNotEmpty,
           )) ...[
             GroupHeader(
               densidade: _densidade,
-              status: grupo.key,
+              status: grupo.key is backend.DemandaStatus
+                  ? grupo.key as backend.DemandaStatus
+                  : null,
+              prioridade: grupo.key is backend.Prioridade
+                  ? grupo.key as backend.Prioridade
+                  : null,
               count: grupo.value.where((no) => no.nivel == 0).length,
               collapsed: _gruposRecolhidos.contains(grupo.key),
               onTap: () => setState(() {
@@ -274,19 +308,15 @@ class _DemandaTreeState extends State<DemandaTree> {
               }),
             ),
             if (!_gruposRecolhidos.contains(grupo.key))
-              for (final no in grupo.value)
-                _construirNo(
-                  no,
-                  temposTotais[no.demanda.id] ??
-                      no.demanda.tempoExecutadoMinutos,
-                ),
+              ...grupo.value.map(construir),
           ],
-          EmptyStatusesLine(
-            statuses: porStatus.entries
-                .where((g) => g.value.isEmpty)
-                .map((g) => g.key)
-                .toList(),
-          ),
+          if (widget.agrupamento == AgrupamentoDemandas.status)
+            EmptyStatusesLine(
+              statuses: porStatus.entries
+                  .where((g) => g.value.isEmpty)
+                  .map((g) => g.key)
+                  .toList(),
+            ),
         ],
       );
     }
@@ -563,6 +593,9 @@ class _DemandaTreeState extends State<DemandaTree> {
               densidade: _densidade,
               emLista: widget.lista,
               demanda: demanda,
+              referenciaHierarquica: widget.lista && nivel == 0
+                  ? widget.referenciaHierarquica?.call(demanda)
+                  : null,
               sprintContexto: widget.sprintBuilder?.call(demanda),
               tempoExecutadoTotalMinutos: tempoExecutadoTotalMinutos,
               dragHandle: dragHandle,

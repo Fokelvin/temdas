@@ -186,13 +186,15 @@ class GroupHeader extends StatelessWidget {
   const GroupHeader({
     super.key,
     this.densidade = DensidadeDemanda.normal,
-    required this.status,
+    this.status,
+    this.prioridade,
     required this.count,
     this.collapsed = false,
     this.onTap,
-  });
+  }) : assert(status != null || prioridade != null);
   final DensidadeDemanda densidade;
-  final b.DemandaStatus status;
+  final b.DemandaStatus? status;
+  final b.Prioridade? prioridade;
   final int count;
   final bool collapsed;
   final VoidCallback? onTap;
@@ -213,11 +215,18 @@ class GroupHeader extends StatelessWidget {
               ),
               const SizedBox(width: 4),
             ],
-            StatusDot(color: statusColor(status)),
+            if (status case final b.DemandaStatus valor)
+              StatusDot(color: statusColor(valor)),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                statusLabel(status),
+                switch (prioridade) {
+                  b.Prioridade.urgente => 'Urgente',
+                  b.Prioridade.alta => 'Alta',
+                  b.Prioridade.media => 'Média',
+                  b.Prioridade.baixa => 'Baixa',
+                  null => statusLabel(status!),
+                },
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -351,6 +360,7 @@ class DemandRow extends StatelessWidget {
     required this.onTap,
     this.sprint,
     this.statusControl,
+    this.mostrarMedidor = true,
   });
   final DensidadeDemanda densidade;
   final int? id;
@@ -361,6 +371,13 @@ class DemandRow extends StatelessWidget {
   final Widget actions, chevron;
   final VoidCallback? onTap;
   final Widget? sprint;
+  final bool mostrarMedidor;
+
+  Widget _medidor({double width = 44}) => mostrarMedidor
+      ? HoursMeter(real: hours, estimate: estimate, width: width)
+      : estimate > 0
+      ? SizedBox(width: width, height: 3)
+      : const SizedBox.shrink();
   Widget _id(BuildContext context) => Text(
     '#${id ?? '–'}',
     maxLines: 1,
@@ -405,7 +422,7 @@ class DemandRow extends StatelessWidget {
               children: [
                 HoursLabel(minutes: hours, estimate: desktop ? null : estimate),
                 SizedBox(height: densidade.isCompacta ? 4 : 8),
-                HoursMeter(real: hours, estimate: estimate),
+                _medidor(),
               ],
             );
             return HoverRegion(
@@ -460,11 +477,7 @@ class DemandRow extends StatelessWidget {
                                   ),
                                   if (box.maxWidth >= 400) ...[
                                     const SizedBox(width: 4),
-                                    HoursMeter(
-                                      real: hours,
-                                      estimate: estimate,
-                                      width: 32,
-                                    ),
+                                    _medidor(width: 32),
                                   ],
                                   const SizedBox(width: 8),
                                   SizedBox(

@@ -1,3 +1,4 @@
+import 'formatters/demanda_hierarquia.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -372,85 +373,105 @@ class _TabelaRelatorio extends StatelessWidget {
   final List<backend.RelatorioDemandaItem> itens;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      if (constraints.maxWidth < 900 ||
-          MediaQuery.textScalerOf(context).scale(14) > 21) {
-        return ListView.builder(
-          key: const ValueKey('relatorio-lista-responsiva'),
-          itemCount:
-              itens.length + (header == null ? 0 : 1) + (itens.isEmpty ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == 0 && header != null) return header!;
-            if (itens.isEmpty) return const _EstadoVazio();
-            final item = itens[index - (header == null ? 0 : 1)];
-            return Padding(
-              padding: EdgeInsets.only(
-                left: (item.nivelHierarquico * 12.0).clamp(0, 48),
-                bottom: 8,
-              ),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${item.demandaId} - ${item.titulo}',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      Text(
-                        '${statusLabelRelatorio(item.status)} · ${prioridadeLabelRelatorio(item.prioridade)}',
-                      ),
-                      Text(
-                        'Estimado: ${formatDuration(Duration(minutes: item.tempoEstimadoMinutos))}',
-                      ),
-                      Text(
-                        'Realizado próprio: ${formatDuration(Duration(minutes: item.tempoRealizadoProprioMinutos))}',
-                      ),
-                      Text(
-                        'Total da árvore: ${formatDuration(Duration(minutes: item.tempoRealizadoTotalArvoreMinutos))}',
-                      ),
-                      if (item.apenasContexto)
-                        const Text('Contexto da hierarquia'),
-                    ],
+  Widget build(BuildContext context) {
+    final caminhos = caminhosDoRelatorio(itens);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 900 ||
+            MediaQuery.textScalerOf(context).scale(14) > 21) {
+          return ListView.builder(
+            key: const ValueKey('relatorio-lista-responsiva'),
+            itemCount:
+                itens.length +
+                (header == null ? 0 : 1) +
+                (itens.isEmpty ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == 0 && header != null) return header!;
+              if (itens.isEmpty) return const _EstadoVazio();
+              final item = itens[index - (header == null ? 0 : 1)];
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: (item.nivelHierarquico * 12.0).clamp(0, 48),
+                  bottom: 8,
+                ),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${item.demandaId} - ${item.titulo}',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        if (caminhos[item.demandaId]
+                            case final String ancestrais)
+                          Text(
+                            '↳ $ancestrais',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        Text(
+                          '${statusLabelRelatorio(item.status)} · ${prioridadeLabelRelatorio(item.prioridade)}',
+                        ),
+                        Text(
+                          'Estimado: ${formatDuration(Duration(minutes: item.tempoEstimadoMinutos))}',
+                        ),
+                        Text(
+                          'Realizado próprio: ${formatDuration(Duration(minutes: item.tempoRealizadoProprioMinutos))}',
+                        ),
+                        Text(
+                          'Total da árvore: ${formatDuration(Duration(minutes: item.tempoRealizadoTotalArvoreMinutos))}',
+                        ),
+                        if (item.apenasContexto)
+                          const Text('Contexto da hierarquia'),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      }
-      return Card(
-        clipBehavior: Clip.antiAlias,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: constraints.maxWidth < 1200 ? 1200 : constraints.maxWidth,
-            child: SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 24,
-                headingRowColor: WidgetStatePropertyAll(
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              );
+            },
+          );
+        }
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: constraints.maxWidth < 1200 ? 1200 : constraints.maxWidth,
+              child: SingleChildScrollView(
+                child: DataTable(
+                  columnSpacing: 24,
+                  headingRowColor: WidgetStatePropertyAll(
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                  ),
+                  columns: const [
+                    DataColumn(label: Text('Demanda')),
+                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text('Prioridade')),
+                    DataColumn(label: Text('Estimado')),
+                    DataColumn(label: Text('Realizado próprio')),
+                    DataColumn(label: Text('Total da árvore')),
+                  ],
+                  rows: itens
+                      .map(
+                        (item) =>
+                            _linha(context, item, caminhos[item.demandaId]),
+                      )
+                      .toList(),
                 ),
-                columns: const [
-                  DataColumn(label: Text('Demanda')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Prioridade')),
-                  DataColumn(label: Text('Estimado')),
-                  DataColumn(label: Text('Realizado próprio')),
-                  DataColumn(label: Text('Total da árvore')),
-                ],
-                rows: itens.map((item) => _linha(context, item)).toList(),
               ),
             ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 
-  DataRow _linha(BuildContext context, backend.RelatorioDemandaItem item) {
+  DataRow _linha(
+    BuildContext context,
+    backend.RelatorioDemandaItem item,
+    String? ancestrais,
+  ) {
     final estilo = item.apenasContexto
         ? Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -479,12 +500,33 @@ class _TabelaRelatorio extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                 ],
-                Text(
-                  formatarIdentificacaoDemandaPorId(
-                    id: item.demandaId,
-                    titulo: item.titulo,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        formatarIdentificacaoDemandaPorId(
+                          id: item.demandaId,
+                          titulo: item.titulo,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: estilo?.copyWith(fontStyle: FontStyle.italic),
+                      ),
+                      if (ancestrais != null)
+                        Tooltip(
+                          message: ancestrais,
+                          child: Text(
+                            '↳ $ancestrais',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                    ],
                   ),
-                  style: estilo?.copyWith(fontStyle: FontStyle.italic),
                 ),
               ],
             ),

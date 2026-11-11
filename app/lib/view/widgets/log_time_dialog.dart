@@ -1,3 +1,4 @@
+import '../formatters/demanda_hierarquia.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -21,6 +22,7 @@ class LogTimeDialog extends StatefulWidget {
     this.onSalvar,
     this.horaInicial,
     this.demandas,
+    this.demandaPorId,
     this.onCriarDemanda,
   }) : duracaoInicialMinutos = LogTimeFormData.duracaoPadraoMinutos,
        edicao = false;
@@ -37,10 +39,12 @@ class LogTimeDialog extends StatefulWidget {
     this.observacoesOriginais,
   }) : edicao = true,
        demandas = null,
+       demandaPorId = null,
        onCriarDemanda = null;
 
   final String demandaTitulo;
   final List<backend.Demanda>? demandas;
+  final backend.Demanda? Function(int)? demandaPorId;
   final Future<backend.Demanda?> Function()? onCriarDemanda;
   final int? demandaId;
   final DateTime dataInicial;
@@ -271,6 +275,11 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
         .toList();
   }
 
+  late final _porId = indexarDemandas(_opcoes);
+
+  String? _ancestrais(backend.Demanda d) =>
+      caminhoAncestral(d, (id) => widget.demandaPorId?.call(id) ?? _porId[id]);
+
   Widget _campoDemanda() {
     final largura = (MediaQuery.sizeOf(context).width - 180).clamp(80.0, 408.0);
     return Row(
@@ -293,7 +302,11 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                   decoration: InputDecoration(
                     labelText: 'Demanda',
                     hintText: 'Pesquisar por ID ou título',
-                    helperText: _opcoes.isEmpty
+                    helperText:
+                        _demandaSelecionada != null &&
+                            _ancestrais(_demandaSelecionada!) != null
+                        ? '↳ ${_ancestrais(_demandaSelecionada!)}'
+                        : _opcoes.isEmpty
                         ? 'Nenhuma Demanda cadastrada. Use + para criar.'
                         : _filtrarDemandas(controller.text).isEmpty
                         ? 'Nenhuma Demanda encontrada.'
@@ -324,6 +337,7 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                       itemCount: options.length,
                       itemBuilder: (context, index) {
                         final d = options.elementAt(index);
+                        final ancestrais = _ancestrais(d);
                         return ListTile(
                           key: ValueKey('opcao-demanda-log-time-${d.id}'),
                           dense: true,
@@ -335,6 +349,16 @@ class _LogTimeDialogState extends State<LogTimeDialog> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          subtitle: ancestrais != null
+                              ? Tooltip(
+                                  message: ancestrais,
+                                  child: Text(
+                                    '↳ $ancestrais',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )
+                              : null,
                           onTap: () => select(d),
                         );
                       },

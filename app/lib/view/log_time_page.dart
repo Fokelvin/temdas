@@ -1,3 +1,4 @@
+import 'formatters/demanda_hierarquia.dart';
 import '../view_model/demandas_view_model.dart';
 import 'widgets/demanda_dialog.dart';
 import 'widgets/registro_tempo_observacoes.dart';
@@ -154,6 +155,7 @@ class _LogTimePageState extends State<LogTimePage> {
         barrierDismissible: false,
         builder: (_) => LogTimeDialog(
           demandas: demandas,
+          demandaPorId: _viewModel.demandaPorId,
           onCriarDemanda: () async {
             final criada = await showDialog<backend.Demanda>(
               context: context,
@@ -209,7 +211,10 @@ class _LogTimePageState extends State<LogTimePage> {
         demandaId: registro.demandaId,
         demandaTitulo: demanda == null
             ? 'Demanda #${registro.demandaId}'
-            : formatarIdentificacaoDemanda(demanda),
+            : tituloComHierarquia(
+                formatarIdentificacaoDemanda(demanda),
+                caminhoAncestral(demanda, _viewModel.demandaPorId),
+              ),
         dataInicial: inicioLocal,
         horaInicial: TimeOfDay.fromDateTime(inicioLocal),
         duracaoInicialMinutos: registro.duracaoMinutos,
@@ -475,6 +480,7 @@ class _DayAgenda extends StatelessWidget {
         itemBuilder: (context, index) => _RegistroTile(
           registro: registros[index],
           demanda: viewModel.demandaPorId(registros[index].demandaId),
+          demandaPorId: viewModel.demandaPorId,
           onEditar: onEditar,
           onExcluir: onExcluir,
         ),
@@ -542,6 +548,7 @@ class _WeekAgenda extends StatelessWidget {
                               demanda: viewModel.demandaPorId(
                                 registro.demandaId,
                               ),
+                              demandaPorId: viewModel.demandaPorId,
                               onEditar: onEditar,
                               onExcluir: onExcluir,
                             ),
@@ -564,12 +571,14 @@ class _WeekRegistroCard extends StatelessWidget {
   const _WeekRegistroCard({
     required this.registro,
     required this.demanda,
+    required this.demandaPorId,
     required this.onEditar,
     required this.onExcluir,
   });
 
   final backend.RegistroTempo registro;
   final backend.Demanda? demanda;
+  final backend.Demanda? Function(int) demandaPorId;
   final _AcaoRegistro onEditar;
   final _AcaoRegistro onExcluir;
 
@@ -612,7 +621,10 @@ class _WeekRegistroCard extends StatelessWidget {
                         Text(
                           demanda == null
                               ? 'Demanda #${registro.demandaId}'
-                              : formatarIdentificacaoDemanda(demanda!),
+                              : tituloComHierarquia(
+                                  formatarIdentificacaoDemanda(demanda!),
+                                  caminhoAncestral(demanda!, demandaPorId),
+                                ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -645,12 +657,14 @@ class _RegistroTile extends StatelessWidget {
   const _RegistroTile({
     required this.registro,
     required this.demanda,
+    required this.demandaPorId,
     required this.onEditar,
     required this.onExcluir,
   });
 
   final backend.RegistroTempo registro;
   final backend.Demanda? demanda;
+  final backend.Demanda? Function(int) demandaPorId;
   final _AcaoRegistro onEditar;
   final _AcaoRegistro onExcluir;
 
@@ -688,7 +702,10 @@ class _RegistroTile extends StatelessWidget {
                   Text(
                     demanda == null
                         ? 'Demanda #${registro.demandaId}'
-                        : formatarIdentificacaoDemanda(demanda!),
+                        : tituloComHierarquia(
+                            formatarIdentificacaoDemanda(demanda!),
+                            caminhoAncestral(demanda!, demandaPorId),
+                          ),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
