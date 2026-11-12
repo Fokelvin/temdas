@@ -10,6 +10,7 @@ import '../view/meu_perfil_page.dart';
 import '../view/relatorios_page.dart';
 import '../view/sprint_page.dart';
 import '../view/auth_callback_page.dart';
+import '../view/todo_page.dart';
 
 abstract final class AppRoutes {
   static const home = '/';
@@ -21,6 +22,7 @@ abstract final class AppRoutes {
   static const sprint = '/sprint';
   static const logTime = '/log-time';
   static const relatorios = '/relatorios';
+  static const todos = '/to-dos';
   static const perfil = '/perfil';
 
   static String detalheDaDemanda(int demandaId) => Uri(
@@ -66,6 +68,7 @@ abstract final class AppRoutes {
       },
       logTime => const LogTimePage(),
       relatorios => const RelatoriosPage(),
+      todos => const TodoPage(),
       perfil => const MeuPerfilPage(),
       _ => const DemandasPage(),
     };

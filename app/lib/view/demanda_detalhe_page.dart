@@ -1,3 +1,4 @@
+import 'todo_page.dart';
 import 'formatters/demanda_hierarquia.dart';
 import 'formatters/sprint_apresentacao.dart';
 import 'widgets/sprint_vinculos_editor.dart';
@@ -217,12 +218,14 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       initialIndex: _aba,
       child: Column(
         children: [
           TabBar(
-            isScrollable: MediaQuery.textScalerOf(context).scale(1) > 1.3,
+            isScrollable:
+                MediaQuery.sizeOf(context).width < 600 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3,
             onTap: (aba) {
               _aba = aba;
               if (aba == 1 && !_anotacoesIniciadas) {
@@ -234,12 +237,21 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
               Tab(text: 'Visão geral'),
               Tab(text: 'Anotações'),
               Tab(text: 'Horas'),
+              Tab(text: 'To-do'),
             ],
           ),
           Expanded(
             child: TabBarView(
               physics: const NeverScrollableScrollPhysics(),
-              children: [_visaoGeral(demanda), _anotacoes(demanda), _horas()],
+              children: [
+                _visaoGeral(demanda),
+                _anotacoes(demanda),
+                _horas(),
+                TodoBoard(
+                  key: ValueKey(widget.demandaId),
+                  demandaId: widget.demandaId,
+                ),
+              ],
             ),
           ),
         ],

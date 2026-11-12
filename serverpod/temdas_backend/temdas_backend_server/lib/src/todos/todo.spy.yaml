@@ -1,0 +1,17 @@
+class: Todo
+table: todos
+fields:
+  usuarioId: int, relation(parent=usuarios)
+  demandaId: int?, relation(parent=demandas, onDelete=Cascade)
+  conteudo: String
+  data: String?
+  concluido: bool, default=false
+  criadoEm: DateTime
+  posicao: int?
+  largura: double, default=232.0
+  altura: double, default=232.0
+indexes:
+  todos_usuario_posicao_idx:
+    fields: usuarioId, posicao
+  todos_demanda_idx:
+    fields: demandaId

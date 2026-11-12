@@ -1,3 +1,4 @@
+import 'todo_page.dart';
 import '../view_model/demanda_hierarquia_lista.dart';
 import '../view_model/demanda_lista_preferencias.dart';
 import '../view_model/demandas_agrupamento.dart';
@@ -626,10 +627,8 @@ class _DemandasPageState extends State<DemandasPage> {
               possuiDescendentes
                   ? 'A demanda “${formatarIdentificacaoDemanda(demanda)}” possui $descendentes '
                         '${descendentes == 1 ? 'descendente' : 'descendentes'}. '
-                        'A demanda, toda a árvore abaixo dela e todos os registros '
-                        'de tempo vinculados serão excluídos permanentemente.'
-                  : 'A demanda “${formatarIdentificacaoDemanda(demanda)}” será excluída permanentemente. '
-                        'Essa ação não pode ser desfeita.',
+                        'A demanda, seus descendentes e os dados vinculados (horas, anotações e To-dos) serão excluídos permanentemente.'
+                  : 'A demanda “${formatarIdentificacaoDemanda(demanda)}” e seus dados vinculados (horas, anotações e To-dos) serão excluídos permanentemente.',
             ),
             actions: [
               TextButton(
@@ -1309,6 +1308,11 @@ class _DemandasPageState extends State<DemandasPage> {
               ),
             ),
         ],
+      ),
+      action: IconButton(
+        tooltip: 'To-dos',
+        icon: const Icon(todoIcon),
+        onPressed: () => mostrarListaTodo(context),
       ),
       refresh: RefreshAction(
         loading: _viewModel.carregando,

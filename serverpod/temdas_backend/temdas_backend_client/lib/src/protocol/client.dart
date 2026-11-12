@@ -55,7 +55,8 @@ import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_resp
     as _i23;
 import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
     as _i24;
-import 'protocol.dart' as _i25;
+import 'package:temdas_backend_client/src/protocol/todos/todo.dart' as _i25;
+import 'protocol.dart' as _i26;
 
 /// {@category Endpoint}
 class EndpointConvite extends _i1.EndpointRef {
@@ -516,6 +517,115 @@ class EndpointSprint extends _i1.EndpointRef {
   );
 }
 
+/// {@category Endpoint}
+class EndpointTodo extends _i1.EndpointRef {
+  EndpointTodo(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'todo';
+
+  _i2.Future<List<_i25.Todo>> listar() =>
+      caller.callServerEndpoint<List<_i25.Todo>>(
+        'todo',
+        'listar',
+        {},
+      );
+
+  _i2.Future<_i25.Todo> criar(
+    String conteudo,
+    int? demandaId,
+  ) => caller.callServerEndpoint<_i25.Todo>(
+    'todo',
+    'criar',
+    {
+      'conteudo': conteudo,
+      'demandaId': demandaId,
+    },
+  );
+
+  _i2.Future<void> editarTexto(
+    int id,
+    String conteudo,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'editarTexto',
+    {
+      'id': id,
+      'conteudo': conteudo,
+    },
+  );
+
+  _i2.Future<void> alterarData(
+    int id,
+    String? data,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'alterarData',
+    {
+      'id': id,
+      'data': data,
+    },
+  );
+
+  _i2.Future<void> alterarConclusao(
+    int id,
+    bool concluido,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'alterarConclusao',
+    {
+      'id': id,
+      'concluido': concluido,
+    },
+  );
+
+  _i2.Future<void> redimensionar(
+    int id,
+    double largura,
+    double altura,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'redimensionar',
+    {
+      'id': id,
+      'largura': largura,
+      'altura': altura,
+    },
+  );
+
+  _i2.Future<void> vincular(
+    int id,
+    int? demandaId,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'vincular',
+    {
+      'id': id,
+      'demandaId': demandaId,
+    },
+  );
+
+  _i2.Future<void> mover(
+    int id,
+    int destinoId,
+    bool depois,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'mover',
+    {
+      'id': id,
+      'destinoId': destinoId,
+      'depois': depois,
+    },
+  );
+
+  _i2.Future<void> excluir(int id) => caller.callServerEndpoint<void>(
+    'todo',
+    'excluir',
+    {'id': id},
+  );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -536,7 +646,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i25.Protocol(),
+         _i26.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -553,6 +663,7 @@ class Client extends _i1.ServerpodClientShared {
     registroTempo = EndpointRegistroTempo(this);
     relatorio = EndpointRelatorio(this);
     sprint = EndpointSprint(this);
+    todo = EndpointTodo(this);
   }
 
   late final EndpointConvite convite;
@@ -571,6 +682,8 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointSprint sprint;
 
+  late final EndpointTodo todo;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'convite': convite,
@@ -581,6 +694,7 @@ class Client extends _i1.ServerpodClientShared {
     'registroTempo': registroTempo,
     'relatorio': relatorio,
     'sprint': sprint,
+    'todo': todo,
   };
 
   @override

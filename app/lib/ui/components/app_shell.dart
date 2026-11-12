@@ -241,11 +241,12 @@ class PageHeader extends StatelessWidget {
     required this.create,
     required this.density,
     this.grouping,
+    this.action,
     this.title = 'Demandas',
   });
   final String title;
   final int count;
-  final Widget? grouping;
+  final Widget? grouping, action;
   final Widget search, filters, toggle, refresh, create, density;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -342,6 +343,7 @@ class PageHeader extends StatelessWidget {
                   children: [
                     const AppMenuButton(),
                     Expanded(child: title),
+                    ?action,
                     refresh,
                     const ThemeToggleButton(),
                   ],
@@ -371,6 +373,7 @@ class PageHeader extends StatelessWidget {
                       const SizedBox(width: 8),
                       toggle,
                       density,
+                      ?action,
                       refresh,
                       const SizedBox(width: 8),
                       create,
@@ -386,9 +389,11 @@ class PageHeader extends StatelessWidget {
                         const SizedBox(width: 8),
                         toggle,
                         density,
+                        ?action,
                         refresh,
                         create,
                       ] else ...[
+                        ?action,
                         refresh,
                         create,
                       ],

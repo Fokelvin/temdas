@@ -49,18 +49,20 @@ import 'sprints/sprint_exception.dart' as _i35;
 import 'sprints/sprint_indicadores.dart' as _i36;
 import 'sprints/sprint_status.dart' as _i37;
 import 'sprints/sprint_update_request.dart' as _i38;
-import 'usuarios/email_whitelist.dart' as _i39;
-import 'usuarios/usuario.dart' as _i40;
+import 'todos/todo.dart' as _i39;
+import 'usuarios/email_whitelist.dart' as _i40;
+import 'usuarios/usuario.dart' as _i41;
 import 'package:temdas_backend_server/src/generated/anotacoes/anotacao_demanda.dart'
-    as _i41;
-import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
     as _i42;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda.dart'
     as _i43;
-import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo.dart'
     as _i44;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint.dart'
     as _i45;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_demanda.dart'
+    as _i46;
+import 'package:temdas_backend_server/src/generated/todos/todo.dart' as _i47;
 export 'admin/convite_exception.dart';
 export 'anotacoes/anotacao_demanda.dart';
 export 'auth/auth_exception.dart';
@@ -97,6 +99,7 @@ export 'sprints/sprint_exception.dart';
 export 'sprints/sprint_indicadores.dart';
 export 'sprints/sprint_status.dart';
 export 'sprints/sprint_update_request.dart';
+export 'todos/todo.dart';
 export 'usuarios/email_whitelist.dart';
 export 'usuarios/usuario.dart';
 
@@ -759,6 +762,146 @@ class Protocol extends _i1.SerializationManagerServer {
       managed: true,
     ),
     _i2.TableDefinition(
+      name: 'todos',
+      dartName: 'Todo',
+      schema: 'public',
+      module: 'temdas_backend',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'todos_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'usuarioId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'demandaId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'conteudo',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'data',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'concluido',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'criadoEm',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'posicao',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'largura',
+          columnType: _i2.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+          columnDefault: '232.0',
+        ),
+        _i2.ColumnDefinition(
+          name: 'altura',
+          columnType: _i2.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+          columnDefault: '232.0',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'todos_fk_0',
+          columns: ['usuarioId'],
+          referenceTable: 'usuarios',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'todos_fk_1',
+          columns: ['demandaId'],
+          referenceTable: 'demandas',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'todos_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'todos_usuario_posicao_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'usuarioId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'posicao',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'todos_demanda_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'demandaId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
       name: 'usuarios',
       dartName: 'Usuario',
       schema: 'public',
@@ -960,11 +1103,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i38.SprintUpdateRequest) {
       return _i38.SprintUpdateRequest.fromJson(data) as T;
     }
-    if (t == _i39.EmailWhitelist) {
-      return _i39.EmailWhitelist.fromJson(data) as T;
+    if (t == _i39.Todo) {
+      return _i39.Todo.fromJson(data) as T;
     }
-    if (t == _i40.Usuario) {
-      return _i40.Usuario.fromJson(data) as T;
+    if (t == _i40.EmailWhitelist) {
+      return _i40.EmailWhitelist.fromJson(data) as T;
+    }
+    if (t == _i41.Usuario) {
+      return _i41.Usuario.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.ConviteException?>()) {
       return (data != null ? _i3.ConviteException.fromJson(data) : null) as T;
@@ -1112,11 +1258,14 @@ class Protocol extends _i1.SerializationManagerServer {
       return (data != null ? _i38.SprintUpdateRequest.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i39.EmailWhitelist?>()) {
-      return (data != null ? _i39.EmailWhitelist.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i39.Todo?>()) {
+      return (data != null ? _i39.Todo.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i40.Usuario?>()) {
-      return (data != null ? _i40.Usuario.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i40.EmailWhitelist?>()) {
+      return (data != null ? _i40.EmailWhitelist.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i41.Usuario?>()) {
+      return (data != null ? _i41.Usuario.fromJson(data) : null) as T;
     }
     if (t == List<_i29.Sprint>) {
       return (data as List).map((e) => deserialize<_i29.Sprint>(e)).toList()
@@ -1148,32 +1297,32 @@ class Protocol extends _i1.SerializationManagerServer {
               .toList()
           as T;
     }
-    if (t == List<_i41.AnotacaoDemanda>) {
+    if (t == List<_i42.AnotacaoDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i41.AnotacaoDemanda>(e))
+              .map((e) => deserialize<_i42.AnotacaoDemanda>(e))
               .toList()
           as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
-    if (t == List<_i42.Demanda>) {
-      return (data as List).map((e) => deserialize<_i42.Demanda>(e)).toList()
+    if (t == List<_i43.Demanda>) {
+      return (data as List).map((e) => deserialize<_i43.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i43.RegistroTempo>) {
+    if (t == List<_i44.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i43.RegistroTempo>(e))
+              .map((e) => deserialize<_i44.RegistroTempo>(e))
               .toList()
           as T;
     }
-    if (t == List<_i44.Sprint>) {
-      return (data as List).map((e) => deserialize<_i44.Sprint>(e)).toList()
+    if (t == List<_i45.Sprint>) {
+      return (data as List).map((e) => deserialize<_i45.Sprint>(e)).toList()
           as T;
     }
-    if (t == List<_i45.SprintDemanda>) {
+    if (t == List<_i46.SprintDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i45.SprintDemanda>(e))
+              .map((e) => deserialize<_i46.SprintDemanda>(e))
               .toList()
           as T;
     }
@@ -1182,6 +1331,9 @@ class Protocol extends _i1.SerializationManagerServer {
               ? (data as List).map((e) => deserialize<int>(e)).toList()
               : null)
           as T;
+    }
+    if (t == List<_i47.Todo>) {
+      return (data as List).map((e) => deserialize<_i47.Todo>(e)).toList() as T;
     }
     try {
       return _i2.Protocol().deserialize<T>(data, t);
@@ -1227,8 +1379,9 @@ class Protocol extends _i1.SerializationManagerServer {
       _i36.SprintIndicadores => 'SprintIndicadores',
       _i37.SprintStatus => 'SprintStatus',
       _i38.SprintUpdateRequest => 'SprintUpdateRequest',
-      _i39.EmailWhitelist => 'EmailWhitelist',
-      _i40.Usuario => 'Usuario',
+      _i39.Todo => 'Todo',
+      _i40.EmailWhitelist => 'EmailWhitelist',
+      _i41.Usuario => 'Usuario',
       _ => null,
     };
   }
@@ -1318,9 +1471,11 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'SprintStatus';
       case _i38.SprintUpdateRequest():
         return 'SprintUpdateRequest';
-      case _i39.EmailWhitelist():
+      case _i39.Todo():
+        return 'Todo';
+      case _i40.EmailWhitelist():
         return 'EmailWhitelist';
-      case _i40.Usuario():
+      case _i41.Usuario():
         return 'Usuario';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -1444,11 +1599,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'SprintUpdateRequest') {
       return deserialize<_i38.SprintUpdateRequest>(data['data']);
     }
+    if (dataClassName == 'Todo') {
+      return deserialize<_i39.Todo>(data['data']);
+    }
     if (dataClassName == 'EmailWhitelist') {
-      return deserialize<_i39.EmailWhitelist>(data['data']);
+      return deserialize<_i40.EmailWhitelist>(data['data']);
     }
     if (dataClassName == 'Usuario') {
-      return deserialize<_i40.Usuario>(data['data']);
+      return deserialize<_i41.Usuario>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -1476,10 +1634,12 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i29.Sprint.t;
       case _i33.SprintDemanda:
         return _i33.SprintDemanda.t;
-      case _i39.EmailWhitelist:
-        return _i39.EmailWhitelist.t;
-      case _i40.Usuario:
-        return _i40.Usuario.t;
+      case _i39.Todo:
+        return _i39.Todo.t;
+      case _i40.EmailWhitelist:
+        return _i40.EmailWhitelist.t;
+      case _i41.Usuario:
+        return _i41.Usuario.t;
     }
     return null;
   }

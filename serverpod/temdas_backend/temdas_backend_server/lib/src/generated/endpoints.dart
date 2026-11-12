@@ -20,26 +20,27 @@ import '../greetings/greeting_endpoint.dart' as _i6;
 import '../registros_tempo/registro_tempo_endpoint.dart' as _i7;
 import '../relatorios/relatorio_endpoint.dart' as _i8;
 import '../sprints/sprint_endpoint.dart' as _i9;
+import '../todos/todo_endpoint.dart' as _i10;
 import 'package:temdas_backend_server/src/generated/demandas/demanda_localizacao.dart'
-    as _i10;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
     as _i11;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_status.dart'
     as _i12;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_movimentacao_request.dart'
     as _i13;
-import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_create_request.dart'
     as _i14;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
+import 'package:temdas_backend_server/src/generated/demandas/demanda_update_request.dart'
     as _i15;
-import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_create_request.dart'
     as _i16;
-import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
+import 'package:temdas_backend_server/src/generated/registros_tempo/registro_tempo_update_request.dart'
     as _i17;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
+import 'package:temdas_backend_server/src/generated/relatorios/relatorio_demanda_request.dart'
     as _i18;
-import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+import 'package:temdas_backend_server/src/generated/sprints/sprint_create_request.dart'
     as _i19;
+import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
+    as _i20;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -91,6 +92,12 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'sprint',
+          null,
+        ),
+      'todo': _i10.TodoEndpoint()
+        ..initialize(
+          server,
+          'todo',
           null,
         ),
     };
@@ -311,7 +318,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'destino': _i1.ParameterDescription(
               name: 'destino',
-              type: _i1.getType<_i10.DemandaLocalizacao>(),
+              type: _i1.getType<_i11.DemandaLocalizacao>(),
               nullable: false,
             ),
             'vinculosConfirmados': _i1.ParameterDescription(
@@ -361,7 +368,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'status': _i1.ParameterDescription(
               name: 'status',
-              type: _i1.getType<_i11.DemandaStatus>(),
+              type: _i1.getType<_i12.DemandaStatus>(),
               nullable: false,
             ),
             'motivoCancelamento': _i1.ParameterDescription(
@@ -431,7 +438,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i12.DemandaMovimentacaoRequest>(),
+              type: _i1.getType<_i13.DemandaMovimentacaoRequest>(),
               nullable: false,
             ),
           },
@@ -450,7 +457,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i13.DemandaCreateRequest>(),
+              type: _i1.getType<_i14.DemandaCreateRequest>(),
               nullable: false,
             ),
           },
@@ -469,7 +476,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'localizacao': _i1.ParameterDescription(
               name: 'localizacao',
-              type: _i1.getType<_i10.DemandaLocalizacao?>(),
+              type: _i1.getType<_i11.DemandaLocalizacao?>(),
               nullable: true,
             ),
             'incluirBacklog': _i1.ParameterDescription(
@@ -513,7 +520,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i14.DemandaUpdateRequest>(),
+              type: _i1.getType<_i15.DemandaUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -600,7 +607,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i15.RegistroTempoCreateRequest>(),
+              type: _i1.getType<_i16.RegistroTempoCreateRequest>(),
               nullable: false,
             ),
           },
@@ -620,7 +627,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i16.RegistroTempoUpdateRequest>(),
+              type: _i1.getType<_i17.RegistroTempoUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -738,7 +745,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i17.RelatorioDemandaRequest>(),
+              type: _i1.getType<_i18.RelatorioDemandaRequest>(),
               nullable: false,
             ),
           },
@@ -830,7 +837,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i18.SprintCreateRequest>(),
+              type: _i1.getType<_i19.SprintCreateRequest>(),
               nullable: false,
             ),
           },
@@ -849,7 +856,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'request': _i1.ParameterDescription(
               name: 'request',
-              type: _i1.getType<_i19.SprintUpdateRequest>(),
+              type: _i1.getType<_i20.SprintUpdateRequest>(),
               nullable: false,
             ),
           },
@@ -1070,6 +1077,221 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['sprintId'],
                     params['demandaId'],
                   ),
+        ),
+      },
+    );
+    connectors['todo'] = _i1.EndpointConnector(
+      name: 'todo',
+      endpoint: endpoints['todo']!,
+      methodConnectors: {
+        'listar': _i1.MethodConnector(
+          name: 'listar',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['todo'] as _i10.TodoEndpoint).listar(session),
+        ),
+        'criar': _i1.MethodConnector(
+          name: 'criar',
+          params: {
+            'conteudo': _i1.ParameterDescription(
+              name: 'conteudo',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'demandaId': _i1.ParameterDescription(
+              name: 'demandaId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).criar(
+                session,
+                params['conteudo'],
+                params['demandaId'],
+              ),
+        ),
+        'editarTexto': _i1.MethodConnector(
+          name: 'editarTexto',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'conteudo': _i1.ParameterDescription(
+              name: 'conteudo',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).editarTexto(
+                session,
+                params['id'],
+                params['conteudo'],
+              ),
+        ),
+        'alterarData': _i1.MethodConnector(
+          name: 'alterarData',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'data': _i1.ParameterDescription(
+              name: 'data',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).alterarData(
+                session,
+                params['id'],
+                params['data'],
+              ),
+        ),
+        'alterarConclusao': _i1.MethodConnector(
+          name: 'alterarConclusao',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'concluido': _i1.ParameterDescription(
+              name: 'concluido',
+              type: _i1.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['todo'] as _i10.TodoEndpoint).alterarConclusao(
+                    session,
+                    params['id'],
+                    params['concluido'],
+                  ),
+        ),
+        'redimensionar': _i1.MethodConnector(
+          name: 'redimensionar',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'largura': _i1.ParameterDescription(
+              name: 'largura',
+              type: _i1.getType<double>(),
+              nullable: false,
+            ),
+            'altura': _i1.ParameterDescription(
+              name: 'altura',
+              type: _i1.getType<double>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).redimensionar(
+                session,
+                params['id'],
+                params['largura'],
+                params['altura'],
+              ),
+        ),
+        'vincular': _i1.MethodConnector(
+          name: 'vincular',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'demandaId': _i1.ParameterDescription(
+              name: 'demandaId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).vincular(
+                session,
+                params['id'],
+                params['demandaId'],
+              ),
+        ),
+        'mover': _i1.MethodConnector(
+          name: 'mover',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'destinoId': _i1.ParameterDescription(
+              name: 'destinoId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'depois': _i1.ParameterDescription(
+              name: 'depois',
+              type: _i1.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).mover(
+                session,
+                params['id'],
+                params['destinoId'],
+                params['depois'],
+              ),
+        ),
+        'excluir': _i1.MethodConnector(
+          name: 'excluir',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).excluir(
+                session,
+                params['id'],
+              ),
         ),
       },
     );

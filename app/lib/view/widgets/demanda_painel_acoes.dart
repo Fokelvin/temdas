@@ -84,7 +84,7 @@ class _DemandaPainelAcoesState extends State<DemandaPainelAcoes> {
       builder: (context) => AlertDialog(
         title: const Text('Excluir demanda?'),
         content: Text(
-          'Excluir permanentemente a demanda, $descendentes descendentes e todos os registros vinculados? Esta ação não pode ser desfeita.',
+          'Excluir permanentemente a demanda, $descendentes descendentes e os dados vinculados (horas, anotações e To-dos)? Esta ação não pode ser desfeita.',
         ),
         actions: [
           TextButton(
