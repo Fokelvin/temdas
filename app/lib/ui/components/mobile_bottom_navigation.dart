@@ -7,6 +7,7 @@ import '../theme/tokens.dart';
 abstract final class AppNavigation {
   static const routes = [
     AppRoutes.demandas,
+    AppRoutes.todos,
     AppRoutes.sprint,
     AppRoutes.logTime,
     AppRoutes.relatorios,
@@ -14,6 +15,7 @@ abstract final class AppNavigation {
   ];
   static const labels = [
     'Demandas',
+    'To-dos',
     'Sprints',
     'Log Time',
     'Relatórios',
@@ -21,6 +23,7 @@ abstract final class AppNavigation {
   ];
   static const icons = [
     Symbols.task_alt_rounded,
+    Icons.sticky_note_2_outlined,
     Symbols.sprint_rounded,
     Symbols.calendar_month_rounded,
     Symbols.assessment_rounded,

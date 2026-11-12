@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/app/app_routes.dart';
 import 'package:temdas/theme/app_theme.dart';
 import 'package:temdas/ui/components/app_shell.dart';
+import 'package:temdas/ui/components/app_side_menu.dart';
 import 'package:temdas/ui/theme/tokens.dart';
 import 'package:temdas/ui/components/mobile_bottom_navigation.dart';
 import 'package:temdas/view/widgets/app_drawer.dart';
@@ -16,8 +17,8 @@ class _NavigationObserver extends NavigatorObserver {
 }
 
 void main() {
-  for (final width in [360.0, 390.0, 430.0, 820.0]) {
-    testWidgets('barra compartilhada navega entre as cinco páginas em $width', (
+  for (final width in [320.0, 360.0, 390.0, 430.0, 820.0]) {
+    testWidgets('barra compartilhada navega entre os destinos em $width', (
       tester,
     ) async {
       tester.view.physicalSize = Size(width, 900);
@@ -57,7 +58,11 @@ void main() {
         expect(find.byType(MobileBottomNavigation), findsNothing);
         return;
       }
-      for (final index in [0, 1, 2, 3, 4, 0]) {
+      expect(AppNavigation.routes.take(2), [
+        AppRoutes.demandas,
+        AppRoutes.todos,
+      ]);
+      for (final index in [...AppNavigation.routes.asMap().keys, 0]) {
         await tester.tap(find.byKey(ValueKey('mobile-nav-$index')));
         await tester.pumpAndSettle();
         final bar = find.byType(MobileBottomNavigation);
@@ -72,7 +77,7 @@ void main() {
           tester.getRect(find.text('Conteúdo')).bottom,
           lessThanOrEqualTo(bottom),
         );
-        for (var item = 0; item < 5; item++) {
+        for (var item = 0; item < AppNavigation.routes.length; item++) {
           final target = find.byKey(ValueKey('mobile-nav-$item'));
           final icon = tester.widget<Icon>(
             find.descendant(of: target, matching: find.byType(Icon)),
@@ -91,6 +96,65 @@ void main() {
         expect(observer.replacements, before);
         expect(tester.takeException(), isNull);
       }
+    });
+  }
+
+  for (final width in [390.0, 820.0, 1280.0]) {
+    testWidgets('menu principal abre e seleciona To-dos em $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      Widget page(String route) =>
+          PageScaffold(title: route, route: route, body: const SizedBox());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: page(AppRoutes.demandas),
+          routes: {AppRoutes.todos: (_) => page(AppRoutes.todos)},
+        ),
+      );
+      Future<void> openMenu() async {
+        if (width < 600) {
+          await tester.tap(find.byType(AppMenuButton));
+          await tester.pumpAndSettle();
+        }
+      }
+
+      Finder item(String label) => find.descendant(
+        of: find.byType(AppSideMenu),
+        matching: find.byTooltip(label),
+      );
+
+      await openMenu();
+      expect(
+        tester.getTopLeft(item('To-dos')).dy,
+        greaterThan(tester.getTopLeft(item('Demandas')).dy),
+      );
+      expect(
+        tester.getTopLeft(item('To-dos')).dy,
+        lessThan(tester.getTopLeft(item('Sprints')).dy),
+      );
+      await tester.tap(item('To-dos'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<PageScaffold>(find.byType(PageScaffold)).route,
+        AppRoutes.todos,
+      );
+
+      await openMenu();
+      expect(
+        find.ancestor(
+          of: item('To-dos'),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.selected == true,
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
     });
   }
 }
