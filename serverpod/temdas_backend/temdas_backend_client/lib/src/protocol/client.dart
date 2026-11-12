@@ -56,7 +56,9 @@ import 'package:temdas_backend_client/src/protocol/sprints/sprint_conclusao_resp
 import 'package:temdas_backend_client/src/protocol/sprints/sprint_indicadores.dart'
     as _i24;
 import 'package:temdas_backend_client/src/protocol/todos/todo.dart' as _i25;
-import 'protocol.dart' as _i26;
+import 'package:temdas_backend_client/src/protocol/todos/todo_linha.dart'
+    as _i26;
+import 'protocol.dart' as _i27;
 
 /// {@category Endpoint}
 class EndpointConvite extends _i1.EndpointRef {
@@ -555,6 +557,18 @@ class EndpointTodo extends _i1.EndpointRef {
     },
   );
 
+  _i2.Future<void> editarLinhas(
+    int id,
+    List<_i26.TodoLinha> linhas,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'editarLinhas',
+    {
+      'id': id,
+      'linhas': linhas,
+    },
+  );
+
   _i2.Future<void> alterarData(
     int id,
     String? data,
@@ -646,7 +660,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i26.Protocol(),
+         _i27.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

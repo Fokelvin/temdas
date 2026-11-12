@@ -41,6 +41,55 @@ void main() {
       await expectLater(todo.listar(session), throwsA(isA<AuthException>()));
     });
 
+    test('persiste linhas mistas e preserva a leitura legada', () async {
+      final card = await todo.criar(session, 'Texto\nItem', null);
+      expect(card.linhas, isNull);
+      expect((await todo.listar(session)).single.conteudo, 'Texto\nItem');
+      final linhas = [
+        TodoLinha(
+          id: 'texto',
+          tipo: TodoTipoLinha.texto,
+          texto: 'Texto',
+          marcado: false,
+        ),
+        TodoLinha(
+          id: 'item',
+          tipo: TodoTipoLinha.checklist,
+          texto: 'Item',
+          marcado: true,
+        ),
+        TodoLinha(
+          id: 'vazio',
+          tipo: TodoTipoLinha.texto,
+          texto: '',
+          marcado: false,
+        ),
+      ];
+      await todo.editarLinhas(session, card.id!, linhas);
+      final salvo = (await todo.listar(session)).single;
+      expect(
+        salvo.linhas!.map((linha) => linha.toJson()),
+        linhas.map((linha) => linha.toJson()),
+      );
+      expect(salvo.conteudo, 'Texto\nItem\n');
+      expect(salvo.concluido, isFalse);
+      await expectLater(
+        todo.editarTexto(session, card.id!, 'Cliente anterior'),
+        throwsStateError,
+      );
+      await expectLater(
+        todo.editarLinhas(session, card.id!, [linhas.first, linhas.first]),
+        throwsArgumentError,
+      );
+
+      await installAal2TestUser(session, 'todos-outro-owner');
+      await expectLater(
+        todo.editarLinhas(session, card.id!, linhas),
+        throwsException,
+      );
+      expect(await todo.listar(session), isEmpty);
+    });
+
     test('isola leitura, mutações, destino do arraste e vínculo', () async {
       final demanda = await criarDemanda('Demanda privada');
       final privado = await todo.criar(session, 'Privado', demanda.id);

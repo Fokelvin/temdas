@@ -8,6 +8,7 @@ import '../data/repositories/demanda_repository.dart';
 import '../view_model/todo_view_model.dart';
 import 'formatters/demanda_identificacao.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/todo_editor.dart';
 
 const todoIcon = Icons.sticky_note_2_outlined;
 
@@ -255,7 +256,7 @@ class _TodoBoardState extends State<TodoBoard>
           mobile: mobile,
           ocupado: ocupado,
           alvo: candidatos.isNotEmpty,
-          onTexto: (texto) => _model.editarTexto(id, texto),
+          onLinhas: (linhas) => _model.editarLinhas(id, linhas),
           onConclusao: (valor) => _model.alterarConclusao(id, valor),
           onData: () => _editarData(todo),
           onVinculo: () => _editarVinculo(todo),
@@ -349,7 +350,7 @@ class _PostIt extends StatefulWidget {
     required this.mobile,
     required this.ocupado,
     required this.alvo,
-    required this.onTexto,
+    required this.onLinhas,
     required this.onConclusao,
     required this.onData,
     required this.onVinculo,
@@ -360,7 +361,7 @@ class _PostIt extends StatefulWidget {
 
   final backend.Todo todo;
   final bool mobile, ocupado, alvo;
-  final ValueChanged<String> onTexto;
+  final ValueChanged<List<backend.TodoLinha>> onLinhas;
   final ValueChanged<bool> onConclusao;
   final VoidCallback onData, onVinculo, onExcluir, onFimRedimensionar;
   final ValueChanged<Offset> onRedimensionar;
@@ -370,7 +371,6 @@ class _PostIt extends StatefulWidget {
 }
 
 class _PostItState extends State<_PostIt> {
-  late final _texto = TextEditingController(text: widget.todo.conteudo);
   EdgeDraggingAutoScroller? _autoScroll;
 
   void _acompanharArraste(DragUpdateDetails detalhes) {
@@ -383,15 +383,8 @@ class _PostItState extends State<_PostIt> {
   }
 
   @override
-  void didUpdateWidget(covariant _PostIt oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_texto.text != widget.todo.conteudo) _texto.text = widget.todo.conteudo;
-  }
-
-  @override
   void dispose() {
     _autoScroll?.stopAutoScroll();
-    _texto.dispose();
     super.dispose();
   }
 
@@ -413,28 +406,10 @@ class _PostItState extends State<_PostIt> {
         : urgente
         ? esquema.error
         : esquema.outlineVariant;
-    final campo = TextField(
-      controller: _texto,
+    final campo = TodoEditor(
+      todo: todo,
       enabled: !widget.ocupado,
-      onChanged: widget.onTexto,
-      keyboardType: TextInputType.multiline,
-      maxLines: null,
-      expands: !widget.mobile,
-      textAlignVertical: TextAlignVertical.top,
-      style: TextStyle(
-        decoration: todo.concluido ? TextDecoration.lineThrough : null,
-        color: esquema.onSurface,
-      ),
-      decoration: const InputDecoration(
-        filled: false,
-        isCollapsed: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 8),
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        disabledBorder: InputBorder.none,
-        hintText: 'Conteúdo do To-do',
-      ),
+      onChanged: widget.onLinhas,
     );
 
     return Material(
@@ -516,7 +491,10 @@ class _PostItState extends State<_PostIt> {
                 ),
               ],
             ),
-            if (widget.mobile) campo else Expanded(child: campo),
+            if (widget.mobile)
+              campo
+            else
+              Expanded(child: SingleChildScrollView(child: campo)),
             if (todo.conteudo.trim().isEmpty)
               Text(
                 'Informe o conteúdo.',

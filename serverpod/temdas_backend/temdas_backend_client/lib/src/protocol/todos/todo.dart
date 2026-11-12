@@ -12,6 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import '../todos/todo_linha.dart' as _i2;
+import 'package:temdas_backend_client/src/protocol/protocol.dart' as _i3;
 
 abstract class Todo implements _i1.SerializableModel {
   Todo._({
@@ -19,6 +21,7 @@ abstract class Todo implements _i1.SerializableModel {
     required this.usuarioId,
     this.demandaId,
     required this.conteudo,
+    this.linhas,
     this.data,
     bool? concluido,
     required this.criadoEm,
@@ -34,6 +37,7 @@ abstract class Todo implements _i1.SerializableModel {
     required int usuarioId,
     int? demandaId,
     required String conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     required DateTime criadoEm,
@@ -48,6 +52,11 @@ abstract class Todo implements _i1.SerializableModel {
       usuarioId: jsonSerialization['usuarioId'] as int,
       demandaId: jsonSerialization['demandaId'] as int?,
       conteudo: jsonSerialization['conteudo'] as String,
+      linhas: jsonSerialization['linhas'] == null
+          ? null
+          : _i3.Protocol().deserialize<List<_i2.TodoLinha>>(
+              jsonSerialization['linhas'],
+            ),
       data: jsonSerialization['data'] as String?,
       concluido: jsonSerialization['concluido'] == null
           ? null
@@ -72,6 +81,8 @@ abstract class Todo implements _i1.SerializableModel {
 
   String conteudo;
 
+  List<_i2.TodoLinha>? linhas;
+
   String? data;
 
   bool concluido;
@@ -92,6 +103,7 @@ abstract class Todo implements _i1.SerializableModel {
     int? usuarioId,
     int? demandaId,
     String? conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     DateTime? criadoEm,
@@ -107,6 +119,8 @@ abstract class Todo implements _i1.SerializableModel {
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
       'conteudo': conteudo,
+      if (linhas != null)
+        'linhas': linhas?.toJson(valueToJson: (v) => v.toJson()),
       if (data != null) 'data': data,
       'concluido': concluido,
       'criadoEm': criadoEm.toJson(),
@@ -130,6 +144,7 @@ class _TodoImpl extends Todo {
     required int usuarioId,
     int? demandaId,
     required String conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     required DateTime criadoEm,
@@ -141,6 +156,7 @@ class _TodoImpl extends Todo {
          usuarioId: usuarioId,
          demandaId: demandaId,
          conteudo: conteudo,
+         linhas: linhas,
          data: data,
          concluido: concluido,
          criadoEm: criadoEm,
@@ -158,6 +174,7 @@ class _TodoImpl extends Todo {
     int? usuarioId,
     Object? demandaId = _Undefined,
     String? conteudo,
+    Object? linhas = _Undefined,
     Object? data = _Undefined,
     bool? concluido,
     DateTime? criadoEm,
@@ -170,6 +187,9 @@ class _TodoImpl extends Todo {
       usuarioId: usuarioId ?? this.usuarioId,
       demandaId: demandaId is int? ? demandaId : this.demandaId,
       conteudo: conteudo ?? this.conteudo,
+      linhas: linhas is List<_i2.TodoLinha>?
+          ? linhas
+          : this.linhas?.map((e0) => e0.copyWith()).toList(),
       data: data is String? ? data : this.data,
       concluido: concluido ?? this.concluido,
       criadoEm: criadoEm ?? this.criadoEm,

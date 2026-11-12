@@ -98,15 +98,16 @@ class TodoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void editarTexto(int id, String texto) {
-    _atualizar(id, (todo) => todo.copyWith(conteudo: texto));
+  void editarLinhas(int id, List<backend.TodoLinha> linhas) {
+    final texto = linhas.map((linha) => linha.texto).join('\n');
+    _atualizar(id, (todo) => todo.copyWith(conteudo: texto, linhas: linhas));
     _textos.remove(id)?.cancel();
     final chave = (id, _Campo.texto, null);
     _cancelarGravacoes((pendente) => pendente == chave);
     if (texto.trim().isNotEmpty) {
       _textos[id] = Timer(const Duration(milliseconds: 350), () {
         _textos.remove(id);
-        _enfileirar(chave, () => _client.todo.editarTexto(id, texto));
+        _enfileirar(chave, () => _client.todo.editarLinhas(id, linhas));
       });
     }
     notifyListeners();

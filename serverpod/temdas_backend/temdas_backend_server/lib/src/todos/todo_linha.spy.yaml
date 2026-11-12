@@ -1,0 +1,6 @@
+class: TodoLinha
+fields:
+  id: String
+  tipo: TodoTipoLinha
+  texto: String
+  marcado: bool

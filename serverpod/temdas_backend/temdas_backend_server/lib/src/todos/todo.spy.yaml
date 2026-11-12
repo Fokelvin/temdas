@@ -4,6 +4,7 @@ fields:
   usuarioId: int, relation(parent=usuarios)
   demandaId: int?, relation(parent=demandas, onDelete=Cascade)
   conteudo: String
+  linhas: List<TodoLinha>?
   data: String?
   concluido: bool, default=false
   criadoEm: DateTime

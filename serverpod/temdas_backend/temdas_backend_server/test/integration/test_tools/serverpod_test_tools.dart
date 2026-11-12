@@ -58,6 +58,8 @@ import 'package:temdas_backend_server/src/generated/sprints/sprint_conclusao_res
 import 'package:temdas_backend_server/src/generated/sprints/sprint_indicadores.dart'
     as _i25;
 import 'package:temdas_backend_server/src/generated/todos/todo.dart' as _i26;
+import 'package:temdas_backend_server/src/generated/todos/todo_linha.dart'
+    as _i27;
 import 'package:temdas_backend_server/src/generated/protocol.dart';
 import 'package:temdas_backend_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -1888,6 +1890,41 @@ class _TodoEndpoint {
           parameters: _i1.testObjectToJson({
             'id': id,
             'conteudo': conteudo,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<void> editarLinhas(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+    List<_i27.TodoLinha> linhas,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'todo',
+            method: 'editarLinhas',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'todo',
+          methodName: 'editarLinhas',
+          parameters: _i1.testObjectToJson({
+            'id': id,
+            'linhas': linhas,
           }),
           serializationManager: _serializationManager,
         );

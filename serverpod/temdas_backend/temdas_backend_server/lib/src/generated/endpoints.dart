@@ -41,6 +41,8 @@ import 'package:temdas_backend_server/src/generated/sprints/sprint_create_reques
     as _i19;
 import 'package:temdas_backend_server/src/generated/sprints/sprint_update_request.dart'
     as _i20;
+import 'package:temdas_backend_server/src/generated/todos/todo_linha.dart'
+    as _i21;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -1140,6 +1142,30 @@ class Endpoints extends _i1.EndpointDispatch {
                 session,
                 params['id'],
                 params['conteudo'],
+              ),
+        ),
+        'editarLinhas': _i1.MethodConnector(
+          name: 'editarLinhas',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'linhas': _i1.ParameterDescription(
+              name: 'linhas',
+              type: _i1.getType<List<_i21.TodoLinha>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).editarLinhas(
+                session,
+                params['id'],
+                params['linhas'],
               ),
         ),
         'alterarData': _i1.MethodConnector(

@@ -43,7 +43,26 @@ class TodoEndpoint extends Endpoint {
   Future<void> editarTexto(Session session, int id, String conteudo) =>
       _alterar(session, id, (todo) {
         _validarConteudo(conteudo);
+        if (todo.linhas != null) {
+          throw StateError('Recarregue a página para editar este To-do.');
+        }
         return todo.copyWith(conteudo: conteudo);
+      });
+
+  Future<void> editarLinhas(Session session, int id, List<TodoLinha> linhas) =>
+      _alterar(session, id, (todo) {
+        final ids = <String>{};
+        for (final linha in linhas) {
+          if (linha.id.isEmpty ||
+              !ids.add(linha.id) ||
+              linha.texto.contains(RegExp(r'[\r\n]')) ||
+              (linha.tipo == TodoTipoLinha.texto && linha.marcado)) {
+            throw ArgumentError('Linhas inválidas.');
+          }
+        }
+        final conteudo = linhas.map((linha) => linha.texto).join('\n');
+        _validarConteudo(conteudo);
+        return todo.copyWith(conteudo: conteudo, linhas: linhas);
       });
 
   Future<void> alterarData(Session session, int id, String? data) =>

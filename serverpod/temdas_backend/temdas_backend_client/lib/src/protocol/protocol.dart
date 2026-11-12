@@ -49,18 +49,22 @@ import 'sprints/sprint_indicadores.dart' as _i35;
 import 'sprints/sprint_status.dart' as _i36;
 import 'sprints/sprint_update_request.dart' as _i37;
 import 'todos/todo.dart' as _i38;
-import 'usuarios/email_whitelist.dart' as _i39;
-import 'usuarios/usuario.dart' as _i40;
+import 'todos/todo_linha.dart' as _i39;
+import 'todos/todo_tipo_linha.dart' as _i40;
+import 'usuarios/email_whitelist.dart' as _i41;
+import 'usuarios/usuario.dart' as _i42;
 import 'package:temdas_backend_client/src/protocol/anotacoes/anotacao_demanda.dart'
-    as _i41;
-import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
-    as _i42;
-import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
     as _i43;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i44;
-import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
+import 'package:temdas_backend_client/src/protocol/demandas/demanda.dart'
+    as _i44;
+import 'package:temdas_backend_client/src/protocol/registros_tempo/registro_tempo.dart'
     as _i45;
-import 'package:temdas_backend_client/src/protocol/todos/todo.dart' as _i46;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint.dart' as _i46;
+import 'package:temdas_backend_client/src/protocol/sprints/sprint_demanda.dart'
+    as _i47;
+import 'package:temdas_backend_client/src/protocol/todos/todo.dart' as _i48;
+import 'package:temdas_backend_client/src/protocol/todos/todo_linha.dart'
+    as _i49;
 export 'admin/convite_exception.dart';
 export 'anotacoes/anotacao_demanda.dart';
 export 'auth/auth_exception.dart';
@@ -98,6 +102,8 @@ export 'sprints/sprint_indicadores.dart';
 export 'sprints/sprint_status.dart';
 export 'sprints/sprint_update_request.dart';
 export 'todos/todo.dart';
+export 'todos/todo_linha.dart';
+export 'todos/todo_tipo_linha.dart';
 export 'usuarios/email_whitelist.dart';
 export 'usuarios/usuario.dart';
 export 'client.dart';
@@ -247,11 +253,17 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i38.Todo) {
       return _i38.Todo.fromJson(data) as T;
     }
-    if (t == _i39.EmailWhitelist) {
-      return _i39.EmailWhitelist.fromJson(data) as T;
+    if (t == _i39.TodoLinha) {
+      return _i39.TodoLinha.fromJson(data) as T;
     }
-    if (t == _i40.Usuario) {
-      return _i40.Usuario.fromJson(data) as T;
+    if (t == _i40.TodoTipoLinha) {
+      return _i40.TodoTipoLinha.fromJson(data) as T;
+    }
+    if (t == _i41.EmailWhitelist) {
+      return _i41.EmailWhitelist.fromJson(data) as T;
+    }
+    if (t == _i42.Usuario) {
+      return _i42.Usuario.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.ConviteException?>()) {
       return (data != null ? _i2.ConviteException.fromJson(data) : null) as T;
@@ -401,11 +413,17 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i38.Todo?>()) {
       return (data != null ? _i38.Todo.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i39.EmailWhitelist?>()) {
-      return (data != null ? _i39.EmailWhitelist.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i39.TodoLinha?>()) {
+      return (data != null ? _i39.TodoLinha.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i40.Usuario?>()) {
-      return (data != null ? _i40.Usuario.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i40.TodoTipoLinha?>()) {
+      return (data != null ? _i40.TodoTipoLinha.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i41.EmailWhitelist?>()) {
+      return (data != null ? _i41.EmailWhitelist.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i42.Usuario?>()) {
+      return (data != null ? _i42.Usuario.fromJson(data) : null) as T;
     }
     if (t == List<_i28.Sprint>) {
       return (data as List).map((e) => deserialize<_i28.Sprint>(e)).toList()
@@ -437,32 +455,44 @@ class Protocol extends _i1.SerializationManager {
               .toList()
           as T;
     }
-    if (t == List<_i41.AnotacaoDemanda>) {
+    if (t == List<_i39.TodoLinha>) {
+      return (data as List).map((e) => deserialize<_i39.TodoLinha>(e)).toList()
+          as T;
+    }
+    if (t == _i1.getType<List<_i39.TodoLinha>?>()) {
+      return (data != null
+              ? (data as List)
+                    .map((e) => deserialize<_i39.TodoLinha>(e))
+                    .toList()
+              : null)
+          as T;
+    }
+    if (t == List<_i43.AnotacaoDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i41.AnotacaoDemanda>(e))
+              .map((e) => deserialize<_i43.AnotacaoDemanda>(e))
               .toList()
           as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
-    if (t == List<_i42.Demanda>) {
-      return (data as List).map((e) => deserialize<_i42.Demanda>(e)).toList()
+    if (t == List<_i44.Demanda>) {
+      return (data as List).map((e) => deserialize<_i44.Demanda>(e)).toList()
           as T;
     }
-    if (t == List<_i43.RegistroTempo>) {
+    if (t == List<_i45.RegistroTempo>) {
       return (data as List)
-              .map((e) => deserialize<_i43.RegistroTempo>(e))
+              .map((e) => deserialize<_i45.RegistroTempo>(e))
               .toList()
           as T;
     }
-    if (t == List<_i44.Sprint>) {
-      return (data as List).map((e) => deserialize<_i44.Sprint>(e)).toList()
+    if (t == List<_i46.Sprint>) {
+      return (data as List).map((e) => deserialize<_i46.Sprint>(e)).toList()
           as T;
     }
-    if (t == List<_i45.SprintDemanda>) {
+    if (t == List<_i47.SprintDemanda>) {
       return (data as List)
-              .map((e) => deserialize<_i45.SprintDemanda>(e))
+              .map((e) => deserialize<_i47.SprintDemanda>(e))
               .toList()
           as T;
     }
@@ -472,8 +502,12 @@ class Protocol extends _i1.SerializationManager {
               : null)
           as T;
     }
-    if (t == List<_i46.Todo>) {
-      return (data as List).map((e) => deserialize<_i46.Todo>(e)).toList() as T;
+    if (t == List<_i48.Todo>) {
+      return (data as List).map((e) => deserialize<_i48.Todo>(e)).toList() as T;
+    }
+    if (t == List<_i49.TodoLinha>) {
+      return (data as List).map((e) => deserialize<_i49.TodoLinha>(e)).toList()
+          as T;
     }
     return super.deserialize<T>(data, t);
   }
@@ -517,8 +551,10 @@ class Protocol extends _i1.SerializationManager {
       _i36.SprintStatus => 'SprintStatus',
       _i37.SprintUpdateRequest => 'SprintUpdateRequest',
       _i38.Todo => 'Todo',
-      _i39.EmailWhitelist => 'EmailWhitelist',
-      _i40.Usuario => 'Usuario',
+      _i39.TodoLinha => 'TodoLinha',
+      _i40.TodoTipoLinha => 'TodoTipoLinha',
+      _i41.EmailWhitelist => 'EmailWhitelist',
+      _i42.Usuario => 'Usuario',
       _ => null,
     };
   }
@@ -610,9 +646,13 @@ class Protocol extends _i1.SerializationManager {
         return 'SprintUpdateRequest';
       case _i38.Todo():
         return 'Todo';
-      case _i39.EmailWhitelist():
+      case _i39.TodoLinha():
+        return 'TodoLinha';
+      case _i40.TodoTipoLinha():
+        return 'TodoTipoLinha';
+      case _i41.EmailWhitelist():
         return 'EmailWhitelist';
-      case _i40.Usuario():
+      case _i42.Usuario():
         return 'Usuario';
     }
     return null;
@@ -735,11 +775,17 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'Todo') {
       return deserialize<_i38.Todo>(data['data']);
     }
+    if (dataClassName == 'TodoLinha') {
+      return deserialize<_i39.TodoLinha>(data['data']);
+    }
+    if (dataClassName == 'TodoTipoLinha') {
+      return deserialize<_i40.TodoTipoLinha>(data['data']);
+    }
     if (dataClassName == 'EmailWhitelist') {
-      return deserialize<_i39.EmailWhitelist>(data['data']);
+      return deserialize<_i41.EmailWhitelist>(data['data']);
     }
     if (dataClassName == 'Usuario') {
-      return deserialize<_i40.Usuario>(data['data']);
+      return deserialize<_i42.Usuario>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:temdas/view/todo_page.dart';
 import 'package:temdas/view_model/todo_view_model.dart';
@@ -22,7 +23,7 @@ class _Client extends backend.Client {
   }) async {
     if (method == 'listar') return todos as T;
     operacoes.add((method, args));
-    if (method == 'editarTexto') {
+    if (method == 'editarLinhas') {
       final resposta = Completer<void>();
       textos.add(resposta);
       await resposta.future;
@@ -68,7 +69,12 @@ void main() {
       client.textos.first.completeError(StateError('falha anterior'));
       await tester.pump();
       expect(client.textos, hasLength(2));
-      expect(client.operacoes.last.$2['conteudo'], 'Segunda\nlinha nova');
+      expect(
+        (client.operacoes.last.$2['linhas'] as List<backend.TodoLinha>).map(
+          (linha) => linha.texto,
+        ),
+        ['Segunda', 'linha nova'],
+      );
 
       client.textos.last.completeError(StateError('sem rede'));
       await tester.pumpAndSettle();
@@ -76,12 +82,139 @@ void main() {
       expect(model.todos.single.conteudo, 'Segunda\nlinha nova');
       await tester.tap(find.text('Falha ao salvar. Tentar novamente'));
       await tester.pump();
-      expect(client.operacoes.last.$2['conteudo'], 'Segunda\nlinha nova');
+      expect(
+        (client.operacoes.last.$2['linhas'] as List<backend.TodoLinha>).map(
+          (linha) => linha.texto,
+        ),
+        ['Segunda', 'linha nova'],
+      );
       client.textos.last.complete();
       await tester.pumpAndSettle();
       expect(find.text('Falha ao salvar. Tentar novamente'), findsNothing);
     },
   );
+
+  testWidgets('converte seleção multilinha e preserva linhas externas e IDs', (
+    tester,
+  ) async {
+    final client = _Client([_todo(1, 'Antes\nComprar\nPagar\nDepois')]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+    final texto = find.byType(TextField);
+    await tester.tap(texto);
+    tester.widget<TextField>(texto).controller!.selection = const TextSelection(
+      baseOffset: 6,
+      extentOffset: 19,
+    );
+    await tester.tap(find.byTooltip('Alternar texto e checklist'));
+    await tester.pump();
+    final linhas = model.todos.single.linhas!;
+    expect(linhas.map((linha) => linha.texto), [
+      'Antes',
+      'Comprar',
+      'Pagar',
+      'Depois',
+    ]);
+    expect(linhas.map((linha) => linha.tipo), [
+      backend.TodoTipoLinha.texto,
+      backend.TodoTipoLinha.checklist,
+      backend.TodoTipoLinha.checklist,
+      backend.TodoTipoLinha.texto,
+    ]);
+    final itens = find.byWidgetPredicate(
+      (widget) =>
+          widget is Checkbox && widget.visualDensity == VisualDensity.compact,
+    );
+    await tester.tap(itens.first);
+    await tester.pump();
+    expect(model.todos.single.linhas![1].marcado, isTrue);
+    expect(model.todos.single.concluido, isFalse);
+    expect(
+      model.todos.single.linhas!.map((linha) => linha.id),
+      linhas.map((linha) => linha.id),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    client.textos.single.complete();
+    await tester.pumpAndSettle();
+
+    final recarregado = TodoViewModel(_Client([model.todos.single]));
+    addTearDown(recarregado.dispose);
+    await tester.pumpWidget(const SizedBox());
+    await _abrir(tester, recarregado);
+    expect(tester.widget<Checkbox>(itens.first).value, isTrue);
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, 'Comprar'))
+          .style!
+          .decoration,
+      TextDecoration.lineThrough,
+    );
+  });
+
+  testWidgets('Enter divide o item e Backspace em item vazio volta a texto', (
+    tester,
+  ) async {
+    final original = _todo(1, 'Item').copyWith(
+      linhas: [
+        backend.TodoLinha(
+          id: 'item',
+          tipo: backend.TodoTipoLinha.checklist,
+          texto: 'Item',
+          marcado: true,
+        ),
+      ],
+    );
+    final client = _Client([original]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+    await tester.tap(find.byType(TextField));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'Item\n',
+        selection: TextSelection.collapsed(offset: 5),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(model.todos.single.linhas!.map((linha) => linha.tipo), [
+      backend.TodoTipoLinha.checklist,
+      backend.TodoTipoLinha.checklist,
+    ]);
+    expect(model.todos.single.linhas!.first.marcado, isTrue);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).focusNode!.hasFocus,
+      isTrue,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.pump();
+    expect(model.todos.single.linhas!.last.tipo, backend.TodoTipoLinha.texto);
+
+    await tester.tap(find.byType(TextField).first);
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'Item\n',
+        selection: TextSelection.collapsed(offset: 5),
+      ),
+    );
+    await tester.pumpAndSettle();
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '\u200b\n',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(model.todos.single.linhas!.map((linha) => linha.tipo), [
+      backend.TodoTipoLinha.checklist,
+      backend.TodoTipoLinha.texto,
+      backend.TodoTipoLinha.texto,
+    ]);
+    expect(model.todos.single.linhas!.first.id, 'item');
+    await tester.pump(const Duration(milliseconds: 350));
+    client.textos.single.complete();
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('filtra concluídos e reabre sem esperar a rede', (tester) async {
     final client = _Client([

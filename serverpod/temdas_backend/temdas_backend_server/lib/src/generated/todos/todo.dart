@@ -12,6 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod/serverpod.dart' as _i1;
+import '../todos/todo_linha.dart' as _i2;
+import 'package:temdas_backend_server/src/generated/protocol.dart' as _i3;
 
 abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   Todo._({
@@ -19,6 +21,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required this.usuarioId,
     this.demandaId,
     required this.conteudo,
+    this.linhas,
     this.data,
     bool? concluido,
     required this.criadoEm,
@@ -34,6 +37,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required int usuarioId,
     int? demandaId,
     required String conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     required DateTime criadoEm,
@@ -48,6 +52,11 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       usuarioId: jsonSerialization['usuarioId'] as int,
       demandaId: jsonSerialization['demandaId'] as int?,
       conteudo: jsonSerialization['conteudo'] as String,
+      linhas: jsonSerialization['linhas'] == null
+          ? null
+          : _i3.Protocol().deserialize<List<_i2.TodoLinha>>(
+              jsonSerialization['linhas'],
+            ),
       data: jsonSerialization['data'] as String?,
       concluido: jsonSerialization['concluido'] == null
           ? null
@@ -74,6 +83,8 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   String conteudo;
 
+  List<_i2.TodoLinha>? linhas;
+
   String? data;
 
   bool concluido;
@@ -97,6 +108,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     int? usuarioId,
     int? demandaId,
     String? conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     DateTime? criadoEm,
@@ -112,6 +124,8 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
       'conteudo': conteudo,
+      if (linhas != null)
+        'linhas': linhas?.toJson(valueToJson: (v) => v.toJson()),
       if (data != null) 'data': data,
       'concluido': concluido,
       'criadoEm': criadoEm.toJson(),
@@ -129,6 +143,8 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
       'conteudo': conteudo,
+      if (linhas != null)
+        'linhas': linhas?.toJson(valueToJson: (v) => v.toJsonForProtocol()),
       if (data != null) 'data': data,
       'concluido': concluido,
       'criadoEm': criadoEm.toJson(),
@@ -176,6 +192,7 @@ class _TodoImpl extends Todo {
     required int usuarioId,
     int? demandaId,
     required String conteudo,
+    List<_i2.TodoLinha>? linhas,
     String? data,
     bool? concluido,
     required DateTime criadoEm,
@@ -187,6 +204,7 @@ class _TodoImpl extends Todo {
          usuarioId: usuarioId,
          demandaId: demandaId,
          conteudo: conteudo,
+         linhas: linhas,
          data: data,
          concluido: concluido,
          criadoEm: criadoEm,
@@ -204,6 +222,7 @@ class _TodoImpl extends Todo {
     int? usuarioId,
     Object? demandaId = _Undefined,
     String? conteudo,
+    Object? linhas = _Undefined,
     Object? data = _Undefined,
     bool? concluido,
     DateTime? criadoEm,
@@ -216,6 +235,9 @@ class _TodoImpl extends Todo {
       usuarioId: usuarioId ?? this.usuarioId,
       demandaId: demandaId is int? ? demandaId : this.demandaId,
       conteudo: conteudo ?? this.conteudo,
+      linhas: linhas is List<_i2.TodoLinha>?
+          ? linhas
+          : this.linhas?.map((e0) => e0.copyWith()).toList(),
       data: data is String? ? data : this.data,
       concluido: concluido ?? this.concluido,
       criadoEm: criadoEm ?? this.criadoEm,
@@ -241,6 +263,13 @@ class TodoUpdateTable extends _i1.UpdateTable<TodoTable> {
 
   _i1.ColumnValue<String, String> conteudo(String value) => _i1.ColumnValue(
     table.conteudo,
+    value,
+  );
+
+  _i1.ColumnValue<List<_i2.TodoLinha>, List<_i2.TodoLinha>> linhas(
+    List<_i2.TodoLinha>? value,
+  ) => _i1.ColumnValue(
+    table.linhas,
     value,
   );
 
@@ -291,6 +320,10 @@ class TodoTable extends _i1.Table<int?> {
       'conteudo',
       this,
     );
+    linhas = _i1.ColumnSerializable<List<_i2.TodoLinha>>(
+      'linhas',
+      this,
+    );
     data = _i1.ColumnString(
       'data',
       this,
@@ -328,6 +361,8 @@ class TodoTable extends _i1.Table<int?> {
 
   late final _i1.ColumnString conteudo;
 
+  late final _i1.ColumnSerializable<List<_i2.TodoLinha>> linhas;
+
   late final _i1.ColumnString data;
 
   late final _i1.ColumnBool concluido;
@@ -346,6 +381,7 @@ class TodoTable extends _i1.Table<int?> {
     usuarioId,
     demandaId,
     conteudo,
+    linhas,
     data,
     concluido,
     criadoEm,
