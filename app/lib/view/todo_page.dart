@@ -215,22 +215,59 @@ class _TodoBoardState extends State<TodoBoard>
     builder: (context, constraints) {
       final mobile = MediaQuery.sizeOf(context).width < 600;
       final largura = math.max(0.0, constraints.maxWidth - 32);
+      final tamanhos = [
+        for (final todo in todos)
+          Size(
+            math.min(largura, _tamanhos[todo.id]?.width ?? todo.largura),
+            _tamanhos[todo.id]?.height ?? todo.altura,
+          ),
+      ];
       return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
           width: largura,
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final (index, todo) in todos.indexed)
-                _card(todo, todos, index, largura, mobile),
-            ],
-          ),
+          child: mobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (index, todo) in todos.indexed) ...[
+                      _card(todo, todos, index, largura, true),
+                      if (index < todos.length - 1) const SizedBox(height: 12),
+                    ],
+                  ],
+                )
+              : _gradeCompacta(todos, tamanhos, largura),
         ),
       );
     },
   );
+
+  Widget _gradeCompacta(
+    List<backend.Todo> todos,
+    List<Size> tamanhos,
+    double largura,
+  ) {
+    final posicoes = _calcularPosicoesCompactas(tamanhos, largura);
+    var altura = 0.0;
+    for (final (index, posicao) in posicoes.indexed) {
+      altura = math.max(altura, posicao.dy + tamanhos[index].height);
+    }
+    return SizedBox(
+      width: largura,
+      height: altura,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (final (index, todo) in todos.indexed)
+            Positioned(
+              left: posicoes[index].dx,
+              top: posicoes[index].dy,
+              child: _card(todo, todos, index, largura, false),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _card(
     backend.Todo todo,
@@ -347,6 +384,59 @@ class _TodoBoardState extends State<TodoBoard>
     );
     if (mounted && confirmado == true) _model.excluir(id);
   }
+}
+
+List<Offset> _calcularPosicoesCompactas(List<Size> tamanhos, double largura) {
+  const espacamento = 12.0;
+  final ocupados = <Rect>[];
+  final posicoes = <Offset>[];
+
+  for (final tamanho in tamanhos) {
+    final cardWidth = math.min(largura, tamanho.width);
+    final cardHeight = tamanho.height;
+    final ocupadosOrdenados = List<Rect>.of(ocupados)
+      ..sort((a, b) => a.left.compareTo(b.left));
+    final alturasCandidatas = <double>{
+      0,
+      for (final retangulo in ocupados) retangulo.bottom + espacamento,
+    }.toList()..sort();
+
+    Offset? posicao;
+    for (final top in alturasCandidatas) {
+      var left = 0.0;
+      for (final retangulo in ocupadosOrdenados) {
+        final separacaoVertical =
+            top < retangulo.bottom + espacamento &&
+            top + cardHeight > retangulo.top - espacamento;
+        if (!separacaoVertical) continue;
+        final bloqueioEsquerdo = math.max(0.0, retangulo.left - espacamento);
+        final bloqueioDireito = math.min(
+          largura,
+          retangulo.right + espacamento,
+        );
+        if (left + cardWidth <= bloqueioEsquerdo) break;
+        if (left < bloqueioDireito) left = bloqueioDireito;
+      }
+      if (left + cardWidth <= largura) {
+        posicao = Offset(left, top);
+        break;
+      }
+    }
+
+    // A position below every previous card always fits after width clamping.
+    posicao ??= Offset(
+      0,
+      ocupados.fold<double>(
+            0,
+            (bottom, retangulo) => math.max(bottom, retangulo.bottom),
+          ) +
+          espacamento,
+    );
+    posicoes.add(posicao);
+    ocupados.add(Rect.fromLTWH(posicao.dx, posicao.dy, cardWidth, cardHeight));
+  }
+
+  return posicoes;
 }
 
 class _PostIt extends StatefulWidget {

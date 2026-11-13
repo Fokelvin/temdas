@@ -37,6 +37,8 @@ backend.Todo _todo(
   int id,
   String texto, {
   bool concluido = false,
+  double largura = 232,
+  double altura = 232,
   List<backend.TodoLinha>? linhas,
 }) => backend.Todo(
   id: id,
@@ -44,6 +46,8 @@ backend.Todo _todo(
   conteudo: texto,
   concluido: concluido,
   criadoEm: DateTime.utc(2026),
+  largura: largura,
+  altura: altura,
   linhas: linhas,
 );
 
@@ -404,5 +408,77 @@ void main() {
     await tester.pumpAndSettle();
     expect(model.todos, isEmpty);
     expect(client.operacoes.last.$1, 'excluir');
+  });
+
+  testWidgets('compacta os cartões e recalcula após redimensionar e mover', (
+    tester,
+  ) async {
+    final client = _Client([
+      _todo(1, 'Baixo', largura: 220, altura: 140),
+      _todo(2, 'Alto', largura: 260, altura: 320),
+      _todo(3, 'Baixo também', largura: 200, altura: 110),
+      _todo(4, 'Preenche o espaço', largura: 220, altura: 100),
+    ]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+
+    Rect cartao(int id) => tester.getRect(find.byKey(ValueKey(id)));
+
+    final primeiro = cartao(1);
+    final alto = cartao(2);
+    final terceiro = cartao(3);
+    final quarto = cartao(4);
+    expect(quarto.left, terceiro.left);
+    expect(quarto.top, terceiro.bottom + 12);
+    expect(quarto.top, lessThan(alto.bottom));
+    expect(terceiro.top, primeiro.top);
+
+    final cartoes = [primeiro, alto, terceiro, quarto];
+    for (var i = 0; i < cartoes.length; i++) {
+      expect(
+        cartoes[i].right,
+        lessThanOrEqualTo(tester.view.physicalSize.width - 16),
+      );
+      for (final outro in cartoes.skip(i + 1)) {
+        expect(cartoes[i].overlaps(outro), isFalse);
+      }
+    }
+
+    await tester.drag(
+      find.byTooltip('Redimensionar To-do').at(2),
+      const Offset(60, 200),
+    );
+    await tester.pumpAndSettle();
+    expect(model.todos[2].altura, greaterThan(110));
+    expect(model.todos[2].largura, greaterThan(200));
+    final depoisDoRedimensionamento = cartao(4);
+    expect(depoisDoRedimensionamento.top, greaterThan(quarto.top));
+    final redimensionados = [1, 2, 3, 4].map(cartao).toList();
+    for (var i = 0; i < redimensionados.length; i++) {
+      expect(
+        redimensionados[i].right,
+        lessThanOrEqualTo(tester.view.physicalSize.width - 16),
+      );
+      for (final outro in redimensionados.skip(i + 1)) {
+        expect(redimensionados[i].overlaps(outro), isFalse);
+      }
+    }
+
+    final alcaQuarto = find.byTooltip('Arrastar To-do').at(3);
+    final origem = tester.getCenter(alcaQuarto);
+    final destino = tester.getCenter(find.byKey(const ValueKey(1)));
+    final gesto = await tester.startGesture(origem);
+    await gesto.moveTo(destino);
+    await tester.pump();
+    await gesto.up();
+    await tester.pumpAndSettle();
+    expect(model.todos.map((todo) => todo.id), [4, 1, 2, 3]);
+    expect(cartao(4).top, lessThan(depoisDoRedimensionamento.top));
+    expect(
+      client.operacoes.any((operacao) => operacao.$1 == 'redimensionar'),
+      isTrue,
+    );
+    expect(client.operacoes.any((operacao) => operacao.$1 == 'mover'), isTrue);
   });
 }
