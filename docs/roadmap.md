@@ -47,6 +47,8 @@ permanecem nas respectivas seções e documentos históricos.
 - **ORG-P3-02 — Organizações e equipes.**
 - **ORG-P3-03 — Membros e permissões por organização.**
 - **AUTH-P3-04 — Recuperação controlada de MFA e evolução do perfil.**
+- **UI-P2-08 — Navegação por links reais nas ações de navegação.**
+- **TODO-P3-07 — Exibir o nome da Demanda vinculada nos To-dos.**
 
 - **INF-03 — comprovação de `verify-full` pelo cliente Serverpod.**
 - **PROD-05 — monitoramento, custos e segurança operacional.**
@@ -547,6 +549,26 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   ordem na Demanda; impedir períodos conflitantes e transições inválidas;
   conservar integridade mãe/filhas, horas e MFA.
 
+### UI-P2-08 — Navegação por links reais nas ações de navegação
+
+- **Contexto:** controles que levam o usuário para outra tela, detalhe ou rota
+  interna devem se comportar como links reais no navegador, permitindo menu
+  contextual com opções como **Abrir em nova guia**, **Abrir em nova janela** e
+  **Copiar endereço do link**.
+- **Prioridade:** P2 — consistência de navegação no Flutter Web.
+- **Estado:** Aprovado / pendente.
+- **Escopo:** revisar ações de navegação do aplicativo e usar semântica de link
+  quando o destino possuir URL/rota própria. Isso inclui itens de menu, acessos
+  a detalhes e demais controles cujo efeito seja exclusivamente navegar.
+  Ações que alteram estado, salvam dados, concluem, excluem, movem ou executam
+  comandos continuam sendo botões e não devem ser convertidas artificialmente
+  em links.
+- **Critérios de aceite:** clicar normalmente preserva a navegação atual;
+  clique com botão direito em controles de navegação oferece as opções nativas
+  do navegador; Ctrl/Cmd+clique e clique do botão do meio podem abrir o destino
+  em nova guia quando suportados; acessibilidade, foco por teclado e rotas
+  existentes permanecem funcionais.
+
 ## P3 — Evolução funcional
 
 ### FUNC-P3-01 — Projeto vinculado à Demanda
@@ -592,6 +614,24 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Prioridade:** P3.
 - **Estado:** **Concluído e homologado em produção em 12/11/2026**, commit [`c554d1f`](https://github.com/Fokelvin/temdas/commit/c554d1f).
 - **Fora do escopo entregue:** lembretes, notificações, recorrência, integração com Calendário, Sprints e Log Time. Ordenação de itens internos do checklist (automática ou manual) fica para evolução futura.
+
+### TODO-P3-07 — Exibir a Demanda vinculada no card do To-do
+
+- **Contexto:** To-dos podem ser vinculados opcionalmente a uma Demanda, mas o
+  card atual não deixa claro visualmente a qual Demanda o item pertence.
+- **Prioridade:** P3 — refinamento da funcionalidade de To-dos.
+- **Estado:** Aprovado / pendente.
+- **Descrição:** quando um To-do possuir vínculo com uma Demanda, exibir no
+  próprio card o nome da Demanda vinculada, mantendo a informação visível de
+  forma compacta e sem competir com o conteúdo principal do post-it.
+- **Comportamento:** o nome exibido deve refletir a Demanda atualmente vinculada
+  e servir como acesso para abrir seus detalhes quando a navegação correspondente
+  estiver disponível. To-dos sem vínculo não exibem marcador artificial de
+  "Sem Demanda".
+- **Critérios de aceite:** o usuário consegue identificar diretamente pelo card
+  a Demanda associada; a informação permanece legível nos diferentes tamanhos
+  de post-it, temas e layouts responsivos; nenhum dado é duplicado ou persistido
+  apenas para apresentação.
 
 ## Infraestrutura e débitos técnicos
 
