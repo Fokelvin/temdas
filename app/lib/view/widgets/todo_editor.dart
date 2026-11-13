@@ -8,11 +8,13 @@ class TodoEditor extends StatefulWidget {
   const TodoEditor({
     super.key,
     required this.todo,
+    required this.fontSize,
     required this.enabled,
     required this.onChanged,
   });
 
   final Todo todo;
+  final double fontSize;
   final bool enabled;
   final ValueChanged<List<TodoLinha>> onChanged;
 
@@ -184,6 +186,7 @@ class _TodoEditorState extends State<TodoEditor> {
         _CampoLinhas(
           key: ValueKey(primeira.id),
           texto: grupo.map((linha) => linha.texto).join('\n'),
+          fontSize: widget.fontSize,
           checklist: checklist,
           marcado: primeira.marcado,
           concluido: widget.todo.concluido,
@@ -232,6 +235,7 @@ class _CampoLinhas extends StatefulWidget {
   const _CampoLinhas({
     super.key,
     required this.texto,
+    required this.fontSize,
     required this.checklist,
     required this.marcado,
     required this.concluido,
@@ -245,6 +249,7 @@ class _CampoLinhas extends StatefulWidget {
   });
 
   final String texto;
+  final double fontSize;
   final bool checklist, marcado, concluido, enabled;
   final int? offset;
   final ValueChanged<_CampoLinhasState> onFocado;
@@ -358,6 +363,7 @@ class _CampoLinhasState extends State<_CampoLinhas> {
         keyboardType: TextInputType.multiline,
         maxLines: null,
         style: TextStyle(
+          fontSize: widget.fontSize,
           decoration: widget.marcado || widget.concluido
               ? TextDecoration.lineThrough
               : null,

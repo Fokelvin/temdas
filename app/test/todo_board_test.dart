@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temdas/view/todo_page.dart';
 import 'package:temdas/view_model/todo_view_model.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
@@ -32,25 +33,130 @@ class _Client extends backend.Client {
   }
 }
 
-backend.Todo _todo(int id, String texto, {bool concluido = false}) =>
-    backend.Todo(
-      id: id,
-      usuarioId: 1,
-      conteudo: texto,
-      concluido: concluido,
-      criadoEm: DateTime.utc(2026),
-    );
+backend.Todo _todo(
+  int id,
+  String texto, {
+  bool concluido = false,
+  List<backend.TodoLinha>? linhas,
+}) => backend.Todo(
+  id: id,
+  usuarioId: 1,
+  conteudo: texto,
+  concluido: concluido,
+  criadoEm: DateTime.utc(2026),
+  linhas: linhas,
+);
 
-Future<void> _abrir(WidgetTester tester, TodoViewModel model) async {
+Future<void> _abrir(
+  WidgetTester tester,
+  TodoViewModel model, {
+  String? userId,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: Scaffold(body: TodoBoard(viewModel: model)),
+      home: Scaffold(
+        body: TodoBoard(viewModel: model, userId: userId),
+      ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('fonte tem três níveis, limites e escopo por usuário e cartão', (
+    tester,
+  ) async {
+    final todos = [
+      _todo(1, 'Primeiro'),
+      _todo(
+        2,
+        'Checklist',
+        linhas: [
+          backend.TodoLinha(
+            id: 'linha-1',
+            tipo: backend.TodoTipoLinha.checklist,
+            texto: 'Item',
+            marcado: false,
+          ),
+        ],
+      ),
+    ];
+    TodoViewModel modelo() => TodoViewModel(_Client(todos));
+    final model = modelo();
+    addTearDown(model.dispose);
+    await _abrir(tester, model, userId: 'usuario-a');
+
+    TextField campo(int id) => tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(ValueKey(id)),
+        matching: find.byType(TextField),
+      ),
+    );
+
+    expect(campo(1).style!.fontSize, 13);
+    expect(campo(2).style!.fontSize, 13);
+    final mais = find.descendant(
+      of: find.byKey(const ValueKey(1)),
+      matching: find.text('A+'),
+    );
+    final menos = find.descendant(
+      of: find.byKey(const ValueKey(1)),
+      matching: find.text('A−'),
+    );
+
+    await tester.tap(mais);
+    await tester.pumpAndSettle();
+    expect(campo(1).style!.fontSize, 15);
+    expect(campo(2).style!.fontSize, 13);
+    expect(
+      tester
+          .widget<TextButton>(
+            find.ancestor(of: mais, matching: find.byType(TextButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    await tester.tap(menos);
+    await tester.pumpAndSettle();
+    await tester.tap(menos);
+    await tester.pumpAndSettle();
+    expect(campo(1).style!.fontSize, 11);
+    expect(
+      tester
+          .widget<TextButton>(
+            find.ancestor(of: menos, matching: find.byType(TextButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey(2)),
+        matching: find.text('A+'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(campo(2).style!.fontSize, 15);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    final recarregado = modelo();
+    addTearDown(recarregado.dispose);
+    await _abrir(tester, recarregado, userId: 'usuario-a');
+    expect(campo(1).style!.fontSize, 11);
+    expect(campo(2).style!.fontSize, 15);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    final outroUsuario = modelo();
+    addTearDown(outroUsuario.dispose);
+    await _abrir(tester, outroUsuario, userId: 'usuario-b');
+    expect(campo(1).style!.fontSize, 13);
+    expect(campo(2).style!.fontSize, 13);
+  });
+
   testWidgets(
     'mantém a edição mais recente durante falhas e novas tentativas',
     (tester) async {
@@ -252,6 +358,12 @@ void main() {
     await _abrir(tester, model);
 
     expect(find.byTooltip('Redimensionar To-do'), findsNothing);
+    await tester.tap(find.byTooltip('Aumentar fonte').first);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).style!.fontSize,
+      15,
+    );
     final alvo = find.byKey(const ValueKey(2));
     final origem = tester.getCenter(find.byTooltip('Arrastar To-do').first);
     final destino = tester.getCenter(alvo);

@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
 import '../data/repositories/demanda_repository.dart';
+import '../data/supabase_session.dart';
 import '../view_model/todo_view_model.dart';
 import 'formatters/demanda_identificacao.dart';
 import 'widgets/app_drawer.dart';
@@ -104,10 +106,11 @@ class _ListaTodoState extends State<_ListaTodo> {
 }
 
 class TodoBoard extends StatefulWidget {
-  const TodoBoard({super.key, this.demandaId, this.viewModel});
+  const TodoBoard({super.key, this.demandaId, this.viewModel, this.userId});
 
   final int? demandaId;
   final TodoViewModel? viewModel;
+  final String? userId;
 
   @override
   State<TodoBoard> createState() => _TodoBoardState();
@@ -240,6 +243,7 @@ class _TodoBoardState extends State<TodoBoard>
     final ocupado = _model.excluindo(id);
     final tamanho = _tamanhos[id] ?? Size(todo.largura, todo.altura);
     final larguraVisivel = math.min(largura, tamanho.width);
+    final usuarioId = widget.userId ?? supabaseSession?.currentSession?.user.id;
     return DragTarget<int>(
       key: ValueKey(id),
       onWillAcceptWithDetails: (dados) => dados.data != id && !ocupado,
@@ -253,6 +257,7 @@ class _TodoBoardState extends State<TodoBoard>
         height: mobile ? null : tamanho.height,
         child: _PostIt(
           todo: todo,
+          usuarioId: usuarioId,
           mobile: mobile,
           ocupado: ocupado,
           alvo: candidatos.isNotEmpty,
@@ -347,6 +352,7 @@ class _TodoBoardState extends State<TodoBoard>
 class _PostIt extends StatefulWidget {
   const _PostIt({
     required this.todo,
+    required this.usuarioId,
     required this.mobile,
     required this.ocupado,
     required this.alvo,
@@ -360,6 +366,7 @@ class _PostIt extends StatefulWidget {
   });
 
   final backend.Todo todo;
+  final String? usuarioId;
   final bool mobile, ocupado, alvo;
   final ValueChanged<List<backend.TodoLinha>> onLinhas;
   final ValueChanged<bool> onConclusao;
@@ -372,6 +379,64 @@ class _PostIt extends StatefulWidget {
 
 class _PostItState extends State<_PostIt> {
   EdgeDraggingAutoScroller? _autoScroll;
+  int _nivelFonte = 1;
+  int _revisaoFonte = 0;
+  Future<void> _filaFonte = Future<void>.value();
+
+  static String? _chaveFonte(_PostIt widget) {
+    final usuarioId = widget.usuarioId;
+    final todoId = widget.todo.id;
+    if (usuarioId == null || todoId == null) return null;
+    return 'temdas.todo.font_size.$usuarioId.$todoId';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarFonte();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PostIt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_chaveFonte(oldWidget) != _chaveFonte(widget)) {
+      _nivelFonte = 1;
+      _revisaoFonte++;
+      _carregarFonte();
+    }
+  }
+
+  Future<void> _carregarFonte() async {
+    final chave = _chaveFonte(widget);
+    if (chave == null) return;
+    final revisao = ++_revisaoFonte;
+    try {
+      final preferencias = await SharedPreferences.getInstance();
+      final nivel = preferencias.getInt(chave);
+      if (!mounted || revisao != _revisaoFonte || nivel == null) return;
+      if (nivel < 0 || nivel > 2) return;
+      setState(() => _nivelFonte = nivel);
+    } catch (_) {
+      // Font size remains at its default if local storage is unavailable.
+    }
+  }
+
+  void _alterarFonte(int delta) {
+    final novoNivel = (_nivelFonte + delta).clamp(0, 2);
+    if (novoNivel == _nivelFonte) return;
+    setState(() {
+      _nivelFonte = novoNivel;
+      _revisaoFonte++;
+    });
+    final chave = _chaveFonte(widget);
+    if (chave == null) return;
+    _filaFonte = _filaFonte
+        .then<void>((_) async {
+          final preferencias = await SharedPreferences.getInstance();
+          await preferencias.setInt(chave, novoNivel);
+        })
+        .then<void>((_) {}, onError: (Object _) {});
+  }
 
   void _acompanharArraste(DragUpdateDetails detalhes) {
     final scrollable = Scrollable.maybeOf(context);
@@ -408,6 +473,7 @@ class _PostItState extends State<_PostIt> {
         : esquema.outlineVariant;
     final campo = TodoEditor(
       todo: todo,
+      fontSize: const [11.0, 13.0, 15.0][_nivelFonte],
       enabled: !widget.ocupado,
       onChanged: widget.onLinhas,
     );
@@ -521,6 +587,18 @@ class _PostItState extends State<_PostIt> {
                     ],
                   ),
                 ),
+                _controleFonte(
+                  label: 'A−',
+                  tooltip: 'Diminuir fonte',
+                  enabled: !widget.ocupado && _nivelFonte > 0,
+                  onPressed: () => _alterarFonte(-1),
+                ),
+                _controleFonte(
+                  label: 'A+',
+                  tooltip: 'Aumentar fonte',
+                  enabled: !widget.ocupado && _nivelFonte < 2,
+                  onPressed: () => _alterarFonte(1),
+                ),
                 if (!widget.mobile)
                   MouseRegion(
                     cursor: SystemMouseCursors.resizeDownRight,
@@ -548,6 +626,29 @@ class _PostItState extends State<_PostIt> {
       ),
     );
   }
+
+  Widget _controleFonte({
+    required String label,
+    required String tooltip,
+    required bool enabled,
+    required VoidCallback onPressed,
+  }) => SizedBox(
+    width: 34,
+    height: 32,
+    child: Tooltip(
+      message: tooltip,
+      child: TextButton(
+        onPressed: enabled ? onPressed : null,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(32, 32),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 13)),
+      ),
+    ),
+  );
 }
 
 class _CriarTodo extends StatefulWidget {
