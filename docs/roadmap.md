@@ -47,7 +47,7 @@ permanecem nas respectivas seções e documentos históricos.
 - **ORG-P3-02 — Organizações e equipes.**
 - **ORG-P3-03 — Membros e permissões por organização.**
 - **AUTH-P3-04 — Recuperação controlada de MFA e evolução do perfil.**
-- **FUNC-P3-06 — To-do e Lembretes rápidos.**
+
 - **INF-03 — comprovação de `verify-full` pelo cliente Serverpod.**
 - **PROD-05 — monitoramento, custos e segurança operacional.**
 
@@ -584,15 +584,14 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Dependências:** definir verificação de identidade, autorização e efeitos
   sobre sessões e fatores MFA; manter as exigências AAL2 existentes.
 
-### FUNC-P3-06 — To-do e Lembretes rápidos
+### FUNC-P3-06 — To-dos (post-its virtuais)
 
-- **Contexto:** nem toda atividade cotidiana precisa se tornar uma Demanda com status, tempo estimado e vínculo a Sprint.
-- **Descrição:** oferecer uma área própria para pequenos itens pessoais, combinando lista de tarefas rápidas (To-do), conclusão simples e data opcional para lembretes. Explorar notificações apenas em uma evolução futura, mediante decisão separada.
-- **Prioridade:** P3 — funcionalidade futura; não antecipar em relação ao Backlog ou a outras entregas já priorizadas.
-- **Estado:** Conceito aprovado em 05/11/2026; **pendente de detalhamento funcional e técnico**, sem implementação autorizada.
-- **Direção inicial:** funcionalidade independente do fluxo de Demandas, Sprints e Log Time; evitar introduzir status de Demanda, rastreamento de horas ou regras de Sprint em itens rápidos.
-- **Pontos a decidir:** diferença entre To-do e lembrete, campos mínimos, datas/horários, recorrência, localização no menu, privacidade, vínculo opcional com Demandas e eventual mecanismo de notificação.
-- **Critérios futuros de aceite:** definir após alinhamento de escopo e UX; não criar modelagem, migrations, telas ou notificações nesta etapa.
+- **Contexto:** pequenas tarefas cotidianas que não justificam uma Demanda com estimativa, controle de horas ou Sprint.
+- **Descrição:** quadro de post-its com texto livre, checklists mistos por linha, edição inline e salvamento automático; data opcional com sinalização de Hoje/Atrasado, conclusão e reabertura, ocultação de concluídos, exclusão confirmada, Drag and Drop, redimensionamento no desktop e layout responsivo no mobile.
+- **Integração:** acesso pelo menu principal e consulta rápida na barra superior; aba To-do nos detalhes da Demanda, com vínculo opcional e propriedade por usuário autenticado. Exclusão da Demanda remove os To-dos vinculados.
+- **Prioridade:** P3.
+- **Estado:** **Concluído e homologado em produção em 12/11/2026**, commit [`c554d1f`](https://github.com/Fokelvin/temdas/commit/c554d1f).
+- **Fora do escopo entregue:** lembretes, notificações, recorrência, integração com Calendário, Sprints e Log Time. Ordenação de itens internos do checklist (automática ou manual) fica para evolução futura.
 
 ## Infraestrutura e débitos técnicos
 
