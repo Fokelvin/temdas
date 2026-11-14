@@ -49,6 +49,14 @@ class TodoEndpoint extends Endpoint {
         return todo.copyWith(conteudo: conteudo);
       });
 
+  Future<void> editarTitulo(Session session, int id, String? titulo) =>
+      _alterar(session, id, (todo) {
+        final valor = titulo?.trim();
+        return todo.copyWith(
+          titulo: valor == null || valor.isEmpty ? null : valor,
+        );
+      });
+
   Future<void> editarLinhas(Session session, int id, List<TodoLinha> linhas) =>
       _alterar(session, id, (todo) {
         final ids = <String>{};

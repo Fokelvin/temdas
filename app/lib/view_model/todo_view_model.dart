@@ -6,7 +6,16 @@ import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import '../data/serverpod_client.dart';
 import '../data/supabase_session.dart';
 
-enum _Campo { texto, data, conclusao, tamanho, vinculo, exclusao, ordem }
+enum _Campo {
+  texto,
+  titulo,
+  data,
+  conclusao,
+  tamanho,
+  vinculo,
+  exclusao,
+  ordem,
+}
 
 typedef _Gravacao = Future<void> Function();
 typedef _Chave = (int, _Campo, Object?);
@@ -44,6 +53,7 @@ class TodoViewModel extends ChangeNotifier {
   final _todos = <backend.Todo>[];
   final _fila = <_Chave, _Gravacao>{};
   final _textos = <int, Timer>{};
+  final _titulos = <int, Timer>{};
   final _exclusoes = <int>{};
   bool _encerrado = false;
   bool _gravando = false;
@@ -57,7 +67,7 @@ class TodoViewModel extends ChangeNotifier {
   bool get carregando => _carregando;
   bool get erroAoCarregar => _erroAoCarregar;
   bool get falhaAoSalvar => _falha;
-  bool get salvando => _gravando || _textos.isNotEmpty;
+  bool get salvando => _gravando || _textos.isNotEmpty || _titulos.isNotEmpty;
   bool excluindo(int id) => _exclusoes.contains(id);
   bool get podeCriar => !(_carregando || _erroAoCarregar || _falha || salvando);
 
@@ -110,6 +120,21 @@ class TodoViewModel extends ChangeNotifier {
         _enfileirar(chave, () => _client.todo.editarLinhas(id, linhas));
       });
     }
+    notifyListeners();
+  }
+
+  void editarTitulo(int id, String? titulo) {
+    final valor = titulo?.trim();
+    final salvo = valor == null || valor.isEmpty ? null : valor;
+    _atualizar(id, (todo) => todo.copyWith(titulo: salvo));
+    _titulos.remove(id)?.cancel();
+    final chave = (id, _Campo.titulo, null);
+    _cancelarGravacoes((pendente) => pendente == chave);
+    _titulos[id] = Timer(const Duration(milliseconds: 350), () {
+      _titulos.remove(id);
+      _enfileirar(chave, () => _client.todo.editarTitulo(id, salvo));
+      notifyListeners();
+    });
     notifyListeners();
   }
 
@@ -171,6 +196,7 @@ class TodoViewModel extends ChangeNotifier {
   void excluir(int id) {
     if (!_exclusoes.add(id)) return;
     _textos.remove(id)?.cancel();
+    _titulos.remove(id)?.cancel();
     _cancelarGravacoes((chave) => chave.$1 == id && chave.$2 != _Campo.ordem);
     _enfileirar((id, _Campo.exclusao, null), () async {
       await _client.todo.excluir(id);
@@ -251,6 +277,10 @@ class TodoViewModel extends ChangeNotifier {
       timer.cancel();
     }
     _textos.clear();
+    for (final timer in _titulos.values) {
+      timer.cancel();
+    }
+    _titulos.clear();
     _fila.clear();
     _todos.clear();
   }

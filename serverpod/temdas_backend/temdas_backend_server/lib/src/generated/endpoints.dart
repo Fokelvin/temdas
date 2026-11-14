@@ -1144,6 +1144,30 @@ class Endpoints extends _i1.EndpointDispatch {
                 params['conteudo'],
               ),
         ),
+        'editarTitulo': _i1.MethodConnector(
+          name: 'editarTitulo',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'titulo': _i1.ParameterDescription(
+              name: 'titulo',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['todo'] as _i10.TodoEndpoint).editarTitulo(
+                session,
+                params['id'],
+                params['titulo'],
+              ),
+        ),
         'editarLinhas': _i1.MethodConnector(
           name: 'editarLinhas',
           params: {

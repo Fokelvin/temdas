@@ -1906,6 +1906,41 @@ class _TodoEndpoint {
     });
   }
 
+  _i3.Future<void> editarTitulo(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+    String? titulo,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'todo',
+            method: 'editarTitulo',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'todo',
+          methodName: 'editarTitulo',
+          parameters: _i1.testObjectToJson({
+            'id': id,
+            'titulo': titulo,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _i3.Future<void> editarLinhas(
     _i1.TestSessionBuilder sessionBuilder,
     int id,

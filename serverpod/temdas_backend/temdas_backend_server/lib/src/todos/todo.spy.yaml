@@ -3,6 +3,7 @@ table: todos
 fields:
   usuarioId: int, relation(parent=usuarios)
   demandaId: int?, relation(parent=demandas, onDelete=Cascade)
+  titulo: String?
   conteudo: String
   linhas: List<TodoLinha>?
   data: String?

@@ -20,6 +20,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     this.id,
     required this.usuarioId,
     this.demandaId,
+    this.titulo,
     required this.conteudo,
     this.linhas,
     this.data,
@@ -36,6 +37,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     int? id,
     required int usuarioId,
     int? demandaId,
+    String? titulo,
     required String conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -51,6 +53,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       id: jsonSerialization['id'] as int?,
       usuarioId: jsonSerialization['usuarioId'] as int,
       demandaId: jsonSerialization['demandaId'] as int?,
+      titulo: jsonSerialization['titulo'] as String?,
       conteudo: jsonSerialization['conteudo'] as String,
       linhas: jsonSerialization['linhas'] == null
           ? null
@@ -81,6 +84,8 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   int? demandaId;
 
+  String? titulo;
+
   String conteudo;
 
   List<_i2.TodoLinha>? linhas;
@@ -107,6 +112,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     int? id,
     int? usuarioId,
     int? demandaId,
+    String? titulo,
     String? conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -123,6 +129,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (id != null) 'id': id,
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
+      if (titulo != null) 'titulo': titulo,
       'conteudo': conteudo,
       if (linhas != null)
         'linhas': linhas?.toJson(valueToJson: (v) => v.toJson()),
@@ -142,6 +149,7 @@ abstract class Todo implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (id != null) 'id': id,
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
+      if (titulo != null) 'titulo': titulo,
       'conteudo': conteudo,
       if (linhas != null)
         'linhas': linhas?.toJson(valueToJson: (v) => v.toJsonForProtocol()),
@@ -191,6 +199,7 @@ class _TodoImpl extends Todo {
     int? id,
     required int usuarioId,
     int? demandaId,
+    String? titulo,
     required String conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -203,6 +212,7 @@ class _TodoImpl extends Todo {
          id: id,
          usuarioId: usuarioId,
          demandaId: demandaId,
+         titulo: titulo,
          conteudo: conteudo,
          linhas: linhas,
          data: data,
@@ -221,6 +231,7 @@ class _TodoImpl extends Todo {
     Object? id = _Undefined,
     int? usuarioId,
     Object? demandaId = _Undefined,
+    Object? titulo = _Undefined,
     String? conteudo,
     Object? linhas = _Undefined,
     Object? data = _Undefined,
@@ -234,6 +245,7 @@ class _TodoImpl extends Todo {
       id: id is int? ? id : this.id,
       usuarioId: usuarioId ?? this.usuarioId,
       demandaId: demandaId is int? ? demandaId : this.demandaId,
+      titulo: titulo is String? ? titulo : this.titulo,
       conteudo: conteudo ?? this.conteudo,
       linhas: linhas is List<_i2.TodoLinha>?
           ? linhas
@@ -258,6 +270,11 @@ class TodoUpdateTable extends _i1.UpdateTable<TodoTable> {
 
   _i1.ColumnValue<int, int> demandaId(int? value) => _i1.ColumnValue(
     table.demandaId,
+    value,
+  );
+
+  _i1.ColumnValue<String, String> titulo(String? value) => _i1.ColumnValue(
+    table.titulo,
     value,
   );
 
@@ -316,6 +333,10 @@ class TodoTable extends _i1.Table<int?> {
       'demandaId',
       this,
     );
+    titulo = _i1.ColumnString(
+      'titulo',
+      this,
+    );
     conteudo = _i1.ColumnString(
       'conteudo',
       this,
@@ -359,6 +380,8 @@ class TodoTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt demandaId;
 
+  late final _i1.ColumnString titulo;
+
   late final _i1.ColumnString conteudo;
 
   late final _i1.ColumnSerializable<List<_i2.TodoLinha>> linhas;
@@ -380,6 +403,7 @@ class TodoTable extends _i1.Table<int?> {
     id,
     usuarioId,
     demandaId,
+    titulo,
     conteudo,
     linhas,
     data,

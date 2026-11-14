@@ -19,7 +19,9 @@ class SprintMultiArtifacts(unittest.TestCase):
         self.assertEqual(hashlib.sha256((MIGRATIONS/BASELINE/'migration.sql').read_bytes()).hexdigest(),
             'cda3f1ca6b2f4c03df951c39cbf89e85fd7f9e047f8b025b0817ac22ee329982')
         registry=(MIGRATIONS/'migration_registry.txt').read_text().splitlines()
-        self.assertEqual(registry[-2:],[BASELINE,VERSION])
+        position = registry.index(VERSION)
+        self.assertGreater(position, 0)
+        self.assertEqual(registry[position-1:position+1],[BASELINE,VERSION])
 
     def test_delta_changes_only_two_trigger_bodies_and_adds_index(self):
         sql=(MIGRATIONS/VERSION/'migration.sql').read_text()

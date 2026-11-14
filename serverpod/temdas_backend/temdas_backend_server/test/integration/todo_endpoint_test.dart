@@ -24,6 +24,10 @@ void main() {
 
     test('valida AAL2, conteúdo, data e dimensões', () async {
       final card = await todo.criar(session, 'Linha 1\nLinha 2', null);
+      await todo.editarTitulo(session, card.id!, '  Título do post-it  ');
+      expect((await todo.listar(session)).single.titulo, 'Título do post-it');
+      await todo.editarTitulo(session, card.id!, '  ');
+      expect((await todo.listar(session)).single.titulo, isNull);
       await expectLater(todo.criar(session, ' \n ', null), throwsArgumentError);
       await expectLater(
         todo.alterarData(session, card.id!, '2026-02-30'),
@@ -104,6 +108,10 @@ void main() {
         throwsException,
       );
       await expectLater(todo.editarTexto(session, id, 'X'), throwsException);
+      await expectLater(
+        todo.editarTitulo(session, id, 'Privado'),
+        throwsException,
+      );
       await expectLater(todo.alterarData(session, id, null), throwsException);
       await expectLater(
         todo.alterarConclusao(session, id, true),

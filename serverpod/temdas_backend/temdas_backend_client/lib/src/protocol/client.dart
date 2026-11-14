@@ -557,6 +557,18 @@ class EndpointTodo extends _i1.EndpointRef {
     },
   );
 
+  _i2.Future<void> editarTitulo(
+    int id,
+    String? titulo,
+  ) => caller.callServerEndpoint<void>(
+    'todo',
+    'editarTitulo',
+    {
+      'id': id,
+      'titulo': titulo,
+    },
+  );
+
   _i2.Future<void> editarLinhas(
     int id,
     List<_i26.TodoLinha> linhas,

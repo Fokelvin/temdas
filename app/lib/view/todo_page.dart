@@ -9,6 +9,8 @@ import '../data/repositories/demanda_repository.dart';
 import '../data/supabase_session.dart';
 import '../view_model/todo_view_model.dart';
 import 'formatters/demanda_identificacao.dart';
+import 'formatters/demanda_hierarquia.dart';
+import 'formatters/texto_busca.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/todo_editor.dart';
 
@@ -106,11 +108,18 @@ class _ListaTodoState extends State<_ListaTodo> {
 }
 
 class TodoBoard extends StatefulWidget {
-  const TodoBoard({super.key, this.demandaId, this.viewModel, this.userId});
+  const TodoBoard({
+    super.key,
+    this.demandaId,
+    this.viewModel,
+    this.userId,
+    this.demandas,
+  });
 
   final int? demandaId;
   final TodoViewModel? viewModel;
   final String? userId;
+  final Future<List<backend.Demanda>>? demandas;
 
   @override
   State<TodoBoard> createState() => _TodoBoardState();
@@ -120,6 +129,7 @@ class _TodoBoardState extends State<TodoBoard>
     with AutomaticKeepAliveClientMixin {
   late final _model = widget.viewModel ?? TodoViewModel.daSessao();
   final _tamanhos = <int, Size>{};
+  late Future<List<backend.Demanda>> _demandas;
   bool _mostrarConcluidos = false;
 
   @override
@@ -128,6 +138,9 @@ class _TodoBoardState extends State<TodoBoard>
   @override
   void initState() {
     super.initState();
+    _demandas =
+        widget.demandas ??
+        DemandaRepository().listarDemandas(incluirBacklog: true);
     _model.carregar();
   }
 
@@ -203,7 +216,11 @@ class _TodoBoardState extends State<TodoBoard>
                             : 'Nenhum To-do pendente.',
                       ),
                     )
-                  : _grid(todos),
+                  : FutureBuilder<List<backend.Demanda>>(
+                      future: _demandas,
+                      builder: (context, snapshot) =>
+                          _grid(todos, snapshot.data ?? const []),
+                    ),
             ),
           ],
         );
@@ -211,41 +228,44 @@ class _TodoBoardState extends State<TodoBoard>
     );
   }
 
-  Widget _grid(List<backend.Todo> todos) => LayoutBuilder(
-    builder: (context, constraints) {
-      final mobile = MediaQuery.sizeOf(context).width < 600;
-      final largura = math.max(0.0, constraints.maxWidth - 32);
-      final tamanhos = [
-        for (final todo in todos)
-          Size(
-            math.min(largura, _tamanhos[todo.id]?.width ?? todo.largura),
-            _tamanhos[todo.id]?.height ?? todo.altura,
-          ),
-      ];
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: largura,
-          child: mobile
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (index, todo) in todos.indexed) ...[
-                      _card(todo, todos, index, largura, true),
-                      if (index < todos.length - 1) const SizedBox(height: 12),
-                    ],
-                  ],
-                )
-              : _gradeCompacta(todos, tamanhos, largura),
-        ),
+  Widget _grid(List<backend.Todo> todos, List<backend.Demanda> demandas) =>
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final mobile = MediaQuery.sizeOf(context).width < 600;
+          final largura = math.max(0.0, constraints.maxWidth - 32);
+          final tamanhos = [
+            for (final todo in todos)
+              Size(
+                math.min(largura, _tamanhos[todo.id]?.width ?? todo.largura),
+                _tamanhos[todo.id]?.height ?? todo.altura,
+              ),
+          ];
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: largura,
+              child: mobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (index, todo) in todos.indexed) ...[
+                          _card(todo, todos, index, largura, true, demandas),
+                          if (index < todos.length - 1)
+                            const SizedBox(height: 12),
+                        ],
+                      ],
+                    )
+                  : _gradeCompacta(todos, tamanhos, largura, demandas),
+            ),
+          );
+        },
       );
-    },
-  );
 
   Widget _gradeCompacta(
     List<backend.Todo> todos,
     List<Size> tamanhos,
     double largura,
+    List<backend.Demanda> demandas,
   ) {
     final posicoes = _calcularPosicoesCompactas(tamanhos, largura);
     var altura = 0.0;
@@ -262,7 +282,7 @@ class _TodoBoardState extends State<TodoBoard>
             Positioned(
               left: posicoes[index].dx,
               top: posicoes[index].dy,
-              child: _card(todo, todos, index, largura, false),
+              child: _card(todo, todos, index, largura, false, demandas),
             ),
         ],
       ),
@@ -275,6 +295,7 @@ class _TodoBoardState extends State<TodoBoard>
     int index,
     double largura,
     bool mobile,
+    List<backend.Demanda> demandas,
   ) {
     final id = todo.id!;
     final ocupado = _model.excluindo(id);
@@ -294,11 +315,16 @@ class _TodoBoardState extends State<TodoBoard>
         height: mobile ? null : tamanho.height,
         child: _PostIt(
           todo: todo,
+          demanda: demandas.where((d) => d.id == todo.demandaId).firstOrNull,
+          onAbrirDemanda: todo.demandaId == null
+              ? null
+              : () => _abrirDemanda(todo.demandaId!),
           usuarioId: usuarioId,
           mobile: mobile,
           ocupado: ocupado,
           alvo: candidatos.isNotEmpty,
           onLinhas: (linhas) => _model.editarLinhas(id, linhas),
+          onTitulo: (titulo) => _model.editarTitulo(id, titulo),
           onConclusao: (valor) => _model.alterarConclusao(id, valor),
           onData: () => _editarData(todo),
           onVinculo: () => _editarVinculo(todo),
@@ -324,6 +350,15 @@ class _TodoBoardState extends State<TodoBoard>
         ),
       ),
     );
+  }
+
+  Future<void> _abrirDemanda(int id) async {
+    await Navigator.of(context).pushNamed(AppRoutes.detalheDaDemanda(id));
+    if (mounted) {
+      setState(() {
+        _demandas = DemandaRepository().listarDemandas(incluirBacklog: true);
+      });
+    }
   }
 
   Future<void> _editarData(backend.Todo todo) async {
@@ -357,7 +392,8 @@ class _TodoBoardState extends State<TodoBoard>
   Future<void> _editarVinculo(backend.Todo todo) async {
     final destino = await showDialog<int>(
       context: context,
-      builder: (_) => _VinculoTodo(demandaId: todo.demandaId),
+      builder: (_) =>
+          _VinculoTodo(demandaId: todo.demandaId, demandas: _demandas),
     );
     if (mounted && destino != null) {
       _model.vincular(todo.id!, destino == 0 ? null : destino);
@@ -442,11 +478,14 @@ List<Offset> _calcularPosicoesCompactas(List<Size> tamanhos, double largura) {
 class _PostIt extends StatefulWidget {
   const _PostIt({
     required this.todo,
+    required this.demanda,
+    required this.onAbrirDemanda,
     required this.usuarioId,
     required this.mobile,
     required this.ocupado,
     required this.alvo,
     required this.onLinhas,
+    required this.onTitulo,
     required this.onConclusao,
     required this.onData,
     required this.onVinculo,
@@ -456,9 +495,12 @@ class _PostIt extends StatefulWidget {
   });
 
   final backend.Todo todo;
+  final backend.Demanda? demanda;
+  final VoidCallback? onAbrirDemanda;
   final String? usuarioId;
   final bool mobile, ocupado, alvo;
   final ValueChanged<List<backend.TodoLinha>> onLinhas;
+  final ValueChanged<String?> onTitulo;
   final ValueChanged<bool> onConclusao;
   final VoidCallback onData, onVinculo, onExcluir, onFimRedimensionar;
   final ValueChanged<Offset> onRedimensionar;
@@ -469,6 +511,9 @@ class _PostIt extends StatefulWidget {
 
 class _PostItState extends State<_PostIt> {
   EdgeDraggingAutoScroller? _autoScroll;
+  late final TextEditingController _tituloController;
+  late final FocusNode _tituloFocus;
+  bool _editandoTitulo = false;
   int _nivelFonte = 1;
   int _revisaoFonte = 0;
   Future<void> _filaFonte = Future<void>.value();
@@ -483,12 +528,22 @@ class _PostItState extends State<_PostIt> {
   @override
   void initState() {
     super.initState();
+    _tituloController = TextEditingController(text: widget.todo.titulo ?? '');
+    _tituloFocus = FocusNode()
+      ..addListener(() {
+        if (!_tituloFocus.hasFocus && _editandoTitulo && mounted) {
+          setState(() => _editandoTitulo = false);
+        }
+      });
     _carregarFonte();
   }
 
   @override
   void didUpdateWidget(covariant _PostIt oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.todo.titulo != widget.todo.titulo && !_tituloFocus.hasFocus) {
+      _tituloController.text = widget.todo.titulo ?? '';
+    }
     if (_chaveFonte(oldWidget) != _chaveFonte(widget)) {
       _nivelFonte = 1;
       _revisaoFonte++;
@@ -540,7 +595,17 @@ class _PostItState extends State<_PostIt> {
   @override
   void dispose() {
     _autoScroll?.stopAutoScroll();
+    _tituloController.dispose();
+    _tituloFocus.dispose();
     super.dispose();
+  }
+
+  void _editarTitulo() {
+    if (widget.ocupado) return;
+    setState(() => _editandoTitulo = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _tituloFocus.requestFocus();
+    });
   }
 
   @override
@@ -614,6 +679,65 @@ class _PostItState extends State<_PostIt> {
                     ),
                   ),
                 ),
+                if (_editandoTitulo)
+                  Expanded(
+                    child: TextField(
+                      key: ValueKey('titulo-todo-${todo.id}'),
+                      controller: _tituloController,
+                      focusNode: _tituloFocus,
+                      enabled: !widget.ocupado,
+                      autofocus: true,
+                      maxLines: 1,
+                      textInputAction: TextInputAction.done,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 8,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (value) =>
+                          widget.onTitulo(value.trim().isEmpty ? null : value),
+                      onSubmitted: (value) {
+                        widget.onTitulo(value.trim().isEmpty ? null : value);
+                        setState(() => _editandoTitulo = false);
+                      },
+                    ),
+                  )
+                else if (todo.titulo case final titulo?)
+                  Expanded(
+                    child: Tooltip(
+                      message: 'Editar título',
+                      child: InkWell(
+                        onTap: _editarTitulo,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            titulo,
+                            key: ValueKey('titulo-todo-${todo.id}'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  IconButton(
+                    tooltip: 'Adicionar título',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: widget.ocupado ? null : _editarTitulo,
+                    icon: const Icon(Icons.title, size: 18),
+                  ),
                 const Spacer(),
                 Tooltip(
                   message: todo.concluido ? 'Reabrir To-do' : 'Concluir To-do',
@@ -647,6 +771,27 @@ class _PostItState extends State<_PostIt> {
                 ),
               ],
             ),
+            if (widget.demanda case final demanda?)
+              Tooltip(
+                message: demanda.titulo,
+                child: InkWell(
+                  key: ValueKey('demanda-vinculada-${demanda.id}'),
+                  onTap: widget.onAbrirDemanda,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 40, bottom: 3),
+                    child: Text(
+                      demanda.titulo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: esquema.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (widget.mobile)
               campo
             else
@@ -673,7 +818,6 @@ class _PostItState extends State<_PostIt> {
                             fontWeight: urgente ? FontWeight.w600 : null,
                           ),
                         ),
-                      if (todo.demandaId case final id?) Text('Demanda #$id'),
                     ],
                   ),
                 ),
@@ -816,70 +960,123 @@ class _CriarTodoState extends State<_CriarTodo> {
 }
 
 class _VinculoTodo extends StatefulWidget {
-  const _VinculoTodo({required this.demandaId});
+  const _VinculoTodo({required this.demandaId, required this.demandas});
 
   final int? demandaId;
+  final Future<List<backend.Demanda>> demandas;
 
   @override
   State<_VinculoTodo> createState() => _VinculoTodoState();
 }
 
 class _VinculoTodoState extends State<_VinculoTodo> {
-  late var _demandas = DemandaRepository().listarDemandas();
-  String _busca = '';
+  late Future<List<backend.Demanda>> _demandas = widget.demandas;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Vincular Demanda'),
     content: SizedBox(
       width: 440,
-      height: 320,
-      child: Column(
-        children: [
-          TextField(
-            onChanged: (texto) => setState(() => _busca = texto.toLowerCase()),
-            decoration: const InputDecoration(labelText: 'Buscar Demanda'),
-          ),
-          Expanded(
-            child: FutureBuilder(
-              future: _demandas,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return TextButton(
-                    onPressed: () => setState(
-                      () => _demandas = DemandaRepository().listarDemandas(),
-                    ),
-                    child: const Text('Falha ao carregar. Tentar novamente'),
-                  );
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final opcoes = snapshot.data!
-                    .where(
-                      (demanda) => formatarIdentificacaoDemanda(
-                        demanda,
-                      ).toLowerCase().contains(_busca),
-                    )
-                    .toList();
-                if (opcoes.isEmpty) {
-                  return const Center(child: Text('Nenhuma Demanda.'));
-                }
-                return ListView.builder(
-                  itemCount: opcoes.length,
-                  itemBuilder: (context, index) {
-                    final demanda = opcoes[index];
-                    return ListTile(
-                      selected: demanda.id == widget.demandaId,
-                      title: Text(formatarIdentificacaoDemanda(demanda)),
-                      onTap: () => Navigator.pop(context, demanda.id),
-                    );
-                  },
-                );
-              },
+      child: FutureBuilder<List<backend.Demanda>>(
+        future: _demandas,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return TextButton(
+              onPressed: () => setState(
+                () => _demandas = DemandaRepository().listarDemandas(
+                  incluirBacklog: true,
+                ),
+              ),
+              child: const Text('Falha ao carregar. Tentar novamente'),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const SizedBox(
+              height: 140,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final demandas = snapshot.data!;
+          final porId = indexarDemandas(demandas);
+          final largura = (MediaQuery.sizeOf(context).width - 180).clamp(
+            120.0,
+            408.0,
+          );
+          return RawAutocomplete<backend.Demanda>(
+            displayStringForOption: formatarIdentificacaoDemanda,
+            optionsBuilder: (valor) {
+              final busca = normalizarTextoBusca(valor.text.trim());
+              return demandas.where(
+                (demanda) => normalizarTextoBusca(
+                  formatarIdentificacaoDemanda(demanda),
+                ).contains(busca),
+              );
+            },
+            onSelected: (demanda) => Navigator.pop(context, demanda.id),
+            fieldViewBuilder: (context, controller, focus, submit) => TextField(
+              controller: controller,
+              focusNode: focus,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Buscar Demanda',
+                hintText: 'Pesquisar por ID ou título',
+              ),
+              onSubmitted: (_) => submit(),
             ),
-          ),
-        ],
+            optionsViewBuilder: (context, select, options) => Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                clipBehavior: Clip.antiAlias,
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: largura,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * .35,
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final demanda = options.elementAt(index);
+                        final ancestrais = caminhoAncestral(
+                          demanda,
+                          (id) => porId[id],
+                        );
+                        return ListTile(
+                          key: ValueKey('opcao-vinculo-demanda-${demanda.id}'),
+                          dense: true,
+                          selected:
+                              AutocompleteHighlightedOption.of(context) ==
+                                  index ||
+                              demanda.id == widget.demandaId,
+                          title: Text(
+                            formatarIdentificacaoDemanda(demanda),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: ancestrais == null
+                              ? null
+                              : Tooltip(
+                                  message: ancestrais,
+                                  child: Text(
+                                    '↳ $ancestrais',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                          onTap: () => select(demanda),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     ),
     actions: [

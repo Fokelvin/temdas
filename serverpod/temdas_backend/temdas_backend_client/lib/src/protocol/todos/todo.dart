@@ -20,6 +20,7 @@ abstract class Todo implements _i1.SerializableModel {
     this.id,
     required this.usuarioId,
     this.demandaId,
+    this.titulo,
     required this.conteudo,
     this.linhas,
     this.data,
@@ -36,6 +37,7 @@ abstract class Todo implements _i1.SerializableModel {
     int? id,
     required int usuarioId,
     int? demandaId,
+    String? titulo,
     required String conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -51,6 +53,7 @@ abstract class Todo implements _i1.SerializableModel {
       id: jsonSerialization['id'] as int?,
       usuarioId: jsonSerialization['usuarioId'] as int,
       demandaId: jsonSerialization['demandaId'] as int?,
+      titulo: jsonSerialization['titulo'] as String?,
       conteudo: jsonSerialization['conteudo'] as String,
       linhas: jsonSerialization['linhas'] == null
           ? null
@@ -79,6 +82,8 @@ abstract class Todo implements _i1.SerializableModel {
 
   int? demandaId;
 
+  String? titulo;
+
   String conteudo;
 
   List<_i2.TodoLinha>? linhas;
@@ -102,6 +107,7 @@ abstract class Todo implements _i1.SerializableModel {
     int? id,
     int? usuarioId,
     int? demandaId,
+    String? titulo,
     String? conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -118,6 +124,7 @@ abstract class Todo implements _i1.SerializableModel {
       if (id != null) 'id': id,
       'usuarioId': usuarioId,
       if (demandaId != null) 'demandaId': demandaId,
+      if (titulo != null) 'titulo': titulo,
       'conteudo': conteudo,
       if (linhas != null)
         'linhas': linhas?.toJson(valueToJson: (v) => v.toJson()),
@@ -143,6 +150,7 @@ class _TodoImpl extends Todo {
     int? id,
     required int usuarioId,
     int? demandaId,
+    String? titulo,
     required String conteudo,
     List<_i2.TodoLinha>? linhas,
     String? data,
@@ -155,6 +163,7 @@ class _TodoImpl extends Todo {
          id: id,
          usuarioId: usuarioId,
          demandaId: demandaId,
+         titulo: titulo,
          conteudo: conteudo,
          linhas: linhas,
          data: data,
@@ -173,6 +182,7 @@ class _TodoImpl extends Todo {
     Object? id = _Undefined,
     int? usuarioId,
     Object? demandaId = _Undefined,
+    Object? titulo = _Undefined,
     String? conteudo,
     Object? linhas = _Undefined,
     Object? data = _Undefined,
@@ -186,6 +196,7 @@ class _TodoImpl extends Todo {
       id: id is int? ? id : this.id,
       usuarioId: usuarioId ?? this.usuarioId,
       demandaId: demandaId is int? ? demandaId : this.demandaId,
+      titulo: titulo is String? ? titulo : this.titulo,
       conteudo: conteudo ?? this.conteudo,
       linhas: linhas is List<_i2.TodoLinha>?
           ? linhas

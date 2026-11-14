@@ -14,6 +14,7 @@ class _Client extends backend.Client {
   final List<backend.Todo> todos;
   final operacoes = <(String, Map<String, dynamic>)>[];
   final textos = <Completer<void>>[];
+  final titulos = <Completer<void>>[];
 
   @override
   Future<T> callServerEndpoint<T>(
@@ -29,6 +30,11 @@ class _Client extends backend.Client {
       textos.add(resposta);
       await resposta.future;
     }
+    if (method == 'editarTitulo') {
+      final resposta = Completer<void>();
+      titulos.add(resposta);
+      await resposta.future;
+    }
     return null as T;
   }
 }
@@ -40,26 +46,46 @@ backend.Todo _todo(
   double largura = 232,
   double altura = 232,
   List<backend.TodoLinha>? linhas,
+  String? titulo,
 }) => backend.Todo(
   id: id,
   usuarioId: 1,
   conteudo: texto,
   concluido: concluido,
   criadoEm: DateTime.utc(2026),
+  titulo: titulo,
   largura: largura,
   altura: altura,
   linhas: linhas,
+);
+
+backend.Demanda _demanda(int id, String titulo, {int? pai}) => backend.Demanda(
+  id: id,
+  usuarioId: 1,
+  demandaPaiId: pai,
+  titulo: titulo,
+  status: backend.DemandaStatus.aberta,
+  prioridade: backend.Prioridade.media,
+  tempoEstimadoMinutos: 10,
+  tempoExecutadoMinutos: 0,
+  criadoEm: DateTime.utc(2026),
+  atualizadoEm: DateTime.utc(2026),
 );
 
 Future<void> _abrir(
   WidgetTester tester,
   TodoViewModel model, {
   String? userId,
+  List<backend.Demanda> demandas = const [],
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: TodoBoard(viewModel: model, userId: userId),
+        body: TodoBoard(
+          viewModel: model,
+          userId: userId,
+          demandas: Future.value(demandas),
+        ),
       ),
     ),
   );
@@ -159,6 +185,114 @@ void main() {
     await _abrir(tester, outroUsuario, userId: 'usuario-b');
     expect(campo(1).style!.fontSize, 13);
     expect(campo(2).style!.fontSize, 13);
+  });
+
+  testWidgets('título opcional é editável no cabeçalho e salva sozinho', (
+    tester,
+  ) async {
+    final client = _Client([_todo(1, 'Conteúdo')]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+
+    expect(find.byTooltip('Adicionar título'), findsOneWidget);
+    await tester.tap(find.byTooltip('Adicionar título'));
+    await tester.pump();
+    final editor = find.byKey(const ValueKey('titulo-todo-1'));
+    expect(editor, findsOneWidget);
+    await tester.enterText(editor, 'Título novo');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(model.todos.single.titulo, 'Título novo');
+    expect(client.operacoes.last.$1, 'editarTitulo');
+    expect(client.operacoes.last.$2['titulo'], 'Título novo');
+    expect(find.text('Conteúdo'), findsOneWidget);
+    client.titulos.single.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('falha de autosave mantém o título e permite nova tentativa', (
+    tester,
+  ) async {
+    final client = _Client([_todo(1, 'Conteúdo')]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+    await tester.tap(find.byTooltip('Adicionar título'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('titulo-todo-1')),
+      'Não perder este título',
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    client.titulos.first.completeError(StateError('sem rede'));
+    await tester.pumpAndSettle();
+
+    expect(model.falhaAoSalvar, isTrue);
+    expect(model.todos.single.titulo, 'Não perder este título');
+    await tester.tap(find.text('Falha ao salvar. Tentar novamente'));
+    await tester.pump();
+    expect(client.operacoes.last.$2['titulo'], 'Não perder este título');
+    client.titulos.last.complete();
+    await tester.pumpAndSettle();
+    expect(model.todos.single.titulo, 'Não perder este título');
+  });
+
+  testWidgets('mostra nome de Demanda vinculada em uma linha no cabeçalho', (
+    tester,
+  ) async {
+    final demanda = _demanda(
+      42,
+      'Demanda com um nome muito extenso para o cartão',
+    );
+    final todo = _todo(1, 'Conteúdo').copyWith(demandaId: 42);
+    final model = TodoViewModel(_Client([todo]));
+    addTearDown(model.dispose);
+    await _abrir(tester, model, demandas: [demanda]);
+
+    final identificacao = find.byKey(const ValueKey('demanda-vinculada-42'));
+    expect(identificacao, findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.descendant(of: identificacao, matching: find.byType(Text)),
+          )
+          .maxLines,
+      1,
+    );
+    expect(find.text('Demanda #42'), findsNothing);
+  });
+
+  testWidgets('seletor busca por ID e mostra hierarquia da Demanda', (
+    tester,
+  ) async {
+    final cliente = _Client([_todo(1, 'Cartão')]);
+    final model = TodoViewModel(cliente);
+    addTearDown(model.dispose);
+    await _abrir(
+      tester,
+      model,
+      demandas: [_demanda(42, 'Mãe'), _demanda(43, 'Filha', pai: 42)],
+    );
+
+    await tester.tap(find.byTooltip('Ações do To-do'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vínculo com Demanda'));
+    await tester.pumpAndSettle();
+    final busca = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(busca, '43');
+    await tester.pumpAndSettle();
+
+    final filha = find.byKey(const ValueKey('opcao-vinculo-demanda-43'));
+    expect(filha, findsOneWidget);
+    expect(find.text('↳ Mãe'), findsOneWidget);
+    await tester.tap(filha);
+    await tester.pumpAndSettle();
+    expect(model.todos.single.demandaId, 43);
   });
 
   testWidgets(
