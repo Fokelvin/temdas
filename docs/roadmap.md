@@ -32,7 +32,7 @@ permanecem nas respectivas seções e documentos históricos.
   Demandas.
 - **P3 / To-dos:** FUNC-P3-06 e TODO-P3-07.
 - **P2 / Autenticação e interface:** UX-AUTH-03, UX-AUTH-04, AUTH-P2-01,
-  AUTH-P2-02, UI-P2-04 e UI-P2-05.
+  AUTH-P2-02, UI-P2-04, UI-P2-05 e UI-P2-08.
 - **Pacotes visuais:** Pacote 4, Pacote 5 e Pacote 6.
 - **Infraestrutura / produção:** INF-01, INF-02, INF-04, INF-05, INF-07,
   PROD-01, PROD-02, PROD-03 e PROD-04.
@@ -48,7 +48,6 @@ permanecem nas respectivas seções e documentos históricos.
 - **ORG-P3-02 — Organizações e equipes.**
 - **ORG-P3-03 — Membros e permissões por organização.**
 - **AUTH-P3-04 — Recuperação controlada de MFA e evolução do perfil.**
-- **UI-P2-08 — Navegação por links reais nas ações de navegação.**
 
 - **INF-03 — comprovação de `verify-full` pelo cliente Serverpod.**
 - **PROD-05 — monitoramento, custos e segurança operacional.**
@@ -551,23 +550,24 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 
 ### UI-P2-08 — Navegação por links reais nas ações de navegação
 
-- **Contexto:** controles que levam o usuário para outra tela, detalhe ou rota
-  interna devem se comportar como links reais no navegador, permitindo menu
-  contextual com opções como **Abrir em nova guia**, **Abrir em nova janela** e
-  **Copiar endereço do link**.
+- **Contexto:** navegação entre telas, detalhes e rotas internas deve usar links
+  reais do navegador; operações como salvar, concluir, excluir e mover
+  permanecem como botões.
 - **Prioridade:** P2 — consistência de navegação no Flutter Web.
-- **Estado:** Aprovado / pendente.
-- **Escopo:** revisar ações de navegação do aplicativo e usar semântica de link
-  quando o destino possuir URL/rota própria. Isso inclui itens de menu, acessos
-  a detalhes e demais controles cujo efeito seja exclusivamente navegar.
-  Ações que alteram estado, salvam dados, concluem, excluem, movem ou executam
-  comandos continuam sendo botões e não devem ser convertidas artificialmente
-  em links.
-- **Critérios de aceite:** clicar normalmente preserva a navegação atual;
-  clique com botão direito em controles de navegação oferece as opções nativas
-  do navegador; Ctrl/Cmd+clique e clique do botão do meio podem abrir o destino
-  em nova guia quando suportados; acessibilidade, foco por teclado e rotas
-  existentes permanecem funcionais.
+- **Estado:** Concluído — 21/11/2026; publicado em produção.
+- **Entrega:** controles exclusivamente de navegação passaram a expor links
+  reais; links internos inválidos foram corrigidos. A estratégia de URL com
+  `/#/` foi preservada. Rotas inexistentes, inclusive caminhos arbitrários
+  com ou sem `/#/`, exibem página 404 do TEMDAS sem redirecionamento
+  automático, mantendo o endereço informado e oferecendo **Voltar para a Home**.
+- **Critérios de aceite:** navegação normal preservada; menu de contexto
+  nativo (abrir em nova guia/janela, copiar link); suporte a Ctrl/Cmd+clique
+  e botão do meio quando aplicável; comandos continuam como botões.
+- **Validação:** em produção, evidenciados no navegador o menu de contexto
+  real nos links, a página 404 em caminho inválido sem `/#/` e o retorno
+  à Home. O Codex reportou 882 testes aprovados antes do deploy.
+  Os prints apresentados não demonstram isoladamente Ctrl/Cmd+clique nem
+  clique com botão do meio.
 
 ## P3 — Evolução funcional
 
