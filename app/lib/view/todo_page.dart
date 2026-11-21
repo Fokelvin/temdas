@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import '../ui/components/app_link.dart';
 import '../data/repositories/demanda_repository.dart';
 import '../data/supabase_session.dart';
 import '../view_model/todo_view_model.dart';
@@ -95,13 +96,15 @@ class _ListaTodoState extends State<_ListaTodo> {
         onPressed: () => Navigator.pop(context),
         child: const Text('Fechar'),
       ),
-      FilledButton(
-        onPressed: () {
+      AppLink(
+        route: AppRoutes.todos,
+        onFollow: () {
           final navigator = Navigator.of(context);
           navigator.pop();
           navigator.pushNamed(AppRoutes.todos);
         },
-        child: const Text('Abrir quadro'),
+        builder: (follow) =>
+            FilledButton(onPressed: follow, child: const Text('Abrir quadro')),
       ),
     ],
   );
@@ -783,19 +786,23 @@ class _PostItState extends State<_PostIt> {
             if (widget.demanda case final demanda?)
               Tooltip(
                 message: demanda.titulo,
-                child: InkWell(
-                  key: ValueKey('demanda-vinculada-${demanda.id}'),
-                  onTap: widget.onAbrirDemanda,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 40, bottom: 3),
-                    child: Text(
-                      demanda.titulo,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: esquema.primary,
-                        decoration: TextDecoration.underline,
+                child: AppLink(
+                  route: AppRoutes.detalheDaDemanda(demanda.id!),
+                  onFollow: widget.onAbrirDemanda,
+                  builder: (follow) => InkWell(
+                    key: ValueKey('demanda-vinculada-${demanda.id}'),
+                    onTap: follow,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 40, bottom: 3),
+                      child: Text(
+                        demanda.titulo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: esquema.primary,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ),

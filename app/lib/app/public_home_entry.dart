@@ -12,11 +12,13 @@ class PublicHomeEntry extends StatelessWidget {
   const PublicHomeEntry({
     super.key,
     this.session,
+    this.section,
     this.provisioning,
     this.authenticatedChild,
   });
 
   final SupabaseSession? session;
+  final String? section;
   final AuthProvisioning? provisioning;
   final Widget? authenticatedChild;
 
@@ -27,7 +29,7 @@ class PublicHomeEntry extends StatelessWidget {
       stream: effectiveSession?.authChanges,
       builder: (context, _) {
         if (effectiveSession?.currentSession == null) {
-          return HomePage(session: effectiveSession);
+          return HomePage(session: effectiveSession, section: section);
         }
         return AuthGate(
           session: effectiveSession,

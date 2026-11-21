@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
-import 'auth_gate.dart';
 import 'app_routes.dart';
 
 class TemdasApp extends StatefulWidget {
@@ -14,24 +14,52 @@ class TemdasApp extends StatefulWidget {
   State<TemdasApp> createState() => _TemdasAppState();
 }
 
-class _TemdasAppState extends State<TemdasApp> {
+class _TemdasAppState extends State<TemdasApp> with WidgetsBindingObserver {
   final _theme = ThemePreference();
+  final _navigator = GlobalKey<NavigatorState>();
+  Uri get _startupUri => widget.initialUri ?? Uri.base;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _theme.load();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _theme.dispose();
     super.dispose();
   }
 
   @override
+  Future<bool> didPushRouteInformation(
+    RouteInformation routeInformation,
+  ) async {
+    final navigator = _navigator.currentState;
+    if (navigator == null || !_isHttpLocation(_startupUri)) return false;
+
+    final location = routeInformation.uri.toString();
+    final route = _onGenerateRoute(
+      RouteSettings(name: location),
+      preserveLocationOnNotFound: true,
+    );
+    navigator.push(route);
+    if (route.settings.name == null) {
+      // The engine normalizes the URI sent by a named route. Pass the original
+      // hash route as a location so the 404 retains the address the user entered.
+      await SystemChannels.navigation.invokeMethod<void>(
+        'routeInformationUpdated',
+        {'location': location},
+      );
+    }
+    return true;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final startupUri = widget.initialUri ?? Uri.base;
+    final startupUri = _startupUri;
     final isCallback = isAuthCallbackLocation(startupUri);
     final authRoute = startupUri.path == AppRoutes.authCallback
         ? AppRoutes.authCallback
@@ -46,6 +74,7 @@ class _TemdasAppState extends State<TemdasApp> {
       child: ListenableBuilder(
         listenable: _theme,
         builder: (context, _) => MaterialApp(
+          navigatorKey: _navigator,
           title: 'TEMDAS',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
@@ -54,8 +83,13 @@ class _TemdasAppState extends State<TemdasApp> {
           initialRoute: initialRoute,
           onGenerateInitialRoutes: (route) => [
             _onGenerateRoute(
-              RouteSettings(name: authRoute ?? route),
+              RouteSettings(
+                name: _isHttpLocation(startupUri)
+                    ? initialRoute
+                    : authRoute ?? route,
+              ),
               callbackUri: authRoute != null ? startupUri : null,
+              preserveLocationOnNotFound: true,
             ),
           ],
           onGenerateRoute: _onGenerateRoute,
@@ -64,50 +98,44 @@ class _TemdasAppState extends State<TemdasApp> {
     );
   }
 
-  Route<dynamic> _onGenerateRoute(RouteSettings settings, {Uri? callbackUri}) {
-    final route = AppRoutes.onGenerateRoute(settings, callbackUri: callbackUri);
-    if (const {
-      AppRoutes.home,
-      AppRoutes.authCallback,
-      AppRoutes.authConfirm,
-    }.contains(Uri.tryParse(settings.name ?? '')?.path)) {
-      return route;
-    }
-    return MaterialPageRoute(
-      settings: settings,
-      builder: (context) => AuthGate(
-        session: null,
-        child: (route as MaterialPageRoute).builder(context),
-      ),
-    );
-  }
+  Route<dynamic> _onGenerateRoute(
+    RouteSettings settings, {
+    Uri? callbackUri,
+    bool preserveLocationOnNotFound = false,
+  }) => AppRoutes.onGenerateRoute(
+    settings,
+    callbackUri: callbackUri,
+    protectPrivateRoutes: true,
+    preserveLocationOnNotFound: preserveLocationOnNotFound,
+  );
 }
 
-bool isAuthCallbackLocation(Uri uri) {
-  if (uri.path == AppRoutes.authCallback) return true;
+bool isAuthCallbackLocation(Uri uri) =>
+    _matchesAuthLocation(uri, AppRoutes.authCallback);
+
+bool isAuthConfirmationLocation(Uri uri) =>
+    _matchesAuthLocation(uri, AppRoutes.authConfirm);
+
+bool _matchesAuthLocation(Uri uri, String route) {
+  if (uri.path == route) return true;
+  if (uri.path.isNotEmpty && uri.path != AppRoutes.home) return false;
   final fragment = Uri.tryParse(uri.fragment);
-  return fragment?.path == AppRoutes.authCallback;
+  return fragment != null &&
+      !fragment.hasAuthority &&
+      !fragment.hasScheme &&
+      fragment.path == route;
 }
 
-bool isAuthConfirmationLocation(Uri uri) {
-  if (uri.path == AppRoutes.authConfirm) return true;
-  return Uri.tryParse(uri.fragment)?.path == AppRoutes.authConfirm;
-}
+bool _isHttpLocation(Uri uri) => uri.scheme == 'https' || uri.scheme == 'http';
 
-/// Keeps clean and hash deep links while making only the root public.
+/// The hash route is relative to the app entry point at the root.
 String initialAppLocation(Uri uri) {
-  if (uri.scheme != 'https' && uri.scheme != 'http') return AppRoutes.home;
-  final fragment = Uri.tryParse(uri.fragment);
-  if (fragment != null &&
-      fragment.path.startsWith('/') &&
-      fragment.path != '/') {
-    return fragment.toString();
-  }
-  if (uri.path.isNotEmpty && uri.path != '/') {
+  if (!_isHttpLocation(uri)) return AppRoutes.home;
+  if (uri.path.isNotEmpty && uri.path != AppRoutes.home) {
     return Uri(
       path: uri.path,
       query: uri.hasQuery ? uri.query : null,
     ).toString();
   }
-  return AppRoutes.home;
+  return uri.fragment.isEmpty ? AppRoutes.home : uri.fragment;
 }

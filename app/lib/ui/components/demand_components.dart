@@ -5,6 +5,9 @@ import '../theme/tokens.dart';
 import '../../view/widgets/densidade_demanda.dart';
 import '../../view_model/demanda_lista_preferencias.dart';
 
+import '../../app/app_routes.dart';
+import 'app_link.dart';
+
 part 'compact_demand_components.dart';
 
 String statusLabel(b.DemandaStatus s) => switch (s) {
@@ -533,6 +536,18 @@ class DemandTableHeader extends StatelessWidget {
 double _larguraExtra(ColunaDemanda coluna) =>
     coluna == ColunaDemanda.criadoEm ? 84 : 96;
 
+Widget _linkDemanda(
+  int? id,
+  VoidCallback? onTap,
+  Widget Function(VoidCallback?) control,
+) => id == null || onTap == null
+    ? control(onTap)
+    : AppLink(
+        route: AppRoutes.detalheDaDemanda(id),
+        onFollow: onTap,
+        builder: control,
+      );
+
 class DemandRow extends StatelessWidget {
   const DemandRow({
     super.key,
@@ -643,21 +658,25 @@ class DemandRow extends StatelessWidget {
       fontFeatures: AppTokens.numbers,
     ),
   );
-  Widget _title(BuildContext context) => InkWell(
-    key: ValueKey('abrir-painel-demanda-$id'),
-    onTap: onTap,
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        maxLines: densidade.isCompacta ? 2 : 3,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: status == b.DemandaStatus.concluida
-              ? AppTokens.of(context).secondaryLabel
-              : AppTokens.of(context).text,
+  Widget _title(BuildContext context) => _linkDemanda(
+    id,
+    onTap,
+    (follow) => InkWell(
+      key: ValueKey('abrir-painel-demanda-$id'),
+      onTap: follow,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          maxLines: densidade.isCompacta ? 2 : 3,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: status == b.DemandaStatus.concluida
+                ? AppTokens.of(context).secondaryLabel
+                : AppTokens.of(context).text,
+          ),
         ),
       ),
     ),
@@ -926,16 +945,20 @@ class DemandCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        demand.titulo,
-                        maxLines: densidade.isCompacta ? 2 : 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: demand.status == b.DemandaStatus.concluida
-                              ? t.secondaryLabel
-                              : t.text,
+                      child: _linkDemanda(
+                        demand.id,
+                        onTap,
+                        (_) => Text(
+                          demand.titulo,
+                          maxLines: densidade.isCompacta ? 2 : 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: demand.status == b.DemandaStatus.concluida
+                                ? t.secondaryLabel
+                                : t.text,
+                          ),
                         ),
                       ),
                     ),

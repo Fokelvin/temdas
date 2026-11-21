@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
+import '../ui/components/app_link.dart';
 import '../theme/app_theme.dart';
 import '../theme/temdas_semantic_colors.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
@@ -341,18 +342,27 @@ class _SprintPageState extends State<SprintPage>
             )
             .toList()
           ..sort((a, b) => b.dataFim.compareTo(a.dataFim));
-    Widget card(backend.Sprint sprint) => Padding(
-      padding: const EdgeInsets.only(bottom: TemdasTokens.smallGap),
-      child: _SprintListaCard(
+    Widget card(backend.Sprint sprint) {
+      final id = sprint.id;
+      final indicadores = id == null
+          ? null
+          : _viewModel.indicadoresDaSprint(id);
+      Widget control(VoidCallback? follow) => _SprintListaCard(
         sprint: sprint,
-        indicadores: sprint.id == null
-            ? null
-            : _viewModel.indicadoresDaSprint(sprint.id!),
-        onTap: _viewModel.carregando || _viewModel.enviando
-            ? null
-            : () => _abrirResumo(sprint),
-      ),
-    );
+        indicadores: indicadores,
+        onTap: follow,
+      );
+      return Padding(
+        padding: const EdgeInsets.only(bottom: TemdasTokens.smallGap),
+        child: id == null || _viewModel.carregando || _viewModel.enviando
+            ? control(null)
+            : AppLink(
+                route: AppRoutes.detalheDaSprint(id),
+                onFollow: () => _abrirResumo(sprint),
+                builder: control,
+              ),
+      );
+    }
 
     Widget grade(List<backend.Sprint> lista) => LayoutBuilder(
       builder: (context, constraints) {
@@ -848,7 +858,9 @@ Future<void> mostrarResumoSprint(
   ValueChanged<int>? onAbrirDemanda,
   VoidCallback? onMostrarTodas,
 }) async {
-  final sprintId = await showGeneralDialog<int>(
+  final id = sprint.id!;
+  final route = AppRoutes.detalheDaSprint(id);
+  final abrir = await showGeneralDialog<bool>(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Fechar Sprint',
@@ -859,15 +871,19 @@ Future<void> mostrarResumoSprint(
       panelKey: const ValueKey('resumo-sprint-dialog'),
       onClose: () => Navigator.pop(dialogContext),
       actions: [
-        IconButton(
-          key: const ValueKey('abrir-sprint-completa'),
-          tooltip: 'Abrir Sprint',
-          icon: const Icon(Icons.open_in_full),
-          onPressed: () => Navigator.pop(dialogContext, sprint.id),
+        AppLink(
+          route: route,
+          onFollow: () => Navigator.pop(dialogContext, true),
+          builder: (follow) => IconButton(
+            key: const ValueKey('abrir-sprint-completa'),
+            tooltip: 'Abrir Sprint',
+            icon: const Icon(Icons.open_in_full),
+            onPressed: follow,
+          ),
         ),
       ],
       child: SprintDetalhePage(
-        sprintId: sprint.id!,
+        sprintId: id,
         viewModel: viewModel,
         demandasViewModel: demandasViewModel,
         painel: true,
@@ -876,8 +892,8 @@ Future<void> mostrarResumoSprint(
       ),
     ),
   );
-  if (sprintId != null && context.mounted) {
-    await Navigator.of(context).pushNamed(AppRoutes.detalheDaSprint(sprintId));
+  if (abrir == true && context.mounted) {
+    await Navigator.of(context).pushNamed(route);
   }
 }
 
@@ -1073,20 +1089,32 @@ mixin _SprintAcoesContextuais<T extends StatefulWidget> on State<T> {
           '${nomeSprint(ativa.nome)} está ativa. Abra-a para continuar.',
         ),
         actions: [
-          TextButton(
-            key: const ValueKey('ajustar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Ajustar Sprint atual'),
+          AppLink(
+            route: AppRoutes.detalheDaSprint(id),
+            onFollow: () => _navegarParaSprintAtiva(dialogContext, id),
+            builder: (follow) => TextButton(
+              key: const ValueKey('ajustar-sprint-ativa'),
+              onPressed: follow,
+              child: const Text('Ajustar Sprint atual'),
+            ),
           ),
-          OutlinedButton(
-            key: const ValueKey('finalizar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Finalizar Sprint atual'),
+          AppLink(
+            route: AppRoutes.detalheDaSprint(id),
+            onFollow: () => _navegarParaSprintAtiva(dialogContext, id),
+            builder: (follow) => OutlinedButton(
+              key: const ValueKey('finalizar-sprint-ativa'),
+              onPressed: follow,
+              child: const Text('Finalizar Sprint atual'),
+            ),
           ),
-          FilledButton(
-            key: const ValueKey('cancelar-sprint-ativa'),
-            onPressed: () => _navegarParaSprintAtiva(dialogContext, id),
-            child: const Text('Cancelar Sprint atual'),
+          AppLink(
+            route: AppRoutes.detalheDaSprint(id),
+            onFollow: () => _navegarParaSprintAtiva(dialogContext, id),
+            builder: (follow) => FilledButton(
+              key: const ValueKey('cancelar-sprint-ativa'),
+              onPressed: follow,
+              child: const Text('Cancelar Sprint atual'),
+            ),
           ),
         ],
       ),
@@ -1598,10 +1626,14 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
         route: AppRoutes.sprint,
         toolbar: controls,
         actions: [
-          TextButton.icon(
-            onPressed: _voltar,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Voltar para Sprints'),
+          AppLink(
+            route: AppRoutes.sprint,
+            onFollow: _voltar,
+            builder: (follow) => TextButton.icon(
+              onPressed: follow,
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Voltar para Sprints'),
+            ),
           ),
         ],
         body: _conteudo(context),
@@ -1639,11 +1671,21 @@ class _SprintDetalhePageState extends State<SprintDetalhePage>
         icone: Icons.search_off_outlined,
         titulo: 'Sprint não encontrada',
         mensagem: 'A Sprint #${widget.sprintId} não foi encontrada.',
-        acao: OutlinedButton.icon(
-          onPressed: _voltar,
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('Voltar para Sprints'),
-        ),
+        acao: widget.painel
+            ? OutlinedButton.icon(
+                onPressed: _voltar,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Voltar para Sprints'),
+              )
+            : AppLink(
+                route: AppRoutes.sprint,
+                onFollow: _voltar,
+                builder: (follow) => OutlinedButton.icon(
+                  onPressed: follow,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Voltar para Sprints'),
+                ),
+              ),
       );
     }
 

@@ -2,6 +2,7 @@ import '../../ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 import '../../app/app_routes.dart';
+import '../../ui/components/app_link.dart';
 import '../formatters/sprint_apresentacao.dart';
 
 class SprintsDaDemanda extends StatelessWidget {
@@ -56,41 +57,34 @@ class SprintsDaDemanda extends StatelessWidget {
               );
               return Tooltip(
                 message: texto,
-                child: TextButton(
-                  key: ValueKey(
-                    i == 0
-                        ? 'sprint-da-demanda-$demandaId'
-                        : 'sprint-da-demanda-$demandaId-${sprint!.id}',
-                  ),
-                  style: t.darkContrast
-                      ? style.copyWith(
-                          side: WidgetStateProperty.resolveWith(
-                            (states) => states.contains(WidgetState.focused)
-                                ? const BorderSide(color: AppTokens.accent)
-                                : ativa
-                                ? const BorderSide(
-                                    color: AppTokens.sprintChipBorder,
-                                  )
-                                : null,
-                          ),
-                        )
-                      : style,
-                  onPressed: () {
-                    if (onAbrir != null) {
-                      onAbrir!(sprint);
-                      return;
-                    }
-                    Navigator.pushNamed(
-                      context,
-                      sprint?.id == null
-                          ? AppRoutes.sprint
-                          : AppRoutes.detalheDaSprint(sprint!.id!),
-                    );
-                  },
-                  child: Text(
-                    texto,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                child: AppLink(
+                  route: _rota(sprint),
+                  onFollow: onAbrir == null ? null : () => onAbrir!(sprint),
+                  builder: (follow) => TextButton(
+                    key: ValueKey(
+                      i == 0
+                          ? 'sprint-da-demanda-$demandaId'
+                          : 'sprint-da-demanda-$demandaId-${sprint!.id}',
+                    ),
+                    style: t.darkContrast
+                        ? style.copyWith(
+                            side: WidgetStateProperty.resolveWith(
+                              (states) => states.contains(WidgetState.focused)
+                                  ? const BorderSide(color: AppTokens.accent)
+                                  : ativa
+                                  ? const BorderSide(
+                                      color: AppTokens.sprintChipBorder,
+                                    )
+                                  : null,
+                            ),
+                          )
+                        : style,
+                    onPressed: follow,
+                    child: Text(
+                      texto,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               );
@@ -100,16 +94,15 @@ class SprintsDaDemanda extends StatelessWidget {
     );
   }
 
+  String _rota(backend.Sprint? sprint) => sprint?.id == null
+      ? AppRoutes.sprint
+      : AppRoutes.detalheDaSprint(sprint!.id!);
+
   void _abrir(BuildContext context, backend.Sprint? sprint) {
     if (onAbrir != null) {
       onAbrir!(sprint);
     } else {
-      Navigator.pushNamed(
-        context,
-        sprint?.id == null
-            ? AppRoutes.sprint
-            : AppRoutes.detalheDaSprint(sprint!.id!),
-      );
+      Navigator.pushNamed(context, _rota(sprint));
     }
   }
 
@@ -152,11 +145,15 @@ class SprintsDaDemanda extends StatelessWidget {
     if (ordenadas.length <= 1) {
       return Tooltip(
         message: tooltip,
-        child: TextButton(
-          key: ValueKey('sprint-da-demanda-$demandaId'),
-          style: style,
-          onPressed: () => _abrir(context, primeira),
-          child: child,
+        child: AppLink(
+          route: _rota(primeira),
+          onFollow: () => _abrir(context, primeira),
+          builder: (follow) => TextButton(
+            key: ValueKey('sprint-da-demanda-$demandaId'),
+            style: style,
+            onPressed: follow,
+            child: child,
+          ),
         ),
       );
     }
@@ -170,8 +167,11 @@ class SprintsDaDemanda extends StatelessWidget {
           for (final sprint in ordenadas)
             PopupMenuItem(
               value: sprint,
-              child: Text(
-                '${nomeSprint(sprint.nome)} · ${estadoSprint(sprint)}',
+              child: AppLink(
+                route: _rota(sprint),
+                builder: (_) => Text(
+                  '${nomeSprint(sprint.nome)} · ${estadoSprint(sprint)}',
+                ),
               ),
             ),
         ],

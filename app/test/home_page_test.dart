@@ -274,7 +274,19 @@ void main() {
     codec.dispose();
   });
 
-  for (final path in ['/demandas/detalhe?id=42', '/#/sprint/7', '/#/perfil']) {
+  for (final path in [
+    '/#/demandas',
+    '/#/demandas?id=42',
+    '/#/backlog?id=42',
+    '/demandas/detalhe?id=42',
+    '/#/demandas/detalhe?id=42',
+    '/#/sprint',
+    '/#/sprint/7',
+    '/#/log-time',
+    '/#/relatorios',
+    '/#/to-dos',
+    '/#/perfil',
+  ]) {
     testWidgets('link privado $path continua protegido pelo AuthGate', (
       tester,
     ) async {
@@ -288,6 +300,105 @@ void main() {
       expect(find.byType(HomePage), findsNothing);
     });
   }
+
+  for (final path in [
+    '/qualquer-coisa',
+    '/#/outra-pagina',
+    '/#/123',
+    '/#/página/a?origem=teste',
+    '/#sem-barra',
+    '/#//exemplo.com/perfil',
+    '/#/perfil#outro-fragmento',
+    '/tela-inexistente#/perfil',
+    '/tela-inexistente#/auth/confirm',
+    '/auth/nao-existe',
+    '/#/demandas/inexistente',
+    '/#/demandas/detalhe',
+    '/demandas/detalhe?id=-1',
+    '/#/demandas/detalhe?id=texto',
+    '/#/demandas/detalhe?id=%FF',
+    '/#/demandas/detalhe?id=1&id=2',
+    '/#/sprint/abc',
+    '/#/sprint/0',
+    '/#/sprint/0x12',
+    '/#/sprint/12/extra',
+  ]) {
+    testWidgets('rota desconhecida $path mostra 404 pública com link à Home', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final uri = Uri.parse('https://temdas.com.br$path');
+      tester.binding.platformDispatcher.defaultRouteNameTestValue =
+          uri.fragment;
+      addTearDown(
+        tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
+      );
+      await tester.pumpWidget(TemdasApp(initialUri: uri));
+      await tester.pumpAndSettle();
+
+      expect(find.text('404'), findsOneWidget);
+      expect(find.text('Página não encontrada'), findsOneWidget);
+      expect(find.byType(AuthGate), findsNothing);
+      expect(find.byType(HomePage), findsNothing);
+
+      await tester.tap(find.text('Voltar para a Home'));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.text('404'), findsNothing);
+    });
+  }
+
+  for (final route in [
+    '/inexistente',
+    '//exemplo.com/perfil',
+    '/demandas/detalhe?id=invalido',
+  ]) {
+    testWidgets('mudança de hash para $route abre a 404', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final navigationUpdates = <MethodCall>[];
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.navigation, (
+        call,
+      ) async {
+        if (call.method == 'routeInformationUpdated') {
+          navigationUpdates.add(call);
+        }
+        return null;
+      });
+      addTearDown(
+        () =>
+            messenger.setMockMethodCallHandler(SystemChannels.navigation, null),
+      );
+      await tester.pumpWidget(
+        TemdasApp(initialUri: Uri.parse('https://temdas.com.br/')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(await tester.binding.handlePushRoute(route), isTrue);
+      await tester.pumpAndSettle();
+
+      expect(find.text('404'), findsOneWidget);
+      expect(find.byType(AuthGate), findsNothing);
+      expect(navigationUpdates.last.arguments, {'location': route});
+    });
+  }
+
+  testWidgets('link de seção abre a Home na seção correspondente', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      TemdasApp(
+        initialUri: Uri.parse('https://temdas.com.br/#/?secao=sprints'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('home-section-2')).hitTestable(),
+      findsOneWidget,
+    );
+  });
 
   test('destinos de links diretos e hash são preservados', () {
     expect(

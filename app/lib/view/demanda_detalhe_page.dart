@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
 import '../app/app_routes.dart';
-import '../app/nova_aba.dart';
+import '../ui/components/app_link.dart';
 import 'formatters/demanda_identificacao.dart';
 import '../view_model/demanda_detalhe_view_model.dart';
 import 'widgets/app_drawer.dart';
@@ -46,7 +46,7 @@ class DemandaDetalhePage extends StatelessWidget {
       },
       onAbrirDemanda: (id) {
         if (id == null) return;
-        Navigator.pushNamed(context, AppRoutes.demandaDetalhe, arguments: id);
+        Navigator.pushNamed(context, AppRoutes.detalheDaDemanda(id));
       },
     ),
   );
@@ -78,12 +78,15 @@ Future<bool?> mostrarDetalhesDemandaDialog(
       onClose: () => Navigator.pop(dialogContext),
       actions: [
         if (kIsWeb)
-          IconButton(
-            key: const ValueKey('abrir-demanda-nova-aba'),
-            tooltip: 'Abrir em nova aba',
-            icon: const Icon(Icons.open_in_new),
-            onPressed: () =>
-                abrirRotaEmNovaAba(AppRoutes.detalheDaDemanda(demandaId)),
+          AppLink(
+            route: AppRoutes.detalheDaDemanda(demandaId),
+            newTab: true,
+            builder: (follow) => IconButton(
+              key: const ValueKey('abrir-demanda-nova-aba'),
+              tooltip: 'Abrir em nova aba',
+              icon: const Icon(Icons.open_in_new),
+              onPressed: follow,
+            ),
           ),
       ],
       child: _DemandaDetalheConteudo(
@@ -209,11 +212,21 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
         icon: Icons.search_off_outlined,
         titulo: 'Demanda não encontrada',
         mensagem: 'A demanda #${widget.demandaId} não foi encontrada.',
-        acao: OutlinedButton.icon(
-          onPressed: widget.onVoltar,
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('Voltar'),
-        ),
+        acao: widget.painel
+            ? OutlinedButton.icon(
+                onPressed: widget.onVoltar,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Voltar'),
+              )
+            : AppLink(
+                route: AppRoutes.demandas,
+                onFollow: widget.onVoltar,
+                builder: (follow) => OutlinedButton.icon(
+                  onPressed: follow,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Voltar'),
+                ),
+              ),
       );
     }
 
@@ -267,10 +280,14 @@ class _DemandaDetalheConteudoState extends State<_DemandaDetalheConteudo> {
         if (!widget.painel)
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: widget.onVoltar,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Voltar'),
+            child: AppLink(
+              route: AppRoutes.demandas,
+              onFollow: widget.onVoltar,
+              builder: (follow) => TextButton.icon(
+                onPressed: follow,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Voltar'),
+              ),
             ),
           ),
         _Cabecalho(
@@ -700,20 +717,24 @@ class _DemandaMae extends StatelessWidget {
       return Text('A demanda mãe #$demandaPaiId não foi encontrada.');
     }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.subdirectory_arrow_right),
-      title: Text(
-        caminho?.contains(' › ') == true
-            ? caminho!
-            : formatarIdentificacaoDemanda(demandaMae!),
-        style: const TextStyle(fontWeight: FontWeight.w700),
+    return AppLink(
+      route: AppRoutes.detalheDaDemanda(demandaPaiId),
+      onFollow: () => onAbrir(demandaPaiId),
+      builder: (follow) => ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.subdirectory_arrow_right),
+        title: Text(
+          caminho?.contains(' › ') == true
+              ? caminho!
+              : formatarIdentificacaoDemanda(demandaMae!),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          '#${demandaMae!.id} · ${_statusLabel(demandaMae!.status)}',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: follow,
       ),
-      subtitle: Text(
-        '#${demandaMae!.id} · ${_statusLabel(demandaMae!.status)}',
-      ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => onAbrir(demandaMae!.id),
     );
   }
 }
@@ -722,7 +743,7 @@ class _DemandasFilhas extends StatelessWidget {
   const _DemandasFilhas({required this.demandas, required this.onAbrir});
 
   final List<backend.Demanda> demandas;
-  final ValueChanged<int?> onAbrir;
+  final ValueChanged<int?>? onAbrir;
 
   @override
   Widget build(BuildContext context) {
@@ -733,23 +754,35 @@ class _DemandasFilhas extends StatelessWidget {
     return Column(
       children: [
         for (var index = 0; index < demandas.length; index++) ...[
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.subdirectory_arrow_right),
-            title: Text(
-              formatarIdentificacaoDemanda(demandas[index]),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              '${_statusLabel(demandas[index].status)} · '
-              '${_formatarDuracao(demandas[index].tempoExecutadoMinutos)} executado',
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => onAbrir(demandas[index].id),
-          ),
+          _item(demandas[index]),
           if (index < demandas.length - 1) const Divider(),
         ],
       ],
+    );
+  }
+
+  Widget _item(backend.Demanda demanda) {
+    Widget control(VoidCallback? follow) => ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.subdirectory_arrow_right),
+      title: Text(
+        formatarIdentificacaoDemanda(demanda),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: Text(
+        '${_statusLabel(demanda.status)} · '
+        '${_formatarDuracao(demanda.tempoExecutadoMinutos)} executado',
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: follow,
+    );
+
+    final id = demanda.id;
+    if (id == null || id <= 0) return control(null);
+    return AppLink(
+      route: AppRoutes.detalheDaDemanda(id),
+      onFollow: onAbrir == null ? null : () => onAbrir!(id),
+      builder: control,
     );
   }
 }

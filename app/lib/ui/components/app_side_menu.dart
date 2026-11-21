@@ -1,9 +1,10 @@
-import '../../app/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../app/app_routes.dart';
 import '../../data/supabase_session.dart';
 import '../theme/tokens.dart';
+import 'app_link.dart';
 import 'mobile_bottom_navigation.dart';
 
 class AppMenuButton extends StatelessWidget {
@@ -36,11 +37,12 @@ class AppSideMenu extends StatelessWidget {
       String label,
       IconData icon,
       VoidCallback onTap, {
+      String? destination,
       bool selected = false,
       int height = 32,
       bool profile = false,
     }) {
-      Widget surface({bool focused = false}) => Material(
+      Widget surface(VoidCallback activate, {bool focused = false}) => Material(
         color: selected
             ? (t.darkContrast ? t.activeSurface(t.surface) : t.accentSoft)
             : Colors.transparent,
@@ -57,7 +59,7 @@ class AppSideMenu extends StatelessWidget {
             : null,
         child: InkWell(
           borderRadius: BorderRadius.circular(6),
-          onTap: onTap,
+          onTap: activate,
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: compact || drawer ? 44 : height.toDouble(),
@@ -92,21 +94,29 @@ class AppSideMenu extends StatelessWidget {
           ),
         ),
       );
+      Widget control(VoidCallback activate) => t.darkContrast
+          ? Focus(
+              canRequestFocus: false,
+              child: Builder(
+                builder: (context) =>
+                    surface(activate, focused: Focus.of(context).hasFocus),
+              ),
+            )
+          : surface(activate);
+
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Semantics(
           selected: selected,
           child: Tooltip(
             message: label,
-            child: t.darkContrast
-                ? Focus(
-                    canRequestFocus: false,
-                    child: Builder(
-                      builder: (context) =>
-                          surface(focused: Focus.of(context).hasFocus),
-                    ),
-                  )
-                : surface(),
+            child: destination == null
+                ? control(onTap)
+                : AppLink(
+                    route: destination,
+                    onFollow: onTap,
+                    builder: control,
+                  ),
           ),
         ),
       );
@@ -173,12 +183,14 @@ class AppSideMenu extends StatelessWidget {
                         AppNavigation.labels[i],
                         AppNavigation.icons[i],
                         () => go(AppNavigation.routes[i]),
+                        destination: AppNavigation.routes[i],
                         selected: ativo == AppNavigation.routes[i],
                       ),
                     item(
                       'Backlog',
                       Icons.inventory_2_outlined,
                       () => go(AppRoutes.backlog),
+                      destination: AppRoutes.backlog,
                       selected: ativo == AppRoutes.backlog,
                     ),
                     const Spacer(),
@@ -187,6 +199,7 @@ class AppSideMenu extends StatelessWidget {
                       'Meu Perfil',
                       Symbols.person_rounded,
                       () => go(AppNavigation.routes.last),
+                      destination: AppNavigation.routes.last,
                       selected: ativo == AppNavigation.routes.last,
                       profile: true,
                       height: 44,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:temdas_backend_client/temdas_backend_client.dart' as backend;
 
+import '../ui/components/app_link.dart';
+import 'auth_gate.dart';
 import 'public_home_entry.dart';
 
 import '../view/demanda_detalhe_page.dart';
@@ -35,128 +37,123 @@ abstract final class AppRoutes {
   static Route<dynamic> onGenerateRoute(
     RouteSettings settings, {
     Uri? callbackUri,
+    bool protectPrivateRoutes = false,
+    bool preserveLocationOnNotFound = false,
   }) {
-    final uri = Uri.tryParse(settings.name ?? Navigator.defaultRouteName);
-    final demandaId = settings.arguments is int
-        ? settings.arguments as int
-        : int.tryParse(uri?.queryParameters['id'] ?? '');
-    final segmentosSprint = uri?.pathSegments;
-    final rotaDetalheSprint =
-        segmentosSprint != null &&
-        segmentosSprint.length == 2 &&
-        segmentosSprint.first == sprint.substring(1);
-    final sprintId = segmentosSprint != null && rotaDetalheSprint
-        ? int.tryParse(segmentosSprint[1])
+    final uri = _parseLocation(settings.name ?? Navigator.defaultRouteName);
+    final path = uri?.path;
+    final demandaId =
+        path == demandaDetalhe || path == demandas || path == backlog
+        ? switch (settings.arguments) {
+            final int id when id > 0 => id,
+            _ => _positiveId(_queryValue(uri!, 'id')),
+          }
         : null;
-    final page = switch (uri?.path) {
-      home => const PublicHomeEntry(),
-      authCallback => AuthCallbackPage(uri: callbackUri ?? Uri.base),
-      authConfirm => AuthCallbackPage.confirm(uri: callbackUri ?? Uri.base),
-      demandaDetalhe => switch (demandaId) {
-        final int id when id > 0 => DemandaDetalhePage(demandaId: id),
-        _ => const _ArgumentoDetalheInvalidoPage(),
-      },
+    final sprintId = path != null && path.startsWith('$sprint/')
+        ? _positiveId(path.substring(sprint.length + 1))
+        : null;
+    final page = switch (path) {
+      home => PublicHomeEntry(section: _queryValue(uri!, 'secao')),
       demandas => DemandasPage(demandaInicialId: demandaId),
       backlog => DemandasPage(
         localizacao: backend.DemandaLocalizacao.backlog,
         demandaInicialId: demandaId,
       ),
+      authCallback => AuthCallbackPage(uri: callbackUri ?? Uri.base),
+      authConfirm => AuthCallbackPage.confirm(uri: callbackUri ?? Uri.base),
+      demandaDetalhe when demandaId != null => DemandaDetalhePage(
+        demandaId: demandaId,
+      ),
       sprint => const SprintPage(),
-      _ when rotaDetalheSprint => switch (sprintId) {
-        final int id when id > 0 => SprintDetalhePage(sprintId: id),
-        _ => const _ArgumentoSprintInvalidoPage(),
-      },
+      _ when sprintId != null => SprintDetalhePage(sprintId: sprintId),
       logTime => const LogTimePage(),
       relatorios => const RelatoriosPage(),
       todos => const TodoPage(),
       perfil => const MeuPerfilPage(),
-      _ => const DemandasPage(),
+      _ => const _PaginaNaoEncontrada(),
     };
-    return MaterialPageRoute(builder: (_) => page, settings: settings);
+    final publico = switch (page) {
+      PublicHomeEntry() || AuthCallbackPage() || _PaginaNaoEncontrada() => true,
+      _ => false,
+    };
+    return MaterialPageRoute(
+      builder: (_) => protectPrivateRoutes && !publico
+          ? AuthGate(session: null, child: page)
+          : page,
+      // Keep the 404 unnamed when the browser location is managed separately.
+      settings: preserveLocationOnNotFound && page is _PaginaNaoEncontrada
+          ? const RouteSettings()
+          : settings,
+    );
+  }
+
+  static Uri? _parseLocation(String location) {
+    if (!location.startsWith('/')) return null;
+    final uri = Uri.tryParse(location);
+    if (uri == null || uri.hasAuthority || uri.hasFragment) return null;
+    return uri;
+  }
+
+  static String? _queryValue(Uri uri, String name) {
+    try {
+      return switch (uri.queryParametersAll[name]) {
+        [final value] => value,
+        _ => null,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  static final _decimalId = RegExp(r'^[0-9]+$');
+
+  static int? _positiveId(String? value) {
+    if (value == null || !_decimalId.hasMatch(value)) return null;
+    final id = int.tryParse(value, radix: 10);
+    return id != null && id > 0 ? id : null;
   }
 }
 
-class _ArgumentoSprintInvalidoPage extends StatelessWidget {
-  const _ArgumentoSprintInvalidoPage();
+class _PaginaNaoEncontrada extends StatelessWidget {
+  const _PaginaNaoEncontrada();
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Detalhes da Sprint')),
+    appBar: AppBar(title: const Text('404')),
     body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 412),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.link_off_outlined,
+                Icons.search_off_outlined,
                 size: 52,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 16),
               Text(
-                'Não foi possível abrir esta Sprint.',
+                'Página não encontrada',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               const Text(
-                'O identificador informado é inválido.',
+                'O endereço informado não corresponde a uma página do TEMDAS.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, AppRoutes.sprint),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Voltar para Sprints'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _ArgumentoDetalheInvalidoPage extends StatelessWidget {
-  const _ArgumentoDetalheInvalidoPage();
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Detalhes da demanda')),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.link_off_outlined,
-                size: 52,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Não foi possível abrir esta demanda.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'O identificador informado é inválido.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, AppRoutes.demandas),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Voltar para demandas'),
+              AppLink(
+                route: AppRoutes.home,
+                onFollow: () =>
+                    Navigator.pushReplacementNamed(context, AppRoutes.home),
+                builder: (follow) => FilledButton.icon(
+                  onPressed: follow,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Voltar para a Home'),
+                ),
               ),
             ],
           ),

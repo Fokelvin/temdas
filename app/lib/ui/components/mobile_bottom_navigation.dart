@@ -3,6 +3,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app/app_routes.dart';
 import '../theme/tokens.dart';
+import 'app_link.dart';
 
 abstract final class AppNavigation {
   static const routes = [
@@ -63,9 +64,9 @@ class MobileBottomNavigation extends StatelessWidget {
                 Expanded(
                   child: Tooltip(
                     message: AppNavigation.labels[index],
-                    child: InkWell(
-                      key: ValueKey('mobile-nav-$index'),
-                      onTap: () {
+                    child: AppLink(
+                      route: AppNavigation.routes[index],
+                      onFollow: () {
                         final destination = AppNavigation.routes[index];
                         if (destination != selectedRoute) {
                           Navigator.of(
@@ -73,33 +74,38 @@ class MobileBottomNavigation extends StatelessWidget {
                           ).pushReplacementNamed(destination);
                         }
                       },
-                      child: Semantics(
-                        button: true,
-                        selected: selectedRoute == AppNavigation.routes[index],
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              AppNavigation.icons[index],
-                              size: 20,
-                              color:
-                                  selectedRoute == AppNavigation.routes[index]
-                                  ? AppTokens.accent
-                                  : tokens.text2,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppNavigation.labels[index],
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontSize: 10.5,
+                      builder: (follow) => InkWell(
+                        key: ValueKey('mobile-nav-$index'),
+                        onTap: follow,
+                        child: Semantics(
+                          selected:
+                              selectedRoute == AppNavigation.routes[index],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                AppNavigation.icons[index],
+                                size: 20,
                                 color:
                                     selectedRoute == AppNavigation.routes[index]
                                     ? AppTokens.accent
                                     : tokens.text2,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                AppNavigation.labels[index],
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color:
+                                      selectedRoute ==
+                                          AppNavigation.routes[index]
+                                      ? AppTokens.accent
+                                      : tokens.text2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

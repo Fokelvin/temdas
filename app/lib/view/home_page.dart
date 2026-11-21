@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../data/supabase_session.dart';
 import 'auth_pages.dart';
 import '../ui/components/home_preview.dart';
+import '../ui/components/app_link.dart';
 import '../ui/theme/tokens.dart';
 import 'widgets/theme_toggle_button.dart';
 
@@ -12,37 +13,43 @@ import 'widgets/theme_toggle_button.dart';
 const homeSections = [
   (
     label: 'Apresentação',
+    slug: 'apresentacao',
     description:
         'Organize suas demandas e acompanhe o tempo dedicado a cada atividade.',
     icon: Symbols.home_rounded,
   ),
   (
     label: 'Demandas',
+    slug: 'demandas',
     description: 'Organize atividades, prioridades e status.',
     icon: Symbols.task_alt_rounded,
   ),
   (
     label: 'Sprints',
+    slug: 'sprints',
     description:
         'Planeje períodos de trabalho e acompanhe as demandas vinculadas.',
     icon: Symbols.sprint_rounded,
   ),
   (
     label: 'Log Time',
+    slug: 'log-time',
     description: 'Registre o tempo dedicado a cada demanda.',
     icon: Symbols.calendar_month_rounded,
   ),
   (
     label: 'Relatórios',
+    slug: 'relatorios',
     description: 'Consulte as horas registradas por demanda e período.',
     icon: Symbols.assessment_rounded,
   ),
 ];
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, this.session});
+  const HomePage({super.key, this.session, this.section});
 
   final SupabaseSession? session;
+  final String? section;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -64,6 +71,14 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _scroll.addListener(_trackSection);
+    final section = homeSections.indexWhere(
+      (item) => item.slug == widget.section,
+    );
+    if (section > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _goTo(section, animate: false);
+      });
+    }
   }
 
   @override
@@ -88,17 +103,19 @@ class _HomePageState extends State<HomePage> {
     if (_active != active) setState(() => _active = active);
   }
 
-  Future<void> _goTo(int index) async {
+  Future<void> _goTo(int index, {bool animate = true}) async {
     final target = _sections[index].currentContext;
     if (target == null) return;
-    final navigationMotion = AppTokens.motion(context);
+    final navigationMotion = animate
+        ? AppTokens.motion(context)
+        : Duration.zero;
     _scrollingToSection = true;
     setState(() => _active = index);
     try {
       await Scrollable.ensureVisible(
         target,
         alignment: 0,
-        duration: AppTokens.motion(context, 400),
+        duration: animate ? AppTokens.motion(context, 400) : Duration.zero,
         curve: AppTokens.curve,
       );
       if (!mounted) return;
@@ -118,6 +135,13 @@ class _HomePageState extends State<HomePage> {
 
   void _enter() => _scaffold.currentState?.openEndDrawer();
 
+  Widget _sectionLink(int index, Widget Function(VoidCallback) builder) =>
+      AppLink(
+        route: index == 0 ? '/' : '/?secao=${homeSections[index].slug}',
+        onFollow: () => _goTo(index),
+        builder: builder,
+      );
+
   Widget _links() => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -127,18 +151,21 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Semantics(
             selected: _active == i,
-            child: TextButton(
-              key: ValueKey('home-nav-$i'),
-              onPressed: () => _goTo(i),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTokens.of(context).text,
-                minimumSize: const Size(44, 44),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                backgroundColor: _active == i
-                    ? AppTokens.of(context).accentSoft
-                    : null,
+            child: _sectionLink(
+              i,
+              (follow) => TextButton(
+                key: ValueKey('home-nav-$i'),
+                onPressed: follow,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTokens.of(context).text,
+                  minimumSize: const Size(44, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  backgroundColor: _active == i
+                      ? AppTokens.of(context).accentSoft
+                      : null,
+                ),
+                child: Text(homeSections[i].label),
               ),
-              child: Text(homeSections[i].label),
             ),
           ),
         ),
@@ -195,12 +222,16 @@ class _HomePageState extends State<HomePage> {
                                   child: Align(
                                     alignment: Alignment.centerLeft,
                                     child: Semantics(
-                                      button: true,
                                       label: 'TEMDAS',
-                                      child: InkWell(
-                                        onTap: () => _goTo(0),
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: const _BrandSignature(),
+                                      child: _sectionLink(
+                                        0,
+                                        (follow) => InkWell(
+                                          onTap: follow,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          child: const _BrandSignature(),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -324,12 +355,15 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: const Text('Entrar'),
                 ),
-                OutlinedButton(
-                  onPressed: () => _goTo(1),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(112, 48),
+                _sectionLink(
+                  1,
+                  (follow) => OutlinedButton(
+                    onPressed: follow,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(112, 48),
+                    ),
+                    child: const Text('Recursos'),
                   ),
-                  child: const Text('Recursos'),
                 ),
               ],
             ),

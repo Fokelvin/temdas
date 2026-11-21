@@ -36,6 +36,8 @@ class _CompactDemandCard extends StatelessWidget {
                   chevron: card.chevron,
                   actions: card.actions,
                   dragHandle: card.dragHandle,
+                  onTap: card.onTap,
+                  emCard: true,
                 ),
                 LayoutBuilder(
                   builder: (context, box) {
@@ -93,11 +95,12 @@ class _CompactHeadline extends StatelessWidget {
     required this.actions,
     this.dragHandle,
     this.onTap,
+    this.emCard = false,
     this.mostrarId = true,
   });
   final int? id;
   final String title;
-  final bool mostrarId;
+  final bool mostrarId, emCard;
   final b.DemandaStatus status;
   final Widget chevron, actions;
   final Widget? selection;
@@ -128,19 +131,25 @@ class _CompactHeadline extends StatelessWidget {
         Expanded(
           child: Tooltip(
             message: title,
-            child: InkWell(
-              key: onTap == null ? null : ValueKey('abrir-painel-demanda-$id'),
-              onTap: onTap,
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: status == b.DemandaStatus.concluida
-                      ? t.secondaryLabel
-                      : t.text,
+            child: _linkDemanda(
+              id,
+              onTap,
+              (follow) => InkWell(
+                key: onTap == null || emCard
+                    ? null
+                    : ValueKey('abrir-painel-demanda-$id'),
+                onTap: follow,
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: status == b.DemandaStatus.concluida
+                        ? t.secondaryLabel
+                        : t.text,
+                  ),
                 ),
               ),
             ),
