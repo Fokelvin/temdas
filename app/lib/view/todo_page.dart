@@ -712,7 +712,7 @@ class _PostItState extends State<_PostIt> {
                 else if (todo.titulo case final titulo?)
                   Expanded(
                     child: Tooltip(
-                      message: 'Editar título',
+                      message: '$titulo\nClique para editar o título',
                       child: InkWell(
                         onTap: _editarTitulo,
                         child: Padding(
@@ -738,7 +738,7 @@ class _PostItState extends State<_PostIt> {
                     onPressed: widget.ocupado ? null : _editarTitulo,
                     icon: const Icon(Icons.title, size: 18),
                   ),
-                const Spacer(),
+                if (!_editandoTitulo && todo.titulo == null) const Spacer(),
                 Tooltip(
                   message: todo.concluido ? 'Reabrir To-do' : 'Concluir To-do',
                   child: Checkbox(

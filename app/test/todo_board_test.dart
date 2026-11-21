@@ -212,6 +212,62 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('título usa a largura até o checkbox em cards redimensionáveis', (
+    tester,
+  ) async {
+    const titulo =
+        'Título completo para conferir o espaço horizontal disponível';
+    final client = _Client([_todo(1, 'Conteúdo', titulo: titulo)]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+
+    final tituloFinder = find.byKey(const ValueKey('titulo-todo-1'));
+    final checkbox = find.byType(Checkbox).first;
+    final texto = tester.widget<Text>(tituloFinder);
+    expect(texto.maxLines, 1);
+    expect(texto.overflow, TextOverflow.ellipsis);
+    expect(
+      find.byTooltip('$titulo\nClique para editar o título'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getRect(tituloFinder).right,
+      closeTo(tester.getRect(checkbox).left, 1),
+    );
+
+    final larguraInicial = tester.getSize(tituloFinder).width;
+    await tester.drag(
+      find.byTooltip('Redimensionar To-do'),
+      const Offset(90, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(tituloFinder).width, greaterThan(larguraInicial));
+    expect(
+      tester.getRect(tituloFinder).right,
+      closeTo(tester.getRect(checkbox).left, 1),
+    );
+
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 700);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Redimensionar To-do'), findsNothing);
+    expect(
+      tester.getRect(tituloFinder).right,
+      closeTo(tester.getRect(checkbox).left, 1),
+    );
+
+    await tester.tap(tituloFinder);
+    await tester.pump();
+    expect(tester.widget<TextField>(tituloFinder).maxLines, 1);
+    expect(
+      tester.getRect(tituloFinder).right,
+      closeTo(tester.getRect(checkbox).left, 1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('falha de autosave mantém o título e permite nova tentativa', (
     tester,
   ) async {
