@@ -600,6 +600,46 @@ void main() {
     expect(client.operacoes.last.$1, 'excluir');
   });
 
+  testWidgets('preenche faixas superiores antes de lacunas distantes', (
+    tester,
+  ) async {
+    final client = _Client([
+      _todo(1, 'Alto à esquerda', largura: 220, altura: 350),
+      _todo(2, 'Baixo ao centro', largura: 220, altura: 140),
+      _todo(3, 'Baixo à direita', largura: 220, altura: 140),
+      _todo(4, 'Próxima faixa', largura: 220, altura: 140),
+      _todo(5, 'Ao lado', largura: 220, altura: 140),
+    ]);
+    final model = TodoViewModel(client);
+    addTearDown(model.dispose);
+    await _abrir(tester, model);
+    Rect card(int id) => tester.getRect(find.byKey(ValueKey(id)));
+    expect(card(1).top, card(2).top);
+    expect(card(2).top, card(3).top);
+    expect(card(1).left, lessThan(card(2).left));
+    expect(card(2).left, lessThan(card(3).left));
+    expect(card(4).left, card(2).left);
+    expect(card(4).top, card(2).bottom + 12);
+    expect(card(5).left, card(3).left);
+    expect(card(5).top, card(4).top);
+    final anteriores = List.generate(5, (i) => card(i + 1));
+    await _abrir(tester, model);
+    expect(List.generate(5, (i) => card(i + 1)), anteriores);
+
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(620, 700);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    final novos = List.generate(5, (i) => card(i + 1));
+    for (var i = 0; i < novos.length; i++) {
+      expect(novos[i].right, lessThanOrEqualTo(620));
+      for (final outro in novos.skip(i + 1)) {
+        expect(novos[i].overlaps(outro), isFalse);
+      }
+    }
+    expect(model.todos.map((todo) => todo.id), [1, 2, 3, 4, 5]);
+  });
+
   testWidgets('compacta os cartões e recalcula após redimensionar e mover', (
     tester,
   ) async {
@@ -619,8 +659,8 @@ void main() {
     final alto = cartao(2);
     final terceiro = cartao(3);
     final quarto = cartao(4);
-    expect(quarto.left, terceiro.left);
-    expect(quarto.top, terceiro.bottom + 12);
+    expect(quarto.left, primeiro.left);
+    expect(quarto.top, primeiro.bottom + 12);
     expect(quarto.top, lessThan(alto.bottom));
     expect(terceiro.top, primeiro.top);
 
@@ -643,7 +683,8 @@ void main() {
     expect(model.todos[2].altura, greaterThan(110));
     expect(model.todos[2].largura, greaterThan(200));
     final depoisDoRedimensionamento = cartao(4);
-    expect(depoisDoRedimensionamento.top, greaterThan(quarto.top));
+    expect(depoisDoRedimensionamento.top, quarto.top);
+    expect(depoisDoRedimensionamento.left, primeiro.left);
     final redimensionados = [1, 2, 3, 4].map(cartao).toList();
     for (var i = 0; i < redimensionados.length; i++) {
       expect(

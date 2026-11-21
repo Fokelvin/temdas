@@ -438,7 +438,13 @@ List<Offset> _calcularPosicoesCompactas(List<Size> tamanhos, double largura) {
     }.toList()..sort();
 
     Offset? posicao;
+    double? primeiraAlturaDisponivel;
     for (final top in alturasCandidatas) {
+      // Nearby gaps share a visual band, anchored at the first feasible height.
+      if (primeiraAlturaDisponivel != null &&
+          top > primeiraAlturaDisponivel + espacamento * 4) {
+        break;
+      }
       var left = 0.0;
       for (final retangulo in ocupadosOrdenados) {
         final separacaoVertical =
@@ -454,8 +460,11 @@ List<Offset> _calcularPosicoesCompactas(List<Size> tamanhos, double largura) {
         if (left < bloqueioDireito) left = bloqueioDireito;
       }
       if (left + cardWidth <= largura) {
-        posicao = Offset(left, top);
-        break;
+        primeiraAlturaDisponivel ??= top;
+        if (posicao == null || left < posicao.dx) {
+          posicao = Offset(left, top);
+        }
+        if (top == 0 || left == 0) break;
       }
     }
 
