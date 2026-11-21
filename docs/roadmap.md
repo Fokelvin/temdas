@@ -30,6 +30,7 @@ permanecem nas respectivas seções e documentos históricos.
 - **P2 / Demandas e Backlog:** UX-P2-06, UX-P2-07 e BACKLOG-P2-01.
 - **P2 / Sprints:** SPR-P2-01 e gerenciamento de vínculos de Sprint em
   Demandas.
+- **P3 / To-dos:** FUNC-P3-06 e TODO-P3-07.
 - **P2 / Autenticação e interface:** UX-AUTH-03, UX-AUTH-04, AUTH-P2-01,
   AUTH-P2-02, UI-P2-04 e UI-P2-05.
 - **Pacotes visuais:** Pacote 4, Pacote 5 e Pacote 6.
@@ -48,7 +49,6 @@ permanecem nas respectivas seções e documentos históricos.
 - **ORG-P3-03 — Membros e permissões por organização.**
 - **AUTH-P3-04 — Recuperação controlada de MFA e evolução do perfil.**
 - **UI-P2-08 — Navegação por links reais nas ações de navegação.**
-- **TODO-P3-07 — Exibir o nome da Demanda vinculada nos To-dos.**
 
 - **INF-03 — comprovação de `verify-full` pelo cliente Serverpod.**
 - **PROD-05 — monitoramento, custos e segurança operacional.**
@@ -620,7 +620,7 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
 - **Contexto:** To-dos podem ser vinculados opcionalmente a uma Demanda, mas o
   card atual não deixa claro visualmente a qual Demanda o item pertence.
 - **Prioridade:** P3 — refinamento da funcionalidade de To-dos.
-- **Estado:** Aprovado / pendente.
+- **Estado:** **Concluído e homologado em produção em 21/11/2026**. Entrega principal no commit [`d7b3203`](https://github.com/Fokelvin/temdas/commit/d7b3203385a052edd5104225c30b1280ea890953); refinamentos de título e layout nos commits [`3f58f88`](https://github.com/Fokelvin/temdas/commit/3f58f8836911126659b7f2094bbc703d64d90172) e [`abc4e7a`](https://github.com/Fokelvin/temdas/commit/abc4e7a0a328dfd84c948e6bd1a28a6625c93b52).
 - **Descrição:** quando um To-do possuir vínculo com uma Demanda, exibir no
   próprio card o nome da Demanda vinculada, mantendo a informação visível de
   forma compacta e sem competir com o conteúdo principal do post-it.
@@ -632,6 +632,8 @@ AUTH-P2-01 teve sua antecipação aprovada para o pacote conjunto com UX-AUTH-04
   a Demanda associada; a informação permanece legível nos diferentes tamanhos
   de post-it, temas e layouts responsivos; nenhum dado é duplicado ou persistido
   apenas para apresentação.
+- **Entregue:** nome da Demanda vinculado e clicável no topo do post-it; busca de Demandas com hierarquia de mães/filhas conforme Log Time; título próprio opcional com edição inline, aproveitamento integral da largura disponível e tooltip do texto completo; distribuição compacta bidimensional priorizando esquerda → direita, preservando redimensionamento e Drag and Drop.
+- **Validação final:** 14 testes Flutter aprovados, análise estática e build Web PROD aprovados; [workflow Cloudflare](https://github.com/Fokelvin/temdas/actions/runs/44866302376) concluído com sucesso e bundle servido correspondente ao build validado. Organização visual homologada pelo usuário em produção.
 
 ## Infraestrutura e débitos técnicos
 
